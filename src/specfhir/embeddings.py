@@ -2,8 +2,10 @@
 
 import hashlib
 import json
+import shutil
 import sqlite3
 import sys
+import tempfile
 from functools import lru_cache
 from importlib.metadata import version
 from itertools import batched
@@ -13,6 +15,7 @@ import numpy as np
 from huggingface_hub import snapshot_download
 from tokenizers import Tokenizer
 
+from specfhir.config import digest
 from specfhir.files import checksum
 from specfhir.models import Error
 
@@ -28,6 +31,43 @@ FILES = (
     "vocab.txt",
 )
 DIMENSIONS = 384
+# Bump for spool changes; also bump db.SCHEMA_VERSION if published content changes.
+PREPARATION_VERSION = 1
+
+
+def cache_key(pin: dict) -> str:
+    return "embedding-" + digest({"pin": pin, "format": PREPARATION_VERSION})
+
+
+def prepare_cached(work: Path, source: Path, pin: dict):
+    """Reuse verified embedded passages within an exact package-preparation entry."""
+    target = source.parent / cache_key(pin)
+    try:
+        metadata = json.loads((target / "metadata.json").read_text())
+        if checksum(target / "artifacts.documents") == metadata["sha256"]:
+            counts = metadata["counts"]
+            return (
+                target / "artifacts.documents",
+                {**counts, "embedding_cache_hits": counts["embeddings"]},
+                True,
+            )
+    except (OSError, ValueError, KeyError, TypeError):
+        pass
+    with tempfile.TemporaryDirectory(dir=source.parent) as temporary:
+        staging = Path(temporary) / "prepared"
+        staging.mkdir()
+        spool = staging / "artifacts.jsonl"
+        shutil.copyfile(source, spool)
+        shutil.copyfile(source.with_suffix(".documents"), spool.with_suffix(".documents"))
+        counts = prepare(work, spool, pin)
+        spool.unlink()
+        (staging / "metadata.json").write_text(
+            json.dumps({"counts": counts, "sha256": checksum(spool.with_suffix(".documents"))})
+        )
+        if target.exists():
+            shutil.rmtree(target)
+        staging.replace(target)
+    return target / "artifacts.documents", counts, False
 
 
 def pin_model(work: Path, settings, previous: dict | None, update: bool) -> dict:

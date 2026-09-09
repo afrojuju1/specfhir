@@ -549,3 +549,56 @@ PAS 2.0.1/2.1.0 and CRD 2.2.1 acceptance passed. The live index records 75,063
 reference occurrences; checking and persisting them took 15.596 seconds within
 publication. An unchanged sync took 4.594 seconds and reused both findings and the
 validator snapshot. Status totals and coverage limits are documented in README.md.
+
+## Embedding preparation reuse and measured retrieval tuning (implemented and verified)
+
+Keep the pinned BGE-small model, exact vector search, source provenance, and
+package/version isolation. Cache completed embedded document spools inside the
+existing exact-package preparation entries, keyed by the complete embedding pin
+and embedding-preparation format. Verify cached output checksums; rebuild corrupt
+entries atomically. Merge local artifact IDs through the existing spool path.
+Keep current-invocation cache counts and stage timings separate from dataset identity.
+
+Use transaction-local sort memory for exact semantic ranking and skip lexical SQL
+in semantic-only mode. Retain the original ranking SQL: the more complex scoped
+rewrite did not outperform it. Expand the existing benchmark with PAS/CRD cases,
+semantic-only measurements, exact package checks, top-50 rank diagnostics, and
+complete top-five results for before/after comparison. No model switch, approximate
+index, new service, or changed ranking policy is part of this work.
+
+Measured results and limitations are recorded in PHASE3_VALIDATION.md. Acceptance
+requires identical preparation spools and retrieval results, cache corruption and
+format-invalidation checks, and the repository regression suite.
+
+Verified: all 20 tests with live index/validator smoke checks, Ruff, Pyright, and
+formatting passed. Cached preparation was 20 times faster; median semantic and
+hybrid retrieval improved about 28% and 27% across the expanded 15-query set.
+All five preparation spools and all 45 top-five result lists matched the baseline.
+
+## Retrieval diagnosis, build measurements, and explicit cache cleanup (implemented and verified)
+
+Use one project lock path for custom configuration filenames across sync,
+inventory, page discovery, validator setup, and validation. Exercise the existing
+validator lifecycle and inventory tests with a custom filename.
+
+Investigate the remaining prose misses against actual indexed passages. Do not
+invent FHIR synonyms or change rankings to fit examples. Record failed experiments
+as such. Expand the existing retrieval benchmark with request/response questions,
+exact-version requirements, wrong-version lookups, and unavailable targets. Keep
+negative exact lookups separate from ranked prose search, which does not claim
+that a nearest match proves the requested definition exists.
+
+Add build measurement mode to the existing benchmark: model initialization,
+uncached sample inference, full cached rebuild, and unchanged sync. Add explicit
+`sync --rebuild` and `sync --prune-cache` options. Cleanup shares preparation/model
+cache identities with their producers, runs under the sync lock only after success,
+and preserves current entries, source downloads, validator snapshots, unknown files,
+and symlinks. Remove obsolete local derived caches after verifying those boundaries.
+
+Verified: 21 tests, eight exact lookup checks, Ruff, Pyright, and formatting passed.
+The 19-query prose evaluation reports 17/19 hybrid top-five hits; the diagnosed
+misses remain. A full cached rebuild took 129.879 seconds, with 114.819 seconds in
+publication. The 512-passage uncached inference sample measured 70.2 passages/s.
+Explicit cleanup removed 2.59 GiB of obsolete prepared/vector cache files while
+retaining the current ready validator snapshot. See PHASE3_VALIDATION.md for scope,
+measurement limits, and evidence paths.

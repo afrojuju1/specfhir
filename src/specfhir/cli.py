@@ -44,13 +44,15 @@ def sync(
     config: ConfigOption = Path("specfhir.toml"),
     update_lock: bool = False,
     with_validator: bool = False,
+    rebuild: bool = False,
+    prune_cache: bool = False,
     as_json: Annotated[bool, typer.Option("--json")] = False,
 ):
     """Download pinned packages and atomically rebuild the structured index."""
 
     def operation():
         started = time.monotonic()
-        result = index.sync(config, update_lock=update_lock)
+        result = index.sync(config, update_lock=update_lock, rebuild=rebuild, prune=prune_cache)
         if with_validator:
             stage = time.monotonic()
             result["validator"] = validator.refresh(config)

@@ -17,7 +17,7 @@ from specfhir.models import Lock
 
 
 def test_validator_lifecycle(tmp_path, database, monkeypatch):
-    config = tmp_path / "specfhir.toml"
+    config = tmp_path / "custom.toml"
     config.write_text(
         'packages=["example.patient#1.0.0"]\ndefault_package="example.patient#1.0.0"\n'
     )
@@ -113,9 +113,9 @@ def test_real_validator_and_mcp(tmp_path, database):
             "WHERE resource_id IN ('Patient','us-core-patient')"
         )
     repo = Path(__file__).resolve().parents[1]
-    config = tmp_path / "specfhir.toml"
+    config = tmp_path / "custom.toml"
     shutil.copyfile(repo / "specfhir.toml", config)
-    shutil.copyfile(repo / "specfhir.lock", config.with_suffix(".lock"))
+    shutil.copyfile(repo / "specfhir.lock", config.with_name("specfhir.lock"))
     (tmp_path / ".specfhir").symlink_to(repo / ".specfhir", target_is_directory=True)
     valid = {
         "resourceType": "Patient",

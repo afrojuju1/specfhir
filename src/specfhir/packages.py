@@ -9,7 +9,7 @@ from typing import Any
 
 import httpx
 
-from specfhir.config import Config, split_key
+from specfhir.config import Config, lock_path, split_key
 from specfhir.files import checksum as file_checksum
 from specfhir.files import download
 from specfhir.models import Error, Lock, PackagePin
@@ -201,10 +201,10 @@ def versions(name: str) -> dict:
 def inventory(config_path: Path) -> dict:
     """Report published coverage and whether the validator matches the current lock."""
     from specfhir import db, validator
-    from specfhir.config import digest, load
+    from specfhir.config import digest, load, lock_path
 
     config = load(config_path)
-    lock = Lock.model_validate_json(config_path.with_name("specfhir.lock").read_bytes())
+    lock = Lock.model_validate_json(lock_path(config_path).read_bytes())
     expected = validator.snapshot_identity(lock, config.default_package)
     with db.connect() as conn:
         state = conn.execute("SELECT metadata FROM index_state").fetchone()
@@ -242,7 +242,7 @@ def pages(key: str, config_path: Path) -> dict:
     split_key(key)
     config_path = config_path.resolve()
     config = load(config_path)
-    lock = Lock.model_validate_json(config_path.with_name("specfhir.lock").read_bytes())
+    lock = Lock.model_validate_json(lock_path(config_path).read_bytes())
     pin = next((p for p in lock.packages if p.key == key), None)
     if pin is None:
         raise Error(f"Package is not locked: {key}; run sync first")

@@ -665,3 +665,36 @@ An unchanged sync with validator verification took 4.594 seconds, reused the sam
 findings and validator snapshot, and reported zero extraction, embedding,
 publication, and reference-check time. The 20-test suite (including real index and
 validator smoke checks), Ruff, Pyright, and all 37 documentation checks passed.
+
+Completed embedded passages are now cached inside each exact package-preparation
+entry, keyed by the complete model pin and preparation format. Checksums protect
+reuse; corrupt entries regenerate. Rebuilds report `embedding_preparation_cache`
+hits/misses, while unchanged syncs report zero work. Extraction timing includes
+spool merging; embedding timing covers preparation or verification of cached
+embedded passages. No embedding values or retrieval ranking rules changed.
+Measured repeat-preparation and retrieval improvements, disk/memory tradeoffs,
+and the expanded benchmark are documented in [PHASE3_VALIDATION.md](PHASE3_VALIDATION.md).
+
+All commands use one `specfhir.lock` beside the selected configuration, including
+`--config custom.toml`. To measure a complete rebuild or explicitly remove obsolete
+derived caches, use the existing sync command:
+
+```sh
+uv run specfhir sync --rebuild --with-validator --json
+uv run specfhir sync --prune-cache --with-validator --json
+uv run python scripts/benchmark_search.py
+uv run python scripts/benchmark_search.py --build
+```
+
+`--rebuild` republishes the same locked inputs through the normal atomic path.
+`--prune-cache` runs only after successful synchronization, while holding the sync
+lock. It removes recognized obsolete package-preparation generations, obsolete
+embedded-passage generations, and old vector-cache SQLite files. It keeps current
+lock/model/format entries and skips symlinks and unknown names. Source packages,
+publications, model downloads, and validator snapshots remain intact. Cleanup is
+explicit; ordinary sync never prunes caches.
+
+The default benchmark is read-only and reports prose retrieval plus exact-version
+and unavailable-target checks. `--build` instead measures model loading, uncached
+inference on 512 existing passages, a complete cached rebuild, and unchanged sync.
+The inference sample bypasses the vector cache; it is not a full cold corpus build.

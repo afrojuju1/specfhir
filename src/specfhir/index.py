@@ -12,7 +12,7 @@ from typing import Any
 from psycopg.types.json import Jsonb
 
 from specfhir import db, documents, embeddings, references
-from specfhir.config import digest, load
+from specfhir.config import digest, load, lock_path
 from specfhir.files import checksum
 from specfhir.models import RESOURCE_TYPES, Error, Lock
 from specfhir.packages import (
@@ -188,13 +188,71 @@ def prepare_package(lock: Lock, cache: Path, spool: Path) -> dict[str, Any]:
 PREPARATION_VERSION = 2
 
 
+def preparation_key(pin, pages):
+    return digest(
+        {
+            "key": pin.key,
+            "archive": pin.sha256,
+            "documents": [d.model_dump() for d in pages],
+            "version": PREPARATION_VERSION,
+        }
+    )
+
+
+def prune_cache(lock: Lock, work: Path) -> dict:
+    """Remove only recognized obsolete derived caches, while sync holds its lock."""
+    import re
+
+    keep = {
+        preparation_key(p, [d for d in lock.documents if d.package == p.key]) for p in lock.packages
+    }
+    current_embedding = embeddings.cache_key(lock.embedding) if lock.embedding else None
+    obsolete = []
+    for path in () if (work / "prepared").is_symlink() else (work / "prepared").glob("*"):
+        if path.is_symlink() or not path.is_dir() or not re.fullmatch(r"[0-9a-f]{64}", path.name):
+            continue
+        if path.name not in keep:
+            obsolete.append(path)
+        else:
+            obsolete.extend(
+                p
+                for p in path.glob("embedding-*")
+                if p.is_dir()
+                and not p.is_symlink()
+                and re.fullmatch(r"embedding-[0-9a-f]{64}", p.name)
+                and p.name != current_embedding
+            )
+    active_vectors = digest(lock.embedding) + ".sqlite" if lock.embedding else None
+    obsolete.extend(
+        p
+        for p in (() if (work / "models").is_symlink() else (work / "models").glob("*.sqlite"))
+        if p.is_file()
+        and not p.is_symlink()
+        and re.fullmatch(r"[0-9a-f]{64}\.sqlite", p.name)
+        and p.name != active_vectors
+    )
+    reclaimed = 0
+    for path in obsolete:
+        reclaimed += (
+            sum(p.stat().st_size for p in path.rglob("*") if p.is_file() and not p.is_symlink())
+            if path.is_dir()
+            else path.stat().st_size
+        )
+        if path.is_dir():
+            shutil.rmtree(path)
+        else:
+            path.unlink()
+    return {"removed_entries": len(obsolete), "reclaimed_bytes": reclaimed}
+
+
 def prepare(lock: Lock, cache: Path, spool: Path) -> dict[str, Any]:
     """Reuse verified package projections, remapping local artifact IDs while streaming."""
     root = cache.parent / "prepared"
     root.mkdir(exist_ok=True)
     counts: Counter[str] = Counter()
     inventory = []
-    hits = 0
+    hits = embedded_hits = embedded_misses = 0
+    embedding_seconds = 0.0
     suffixes = (".jsonl", ".documents", ".elements", ".references", ".excluded")
     for suffix in suffixes:
         spool.with_suffix(suffix).write_text("")
@@ -205,14 +263,7 @@ def prepare(lock: Lock, cache: Path, spool: Path) -> dict[str, Any]:
         for page in pages:
             if checksum(cache.parent / "documents" / f"{page.sha256}.html") != page.sha256:
                 raise Error(f"Documentation checksum differs: {page.url}")
-        identity = digest(
-            {
-                "key": pin.key,
-                "archive": pin.sha256,
-                "documents": [d.model_dump() for d in pages],
-                "version": PREPARATION_VERSION,
-            }
-        )
+        identity = preparation_key(pin, pages)
         target = root / identity
         metadata = None
         try:
@@ -246,10 +297,22 @@ def prepare(lock: Lock, cache: Path, spool: Path) -> dict[str, Any]:
         else:
             hits += 1
         summary = metadata["summary"]
+        document_path = target / "artifacts.documents"
+        if lock.embedding:
+            started = time.monotonic()
+            document_path, embedded_counts, reused = embeddings.prepare_cached(
+                cache.parent, target / "artifacts.jsonl", lock.embedding
+            )
+            embedding_seconds += time.monotonic() - started
+            embedded_hits += reused
+            embedded_misses += not reused
+            summary = {**summary, "counts": {**summary["counts"], **embedded_counts}}
         offset = counts["artifacts"]
         for suffix in suffixes:
             with (
-                (target / ("artifacts" + suffix)).open() as source,
+                (
+                    document_path if suffix == ".documents" else target / ("artifacts" + suffix)
+                ).open() as source,
                 spool.with_suffix(suffix).open("a") as output,
             ):
                 for line in source:
@@ -269,6 +332,8 @@ def prepare(lock: Lock, cache: Path, spool: Path) -> dict[str, Any]:
         "inventory": inventory,
         "counts": dict(counts),
         "preparation_cache": {"hits": hits, "misses": len(lock.packages) - hits},
+        "embedding_preparation_cache": {"hits": embedded_hits, "misses": embedded_misses},
+        "embedding_seconds": embedding_seconds,
     }
 
 
@@ -352,13 +417,19 @@ def publish(conn, lock: Lock, spool: Path, identity: str, summary: dict[str, Any
     return reference_seconds
 
 
-def sync(config_path: Path = Path("specfhir.toml"), *, update_lock: bool = False) -> dict[str, Any]:
+def sync(
+    config_path: Path = Path("specfhir.toml"),
+    *,
+    update_lock: bool = False,
+    rebuild: bool = False,
+    prune: bool = False,
+) -> dict[str, Any]:
     started = time.monotonic()
     timings = {}
     config_path = config_path.resolve()
     work = config_path.parent / ".specfhir"
     work.mkdir(exist_ok=True)
-    lock_path = config_path.with_name("specfhir.lock")
+    project_lock = lock_path(config_path)
     with db.connect() as conn:
         # ponytail: one database-wide sync lock; scope by schema if concurrent indexes are needed.
         acquired = conn.execute(
@@ -369,7 +440,7 @@ def sync(config_path: Path = Path("specfhir.toml"), *, update_lock: bool = False
         # Read config/lock only after acquiring the session lock to prevent stale writers.
         config = load(config_path)
         config_bytes = config_path.read_bytes()
-        lock_bytes = lock_path.read_bytes() if lock_path.exists() else None
+        lock_bytes = project_lock.read_bytes() if project_lock.exists() else None
         existing = Lock.model_validate_json(lock_bytes) if lock_bytes else None
         previous = existing if not update_lock else None
         stage = time.monotonic()
@@ -393,12 +464,13 @@ def sync(config_path: Path = Path("specfhir.toml"), *, update_lock: bool = False
         identity = digest({"lock": lock.model_dump(), "schema": db.SCHEMA_VERSION})
         conn.execute(db.DDL)
         state = conn.execute("SELECT * FROM index_state").fetchone()
-        if state and state["identity"] == identity:
+        if state and state["identity"] == identity and not rebuild:
             if previous is None:
-                save_lock(lock_path, lock)
+                save_lock(project_lock, lock)
             metadata = dict(state["metadata"])
             metadata.pop("preparation_seconds", None)
             metadata["preparation_cache"] = {"hits": 0, "misses": 0}
+            metadata["embedding_preparation_cache"] = {"hits": 0, "misses": 0}
             timings.update(
                 extraction_seconds=0.0,
                 embedding_seconds=0.0,
@@ -406,33 +478,35 @@ def sync(config_path: Path = Path("specfhir.toml"), *, update_lock: bool = False
                 analyze_seconds=0.0,
                 reference_seconds=0.0,
             )
+            if prune:
+                metadata["cache_cleanup"] = prune_cache(lock, work)
             timings["total_seconds"] = round(time.monotonic() - started, 3)
             return {"status": "unchanged", **metadata, "timings": timings}
         with tempfile.TemporaryDirectory(dir=work) as temporary:
             spool = Path(temporary) / "artifacts.jsonl"
             stage = time.monotonic()
             summary = prepare(lock, work / "packages", spool)
-            timings["extraction_seconds"] = round(time.monotonic() - stage, 3)
+            embedding_seconds = summary.pop("embedding_seconds")
+            timings["extraction_seconds"] = round(time.monotonic() - stage - embedding_seconds, 3)
+            timings["embedding_seconds"] = round(embedding_seconds, 3)
             summary["lock_digest"] = digest(lock.model_dump())
             summary["roots"] = lock.roots
             summary["schema_version"] = db.SCHEMA_VERSION
             summary["embedding"] = lock.embedding
-            stage = time.monotonic()
-            if lock.embedding:
-                summary["counts"].update(embeddings.prepare(work, spool, lock.embedding))
-            timings["embedding_seconds"] = round(time.monotonic() - stage, 3)
             if (
                 config_path.read_bytes() != config_bytes
-                or (lock_path.read_bytes() if lock_path.exists() else None) != lock_bytes
+                or (project_lock.read_bytes() if project_lock.exists() else None) != lock_bytes
             ):
                 raise Error("Configuration or lock changed during sync; retry")
             # A failed publication may leave a pending lock, never mislabel old DB content.
-            save_lock(lock_path, lock)
+            save_lock(project_lock, lock)
             stage = time.monotonic()
             timings["reference_seconds"] = publish(conn, lock, spool, identity, summary)
             timings["publication_seconds"] = round(time.monotonic() - stage, 3)
         stage = time.monotonic()
         conn.execute("ANALYZE")
         timings["analyze_seconds"] = round(time.monotonic() - stage, 3)
+        if prune:
+            summary["cache_cleanup"] = prune_cache(lock, work)
     timings["total_seconds"] = round(time.monotonic() - started, 3)
     return {"status": "synced", **summary, "timings": timings}

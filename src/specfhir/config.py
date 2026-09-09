@@ -75,6 +75,11 @@ class Config(BaseModel):
         return self
 
 
+def lock_path(config_path: Path) -> Path:
+    """One project lock beside any explicitly named configuration file."""
+    return config_path.with_name("specfhir.lock")
+
+
 def load(path: Path) -> Config:
     with path.open("rb") as stream:
         return Config.model_validate(tomllib.load(stream))

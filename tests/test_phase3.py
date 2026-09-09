@@ -6,7 +6,8 @@ import pytest
 from test_phase1 import archive, profile
 
 from specfhir import db, embeddings, index, search
-from specfhir.models import Error
+from specfhir.files import checksum
+from specfhir.models import Error, Lock
 
 
 def test_fusion_and_vector_validation():
@@ -67,6 +68,31 @@ def test_real_model_atomicity_and_modes(tmp_path, database, monkeypatch):
     assert report["counts"]["embeddings"] > 0
     assert search.resolve("Patient.id", config_path=config) == exact
     assert index.sync(config)["status"] == "unchanged"
+    locked = Lock.model_validate_json(config.with_suffix(".lock").read_bytes())
+    spool = tmp_path / "prepared.jsonl"
+    original_prepare = embeddings.prepare
+    with monkeypatch.context() as patch:
+        patch.setattr(embeddings, "prepare", lambda *a: pytest.fail("Repeated preparation"))
+        reused = index.prepare(locked, cache, spool)
+    assert reused["embedding_preparation_cache"] == {"hits": 2, "misses": 0}
+    expected = checksum(spool.with_suffix(".documents"))
+    cached = next((cache.parent / "prepared").glob("*/embedding-*/artifacts.documents"))
+    cached.write_text("corrupt")
+    repaired = index.prepare(locked, cache, spool)
+    assert repaired["embedding_preparation_cache"] == {"hits": 1, "misses": 1}
+    assert checksum(spool.with_suffix(".documents")) == expected
+    with monkeypatch.context() as patch:
+        patch.setattr(embeddings, "PREPARATION_VERSION", embeddings.PREPARATION_VERSION + 1)
+        calls = []
+
+        def record(*args):
+            calls.append(args)
+            return original_prepare(*args)
+
+        patch.setattr(embeddings, "prepare", record)
+        changed = index.prepare(locked, cache, spool)
+        assert changed["embedding_preparation_cache"] == {"hits": 0, "misses": 2}
+        assert len(calls) == 2 and checksum(spool.with_suffix(".documents")) == expected
     for mode in ("semantic", "hybrid"):
         result = search.search(
             "Help someone who cannot speak the local language", mode=mode, config_path=config

@@ -11,7 +11,7 @@ import httpx
 import psycopg
 
 from specfhir import db, search
-from specfhir.config import digest, load
+from specfhir.config import digest, load, lock_path
 from specfhir.files import checksum
 from specfhir.models import Error, Lock, Result
 from specfhir.packages import (
@@ -50,7 +50,7 @@ def snapshot_identity(lock: Lock, default_package: str) -> str:
 def setup(config_path: Path = Path("specfhir.toml")) -> dict:
     """Prepare an immutable package snapshot; Compose owns the pinned Java runtime."""
     config = load(config_path)
-    lock = Lock.model_validate_json(config_path.with_suffix(".lock").read_bytes())
+    lock = Lock.model_validate_json(lock_path(config_path).read_bytes())
     if lock.roots != sorted(config.packages):
         raise Error("Lock/config mismatch; run sync")
     work = config_path.resolve().parent / ".specfhir"
@@ -167,7 +167,7 @@ def validate(
         endpoint = config.validator.terminology_endpoint
         if terminology_mode == "online" and not endpoint:
             raise Error("Online terminology requires validator.terminology_endpoint in config")
-        lock = Lock.model_validate_json(config_path.with_suffix(".lock").read_bytes())
+        lock = Lock.model_validate_json(lock_path(config_path).read_bytes())
         if lock.roots != sorted(config.packages):
             raise Error("Lock/config mismatch; run sync")
         with db.connect() as conn, conn.transaction():
@@ -383,7 +383,7 @@ def refresh(config_path: Path) -> dict:
     if not (project / "compose.yaml").is_file():
         raise Error("Coordinated refresh requires compose.yaml beside the configuration")
     config = load(config_path)
-    lock = Lock.model_validate_json(config_path.with_name("specfhir.lock").read_bytes())
+    lock = Lock.model_validate_json(lock_path(config_path).read_bytes())
     expected = snapshot_identity(lock, config.default_package)
     status = health(config.validator.service_url)
     if (

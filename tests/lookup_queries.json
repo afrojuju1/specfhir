@@ -1,0 +1,46 @@
+[
+  {
+    "selector": "PASClaimInquiry.identifier",
+    "package": "hl7.fhir.us.davinci-pas#2.0.1",
+    "status": "ok",
+    "min": 0
+  },
+  {
+    "selector": "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/profile-claim-inquiry|2.1.0",
+    "package": "hl7.fhir.us.davinci-pas#2.0.1",
+    "status": "not_found"
+  },
+  {
+    "selector": "PASClaimInquiry.identifier",
+    "package": "hl7.fhir.us.davinci-pas#2.1.0",
+    "status": "ok",
+    "min": 1
+  },
+  {
+    "selector": "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/profile-claim-inquiry|2.0.1",
+    "package": "hl7.fhir.us.davinci-pas#2.1.0",
+    "status": "not_found"
+  },
+  {
+    "selector": "CRDServiceRequest.authoredOn",
+    "package": "hl7.fhir.us.davinci-crd#2.2.1",
+    "status": "ok",
+    "min": 1
+  },
+  {
+    "selector": "CRDDeviceRequest.status",
+    "package": "hl7.fhir.us.davinci-crd#2.2.1",
+    "status": "ok",
+    "min": 1
+  },
+  {
+    "selector": "https://example.invalid/StructureDefinition/unavailable",
+    "package": "hl7.fhir.us.davinci-pas#2.1.0",
+    "status": "not_found"
+  },
+  {
+    "selector": "Patient",
+    "package": "hl7.fhir.us.davinci-dtr#999.0.0",
+    "status": "not_found"
+  }
+]

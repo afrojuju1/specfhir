@@ -2,7 +2,7 @@ import json
 
 import httpx
 import pytest
-from test_phase1 import archive
+from test_phase1 import archive, profile
 from typer.testing import CliRunner
 
 from specfhir import index, packages, search, validator
@@ -11,7 +11,7 @@ from specfhir.models import Result
 
 
 def test_package_inventory_and_versioned_capabilities(tmp_path, database, monkeypatch):
-    config = tmp_path / "specfhir.toml"
+    config = tmp_path / "custom.toml"
     roots = ["example.guide#1.0.0", "example.guide#2.0.0"]
     config.write_text(f'packages={json.dumps(roots)}\ndefault_package="{roots[0]}"\n')
     for key in roots:
@@ -95,10 +95,10 @@ def test_build_manifest_results(tmp_path, monkeypatch):
 def test_refresh_failure_is_explicit(tmp_path, monkeypatch):
     import subprocess
 
-    config = tmp_path / "specfhir.toml"
+    config = tmp_path / "custom.toml"
     config.write_text('packages=["example.guide#1.0.0"]\ndefault_package="example.guide#1.0.0"\n')
     (tmp_path / "compose.yaml").write_text("services: {}\n")
-    config.with_suffix(".lock").write_text('{"roots":["example.guide#1.0.0"],"packages":[]}')
+    config.with_name("specfhir.lock").write_text('{"roots":["example.guide#1.0.0"],"packages":[]}')
     monkeypatch.setattr(validator, "setup", lambda path: {"snapshot_id": "expected"})
     calls = []
 
@@ -121,7 +121,7 @@ def test_refresh_failure_is_explicit(tmp_path, monkeypatch):
     from specfhir.models import Lock
 
     expected = validator.snapshot_identity(
-        Lock.model_validate_json(config.with_suffix(".lock").read_bytes()),
+        Lock.model_validate_json(config.with_name("specfhir.lock").read_bytes()),
         load(config).default_package,
     )
     monkeypatch.setattr(
@@ -465,3 +465,42 @@ def test_publication_discovery_pinning_and_offline_rebuild(tmp_path, database, m
     with pytest.raises(ValueError, match="Cached documentation checksum changed"):
         index.sync(config)
     assert documents.page_candidates(package_path, key)[1]["selected"]
+
+
+def test_explicit_cache_cleanup_preserves_current_and_unknown_data(tmp_path, database):
+    config = tmp_path / "custom.toml"
+    config.write_text('packages=["example#1.0.0"]\ndefault_package="example#1.0.0"\n')
+    work = tmp_path / ".specfhir"
+    archive(work / "packages", "example#1.0.0", [profile()])
+    first = index.sync(config)
+    current = next((work / "prepared").iterdir())
+    obsolete = work / "prepared" / ("0" * 64)
+    obsolete.mkdir()
+    (obsolete / "old").write_bytes(b"old")
+    unknown = work / "prepared" / "notes.txt"
+    unknown.write_text("retain")
+    outside = tmp_path / "shared"
+    outside.mkdir()
+    (outside / "keep").write_text("retain")
+    (work / "prepared" / ("1" * 64)).symlink_to(outside, target_is_directory=True)
+    stale_embedding = current / ("embedding-" + "0" * 64)
+    stale_embedding.mkdir()
+    (stale_embedding / "old").write_bytes(b"old")
+    (work / "models").mkdir()
+    old_vectors = work / "models" / ("0" * 64 + ".sqlite")
+    old_vectors.write_bytes(b"old")
+    source = work / "packages/example#1.0.0.tgz"
+    original = source.read_bytes()
+    source.write_bytes(b"corrupt")
+    with pytest.raises(ValueError, match="Checksum mismatch"):
+        index.sync(config, prune=True)
+    assert obsolete.exists()
+    source.write_bytes(original)
+    result = index.sync(config, prune=True)
+    assert result["status"] == "unchanged"
+    assert result["cache_cleanup"] == {"removed_entries": 3, "reclaimed_bytes": 9}
+    assert current.is_dir() and source.read_bytes() == original
+    assert unknown.read_text() == "retain" and (outside / "keep").read_text() == "retain"
+    assert not obsolete.exists() and not stale_embedding.exists() and not old_vectors.exists()
+    rebuilt = index.sync(config, rebuild=True)
+    assert rebuilt["status"] == "synced" and rebuilt["counts"] == first["counts"]

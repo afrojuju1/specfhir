@@ -317,47 +317,58 @@ def search(
                 "Semantic index unavailable; enable embeddings and run sync, or use lexical mode"
             )
         candidate_limit = limit if mode == "lexical" else 100
-        rows = conn.execute(
-            f"""
-            {db.SCOPE}, q AS (SELECT websearch_to_tsquery('english', %(query)s) AS terms),
-            candidates AS (
-                SELECT d.*, a.package_key,a.file_path,a.resource_type,a.resource_id,
-                       a.canonical,a.version,
-                       ts_rank_cd(d.search_vector,q.terms,32) AS score, 'fts' AS method
-                FROM documents d JOIN artifacts a ON a.id=d.artifact_id
-                JOIN scope s ON s.key=a.package_key CROSS JOIN q
-                WHERE d.search_vector @@ q.terms
-                  AND (%(type)s::text IS NULL OR a.resource_type=%(type)s)
-                UNION ALL
-                SELECT d.*, a.package_key,a.file_path,a.resource_type,a.resource_id,
-                       a.canonical,a.version,
-                       public.similarity(coalesce(a.name,'') || ' ' || coalesce(a.title,''),
-                                         %(query)s) * 0.1 AS score, 'fuzzy' AS method
-                FROM artifacts a JOIN scope s ON s.key=a.package_key
-                JOIN LATERAL (
-                    SELECT * FROM documents WHERE artifact_id=a.id
-                    ORDER BY (kind='description') DESC, pointer, chunk LIMIT 1
-                ) d ON true
-                WHERE (coalesce(a.name,'') || ' ' || coalesce(a.title,''))
-                      OPERATOR(public.%%) %(query)s
-                  AND (%(type)s::text IS NULL OR a.resource_type=%(type)s)
-            ), dedup AS (
-                SELECT *, row_number() OVER (
-                    PARTITION BY coalesce(canonical,resource_type || '/' || resource_id),
-                                 version,element_id,text_hash
-                    ORDER BY (package_key=%(package)s) DESC, score DESC,package_key,pointer,chunk
-                ) AS duplicate FROM candidates
-            )
-            SELECT *, left(text,1000) AS excerpt, length(text)>1000 AS truncated
-            FROM dedup WHERE duplicate=1
-            ORDER BY (package_key=%(package)s) DESC, score DESC,package_key,file_path,pointer,chunk
-            LIMIT %(limit)s
-        """,
-            {"package": context, "query": query, "type": resource_type, "limit": candidate_limit},
-        ).fetchall()
+        rows = []
+        if mode != "semantic":
+            rows = conn.execute(
+                f"""
+                {db.SCOPE}, q AS (SELECT websearch_to_tsquery('english', %(query)s) AS terms),
+                candidates AS (
+                    SELECT d.*, a.package_key,a.file_path,a.resource_type,a.resource_id,
+                           a.canonical,a.version,
+                           ts_rank_cd(d.search_vector,q.terms,32) AS score, 'fts' AS method
+                    FROM documents d JOIN artifacts a ON a.id=d.artifact_id
+                    JOIN scope s ON s.key=a.package_key CROSS JOIN q
+                    WHERE d.search_vector @@ q.terms
+                      AND (%(type)s::text IS NULL OR a.resource_type=%(type)s)
+                    UNION ALL
+                    SELECT d.*, a.package_key,a.file_path,a.resource_type,a.resource_id,
+                           a.canonical,a.version,
+                           public.similarity(coalesce(a.name,'') || ' ' || coalesce(a.title,''),
+                                             %(query)s) * 0.1 AS score, 'fuzzy' AS method
+                    FROM artifacts a JOIN scope s ON s.key=a.package_key
+                    JOIN LATERAL (
+                        SELECT * FROM documents WHERE artifact_id=a.id
+                        ORDER BY (kind='description') DESC, pointer, chunk LIMIT 1
+                    ) d ON true
+                    WHERE (coalesce(a.name,'') || ' ' || coalesce(a.title,''))
+                          OPERATOR(public.%%) %(query)s
+                      AND (%(type)s::text IS NULL OR a.resource_type=%(type)s)
+                ), dedup AS (
+                    SELECT *, row_number() OVER (
+                        PARTITION BY coalesce(canonical,resource_type || '/' || resource_id),
+                                     version,element_id,text_hash
+                        ORDER BY (package_key=%(package)s) DESC,
+                                 score DESC,package_key,pointer,chunk
+                    ) AS duplicate FROM candidates
+                )
+                SELECT *, left(text,1000) AS excerpt, length(text)>1000 AS truncated
+                FROM dedup WHERE duplicate=1
+                ORDER BY (package_key=%(package)s) DESC,
+                         score DESC,package_key,file_path,pointer,chunk
+                LIMIT %(limit)s
+            """,
+                {
+                    "package": context,
+                    "query": query,
+                    "type": resource_type,
+                    "limit": candidate_limit,
+                },
+            ).fetchall()
         if mode in {"semantic", "hybrid"}:
             values = embeddings.query_vector(config_path.resolve().parent / ".specfhir", pin, query)
             # ponytail: exact scoped scan; add ANN only if measured query latency requires it.
+            # Keep exact deduplication sorts in memory for the measured local package graph.
+            conn.execute("SET LOCAL work_mem = '64MB'")
             semantic = conn.execute(
                 f"""
                 {db.SCOPE}, candidates AS (

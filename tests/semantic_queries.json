@@ -1,5 +1,94 @@
 [
-  {"query":"How do I record that someone needs a translator at their medical appointment?","resource_id":"us-core-patient","element_id":"Patient.extension:interpreterRequired"},
-  {"query":"Which tongue should the care team use when speaking to this person?","resource_id":"us-core-patient","element_id":"Patient.communication.language"},
-  {"query":"Where can I put a person's medical record number?","resource_id":"us-core-patient","element_id":"Patient.identifier"}
+  {
+    "query": "How do I record that someone needs a translator at their medical appointment?",
+    "resource_id": "us-core-patient",
+    "element_id": "Patient.extension:interpreterRequired"
+  },
+  {
+    "query": "Which tongue should the care team use when speaking to this person?",
+    "resource_id": "us-core-patient",
+    "element_id": "Patient.communication.language"
+  },
+  {
+    "query": "Where can I put a person's medical record number?",
+    "resource_id": "us-core-patient",
+    "element_id": "Patient.identifier"
+  },
+  {
+    "query": "PAS claim inquiry business identifier",
+    "package": "hl7.fhir.us.davinci-pas#2.0.1",
+    "resource_type": "StructureDefinition",
+    "resource_id": "profile-claim-inquiry",
+    "element_id": "Claim.identifier"
+  },
+  {
+    "query": "prior authorization submission request response",
+    "package": "hl7.fhir.us.davinci-pas#2.0.1",
+    "resource_type": "Documentation",
+    "resource_id": "specification.html",
+    "element_id": null
+  },
+  {
+    "query": "PAS claim inquiry business identifier",
+    "package": "hl7.fhir.us.davinci-pas#2.1.0",
+    "resource_type": "StructureDefinition",
+    "resource_id": "profile-claim-inquiry",
+    "element_id": "Claim.identifier"
+  },
+  {
+    "query": "prior authorization submission request response",
+    "package": "hl7.fhir.us.davinci-pas#2.1.0",
+    "resource_type": "Documentation",
+    "resource_id": "specification.html",
+    "element_id": null
+  },
+  {
+    "query": "CRD device request status",
+    "package": "hl7.fhir.us.davinci-crd#2.2.1",
+    "resource_type": "StructureDefinition",
+    "resource_id": "profile-devicerequest",
+    "element_id": "DeviceRequest.status"
+  },
+  {
+    "query": "When was the CRD service request signed?",
+    "package": "hl7.fhir.us.davinci-crd#2.2.1",
+    "resource_type": "StructureDefinition",
+    "resource_id": "profile-servicerequest",
+    "element_id": "ServiceRequest.authoredOn"
+  },
+  {
+    "query": "order-sign hook coverage requirements",
+    "package": "hl7.fhir.us.davinci-crd#2.2.1",
+    "resource_type": "Documentation",
+    "resource_id": "hooks.html",
+    "element_id": null
+  },
+  {
+    "query": "Which bundle profile represents a PAS prior authorization request?",
+    "package": "hl7.fhir.us.davinci-pas#2.0.1",
+    "resource_type": "StructureDefinition",
+    "resource_id": "profile-pas-request-bundle",
+    "element_id": null
+  },
+  {
+    "query": "Which bundle profile represents a PAS prior authorization response?",
+    "package": "hl7.fhir.us.davinci-pas#2.0.1",
+    "resource_type": "StructureDefinition",
+    "resource_id": "profile-pas-response-bundle",
+    "element_id": null
+  },
+  {
+    "query": "Which bundle profile represents a PAS prior authorization request?",
+    "package": "hl7.fhir.us.davinci-pas#2.1.0",
+    "resource_type": "StructureDefinition",
+    "resource_id": "profile-pas-request-bundle",
+    "element_id": null
+  },
+  {
+    "query": "Which bundle profile represents a PAS prior authorization response?",
+    "package": "hl7.fhir.us.davinci-pas#2.1.0",
+    "resource_type": "StructureDefinition",
+    "resource_id": "profile-pas-response-bundle",
+    "element_id": null
+  }
 ]
