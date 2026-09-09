@@ -4,6 +4,7 @@
     "hl7.fhir.r4.core#4.0.1",
     "hl7.fhir.us.core#9.0.0",
     "hl7.fhir.us.davinci-crd#2.2.1",
+    "hl7.fhir.us.davinci-dtr#2.2.0",
     "hl7.fhir.us.davinci-pas#2.0.1",
     "hl7.fhir.us.davinci-pas#2.1.0"
   ],
@@ -116,6 +117,26 @@
       "dependency_resolutions": {}
     },
     {
+      "key": "hl7.fhir.us.davinci-cdex#2.1.0",
+      "url": "https://packages.fhir.org/hl7.fhir.us.davinci-cdex/2.1.0",
+      "sha256": "7c950274d8128934868254e1a620dd44d63d9f62bed36edaa70018b70cd1102d",
+      "dependencies": [
+        "hl7.fhir.r4.core#4.0.1",
+        "hl7.fhir.us.carin-bb#2.0.0",
+        "hl7.fhir.us.core#7.0.0",
+        "hl7.fhir.us.core.v311#3.1.1",
+        "hl7.fhir.us.core.v610#6.1.0",
+        "hl7.fhir.us.davinci-dtr#2.1.0",
+        "hl7.fhir.us.davinci-hrex#1.1.0",
+        "hl7.fhir.us.davinci-pas#2.1.0",
+        "hl7.fhir.uv.extensions.r4#5.1.0",
+        "hl7.fhir.uv.sdc#3.0.0",
+        "hl7.fhir.uv.subscriptions-backport.r4#1.1.0",
+        "hl7.terminology.r4#6.2.0"
+      ],
+      "dependency_resolutions": {}
+    },
+    {
       "key": "hl7.fhir.us.davinci-crd#2.0.0",
       "url": "https://packages.fhir.org/hl7.fhir.us.davinci-crd/2.0.0",
       "sha256": "1f86d290be80f568d9fac24b13f750607e3cf5e7f63a3916830f2d2857838796",
@@ -127,6 +148,23 @@
         "hl7.fhir.uv.sdc#3.0.0",
         "hl7.terminology.r4#5.3.0",
         "us.nlm.vsac#0.11.0"
+      ],
+      "dependency_resolutions": {}
+    },
+    {
+      "key": "hl7.fhir.us.davinci-crd#2.1.0",
+      "url": "https://packages.fhir.org/hl7.fhir.us.davinci-crd/2.1.0",
+      "sha256": "7f77431ec5b2bf9f0569a790c170f68104be208f8167b1368deb0d58a5ab82c4",
+      "dependencies": [
+        "hl7.fhir.r4.core#4.0.1",
+        "hl7.fhir.us.core#7.0.0",
+        "hl7.fhir.us.core.v311#3.1.1",
+        "hl7.fhir.us.core.v610#6.1.0",
+        "hl7.fhir.us.davinci-hrex#1.1.0",
+        "hl7.fhir.uv.extensions.r4#5.1.0",
+        "hl7.fhir.uv.sdc#3.0.0",
+        "hl7.terminology.r4#6.1.0",
+        "us.nlm.vsac#0.19.0"
       ],
       "dependency_resolutions": {}
     },
@@ -148,6 +186,43 @@
         "hl7.fhir.uv.xver-r5.r4#0.1.0",
         "hl7.terminology.r4#7.1.0",
         "us.nlm.vsac#0.19.0"
+      ],
+      "dependency_resolutions": {}
+    },
+    {
+      "key": "hl7.fhir.us.davinci-dtr#2.1.0",
+      "url": "https://packages.fhir.org/hl7.fhir.us.davinci-dtr/2.1.0",
+      "sha256": "4e6e1b3c26b41d75433cb3c16345272b59ec40d00667245d07610b74779df640",
+      "dependencies": [
+        "hl7.fhir.r4.core#4.0.1",
+        "hl7.fhir.us.core#7.0.0",
+        "hl7.fhir.us.core.v311#3.1.1",
+        "hl7.fhir.us.core.v610#6.1.0",
+        "hl7.fhir.us.davinci-crd#2.1.0",
+        "hl7.fhir.us.davinci-hrex#1.1.0",
+        "hl7.fhir.us.davinci-pas#2.1.0",
+        "hl7.fhir.uv.extensions.r4#5.1.0",
+        "hl7.fhir.uv.sdc#3.0.0",
+        "hl7.terminology.r4#6.1.0"
+      ],
+      "dependency_resolutions": {}
+    },
+    {
+      "key": "hl7.fhir.us.davinci-dtr#2.2.0",
+      "url": "https://packages.fhir.org/hl7.fhir.us.davinci-dtr/2.2.0",
+      "sha256": "027894027a86e3a250252ac61476f82ca509a2ed04dbd4bad0816d2e24f204ea",
+      "dependencies": [
+        "hl7.fhir.r4.core#4.0.1",
+        "hl7.fhir.us.core#7.0.0",
+        "hl7.fhir.us.core.v311#3.1.1",
+        "hl7.fhir.us.core.v610#6.1.0",
+        "hl7.fhir.us.davinci-crd#2.2.1",
+        "hl7.fhir.us.davinci-hrex#1.2.0",
+        "hl7.fhir.us.davinci-pas#2.2.1",
+        "hl7.fhir.uv.extensions.r4#5.3.0-ballot-tc1",
+        "hl7.fhir.uv.sdc#4.0.0",
+        "hl7.fhir.uv.tools.r4#1.1.2",
+        "hl7.terminology.r4#7.1.0"
       ],
       "dependency_resolutions": {}
     },
@@ -223,6 +298,27 @@
         "hl7.fhir.uv.sdc#3.0.0",
         "hl7.fhir.uv.subscriptions-backport.r4#1.1.0",
         "hl7.terminology.r4#6.1.0"
+      ],
+      "dependency_resolutions": {}
+    },
+    {
+      "key": "hl7.fhir.us.davinci-pas#2.2.1",
+      "url": "https://packages.fhir.org/hl7.fhir.us.davinci-pas/2.2.1",
+      "sha256": "da2aac8e480ce66fe27812af18e3c9bc190b08a33d5d7e1c850caf9097fb210e",
+      "dependencies": [
+        "hl7.fhir.r4.core#4.0.1",
+        "hl7.fhir.us.core#7.0.0",
+        "hl7.fhir.us.core.v311#3.1.1",
+        "hl7.fhir.us.core.v610#6.1.0",
+        "hl7.fhir.us.davinci-cdex#2.1.0",
+        "hl7.fhir.us.davinci-crd#2.2.1",
+        "hl7.fhir.us.davinci-hrex#1.2.0",
+        "hl7.fhir.uv.extensions.r4#5.2.0",
+        "hl7.fhir.uv.sdc#4.0.0",
+        "hl7.fhir.uv.subscriptions-backport.r4#1.1.0",
+        "hl7.fhir.uv.tools.r4#1.1.2",
+        "hl7.fhir.uv.xver-r5.r4#0.1.0",
+        "hl7.terminology.r4#7.1.0"
       ],
       "dependency_resolutions": {}
     },
@@ -879,6 +975,118 @@
       "sha256": "52cddda64220d261d87e5c6d4382a29b108e1da4331a78c6d78f02aae019b283",
       "publication": "https://hl7.org/fhir/us/davinci-crd/2.2.1/full-ig.zip",
       "member": "site/en/allartifacts.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-dtr#2.2.0",
+      "url": "https://hl7.org/fhir/us/davinci-dtr/2.2.0/en/index.html",
+      "title": "Documentation Templates and Rules Implementation Guide Home Page",
+      "sha256": "03cdd8c0eb4e3e80727211f3db0f624da3c153ee964f23079ac8b0a9325da5e1",
+      "publication": "https://hl7.org/fhir/us/davinci-dtr/2.2.0/full-ig.zip",
+      "member": "site/en/index.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-dtr#2.2.0",
+      "url": "https://hl7.org/fhir/us/davinci-dtr/2.2.0/en/usecases.html",
+      "title": "Use Cases",
+      "sha256": "4908775f8cecbcfea433db016992b6ec0472237cc0c0195f9a16b5d76cc40c7a",
+      "publication": "https://hl7.org/fhir/us/davinci-dtr/2.2.0/full-ig.zip",
+      "member": "site/en/usecases.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-dtr#2.2.0",
+      "url": "https://hl7.org/fhir/us/davinci-dtr/2.2.0/en/burden.html",
+      "title": "Burden Reduction",
+      "sha256": "d16911a5ba5fc28663bea4342c49bb10c6ddd284af9d0271de3e95b202cdc8e4",
+      "publication": "https://hl7.org/fhir/us/davinci-dtr/2.2.0/full-ig.zip",
+      "member": "site/en/burden.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-dtr#2.2.0",
+      "url": "https://hl7.org/fhir/us/davinci-dtr/2.2.0/en/changehistory.html",
+      "title": "Change History",
+      "sha256": "108971b5ae95f3bb4fb884b238798aa5c9b03bb886df9b9bfbb5312f5e4b7d2d",
+      "publication": "https://hl7.org/fhir/us/davinci-dtr/2.2.0/full-ig.zip",
+      "member": "site/en/changehistory.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-dtr#2.2.0",
+      "url": "https://hl7.org/fhir/us/davinci-dtr/2.2.0/en/background.html",
+      "title": "Reading this IG",
+      "sha256": "11a7986b67a961235bd6961ec794041889728b43fb2f085614e686f4bc40f837",
+      "publication": "https://hl7.org/fhir/us/davinci-dtr/2.2.0/full-ig.zip",
+      "member": "site/en/background.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-dtr#2.2.0",
+      "url": "https://hl7.org/fhir/us/davinci-dtr/2.2.0/en/epa.html",
+      "title": "Electronic Prior Authorization (ePA) Coordinators",
+      "sha256": "c650b9d39d9117560b5586d782e721f3a4067208b903f20af4e82c46da22affa",
+      "publication": "https://hl7.org/fhir/us/davinci-dtr/2.2.0/full-ig.zip",
+      "member": "site/en/epa.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-dtr#2.2.0",
+      "url": "https://hl7.org/fhir/us/davinci-dtr/2.2.0/en/operational.html",
+      "title": "Operational Considerations",
+      "sha256": "168bed3a116f5f0e02c3faa91fd6281727e88033a182bbc6b478f928cd9647c6",
+      "publication": "https://hl7.org/fhir/us/davinci-dtr/2.2.0/full-ig.zip",
+      "member": "site/en/operational.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-dtr#2.2.0",
+      "url": "https://hl7.org/fhir/us/davinci-dtr/2.2.0/en/confexpectations.html",
+      "title": "Conformance Expectations",
+      "sha256": "d75576f461ff66c21c2c9e2242bed63b5da9ec88d04f2e09659eb86685dd80ff",
+      "publication": "https://hl7.org/fhir/us/davinci-dtr/2.2.0/full-ig.zip",
+      "member": "site/en/confexpectations.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-dtr#2.2.0",
+      "url": "https://hl7.org/fhir/us/davinci-dtr/2.2.0/en/confdetails.html",
+      "title": "Conformance Details",
+      "sha256": "138226f71287c801fffa737a28f163a21d616a01396859c9b95667e740808a26",
+      "publication": "https://hl7.org/fhir/us/davinci-dtr/2.2.0/full-ig.zip",
+      "member": "site/en/confdetails.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-dtr#2.2.0",
+      "url": "https://hl7.org/fhir/us/davinci-dtr/2.2.0/en/specification.html",
+      "title": "Formal Specification",
+      "sha256": "27b92c34f787a7bec689719c1a233a47a22cb29955d2462b2e5cef402b13471e",
+      "publication": "https://hl7.org/fhir/us/davinci-dtr/2.2.0/full-ig.zip",
+      "member": "site/en/specification.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-dtr#2.2.0",
+      "url": "https://hl7.org/fhir/us/davinci-dtr/2.2.0/en/security.html",
+      "title": "Privacy, Security, and Safety",
+      "sha256": "8cd99eea61dac0701f41d20d2d5b973664f5cdf454c92371769644b5ed883f2b",
+      "publication": "https://hl7.org/fhir/us/davinci-dtr/2.2.0/full-ig.zip",
+      "member": "site/en/security.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-dtr#2.2.0",
+      "url": "https://hl7.org/fhir/us/davinci-dtr/2.2.0/en/metrics.html",
+      "title": "DTR Metrics",
+      "sha256": "13e11c3da9749198c8c2a5620b2e97ead25edc6c091558775e7453ebd4043e41",
+      "publication": "https://hl7.org/fhir/us/davinci-dtr/2.2.0/full-ig.zip",
+      "member": "site/en/metrics.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-dtr#2.2.0",
+      "url": "https://hl7.org/fhir/us/davinci-dtr/2.2.0/en/allartifacts.html",
+      "title": "FHIR Artifacts",
+      "sha256": "d2a7f73ef08a4dc3336ff46f5dc31d22cb4540debee235982b797201469d0233",
+      "publication": "https://hl7.org/fhir/us/davinci-dtr/2.2.0/full-ig.zip",
+      "member": "site/en/allartifacts.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-dtr#2.2.0",
+      "url": "https://hl7.org/fhir/us/davinci-dtr/2.2.0/en/issues.html",
+      "title": "Open Issues",
+      "sha256": "60dd5096c0685f8eac4ba4cb73a7081ac96ede1e0efb73da024de74afe1629a7",
+      "publication": "https://hl7.org/fhir/us/davinci-dtr/2.2.0/full-ig.zip",
+      "member": "site/en/issues.html"
     }
   ],
   "publications": [
@@ -899,6 +1107,12 @@
       "url": "https://hl7.org/fhir/us/davinci-crd/2.2.1/full-ig.zip",
       "page_prefix": "en/",
       "sha256": "8bae614c5f2cd5e9e2a922fd00488798142c892a90556fb9207aa61ecf06da4e"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-dtr#2.2.0",
+      "url": "https://hl7.org/fhir/us/davinci-dtr/2.2.0/full-ig.zip",
+      "page_prefix": "en/",
+      "sha256": "9c733b998bdf8f5c957b7938ea84b3965850699f383cb9848c38ce18b6441187"
     }
   ]
 }

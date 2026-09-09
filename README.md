@@ -698,3 +698,45 @@ The default benchmark is read-only and reports prose retrieval plus exact-versio
 and unavailable-target checks. `--build` instead measures model loading, uncached
 inference on 512 existing passages, a complete cached rebuild, and unchanged sync.
 The inference sample bypasses the vector cache; it is not a full cold corpus build.
+
+### DTR
+
+DTR `hl7.fhir.us.davinci-dtr#2.2.0` is an explicit R4 root. Its published dependency
+closure includes CRD 2.2.1 and PAS 2.2.1; PAS 2.0.1 and 2.1.0 remain explicit roots.
+Use `--package hl7.fhir.us.davinci-dtr#2.2.0` for DTR-scoped lookup, search, and
+validation. The default remains US Core 9.0.0.
+
+The existing index covers DTR profiles (including Questionnaire, QuestionnaireResponse,
+and operation parameter profiles), operations, terminology definitions, and pinned
+publication documentation. Profile links use the existing source-package reference
+checks. Published Questionnaire and Library **instances** live in the archive's
+example directory and are not indexed as conformance definitions. Their raw JSON
+can still be supplied to `validate`; DTR support does not execute CQL, render forms,
+run adaptive questionnaire operations, or prove end-to-end workflow conformance.
+Offline terminology limitations and upstream validation findings remain visible.
+
+Run `uv run python scripts/check_dtr.py` after `specfhir sync --with-validator`.
+It checks profile/operation retrieval, DTR-scoped workflow search, valid/invalid
+synthetic Questionnaire validation versus core R4, unmodified published examples,
+CLI/API/MCP parity, and inventory coherence. Evidence is written under
+`.specfhir/dtr-acceptance/` and stays out of Git.
+
+DTR onboarding evidence (2026-09-09): 50 supported top-level artifacts plus 14
+publication pages; the complete graph has 56 packages. DTR reference checks report
+551 resolved, 162 ambiguous, 1 excluded, and 31 unsupported occurrences. These
+counts expose retrieval coverage, not a claim that all links or semantics resolve.
+Three `Basic` instances, one top-level `Parameters`, and nested/example/metadata
+files are reported as skipped by the existing inventory.
+
+The synthetic standard Questionnaire passes with zero errors/warnings; removing
+`subjectType` produces one DTR error and zero core-R4 errors. Three of four published
+Questionnaire examples return zero errors; `referred-questionnaire` returns ten
+"Example URLs are not allowed" errors under the unchanged validator policy.
+Warnings and complete outcomes are retained in the acceptance report. This check
+validates examples using their supplied profiles; it does not assign a standard
+Questionnaire profile to every adaptive or unprofiled example.
+
+The initial expansion reused 51 preparation/embedding entries and prepared five.
+Sync took 189.141 seconds (48.132 embedding; 117.643 publication), followed by
+156.526 seconds to refresh the validator. These are one local onboarding run,
+not a performance comparison or a steady-state latency guarantee.

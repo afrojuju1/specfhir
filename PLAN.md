@@ -602,3 +602,27 @@ publication. The 512-passage uncached inference sample measured 70.2 passages/s.
 Explicit cleanup removed 2.59 GiB of obsolete prepared/vector cache files while
 retaining the current ready validator snapshot. See PHASE3_VALIDATION.md for scope,
 measurement limits, and evidence paths.
+
+## DTR onboarding
+
+Add DTR 2.2.0 (R4 4.0.1) as an exact root and pin its full publication with
+English page metadata. Preserve existing roots and default; resolve the published
+exact dependency closure, including PAS 2.2.1 alongside existing PAS versions.
+Reuse current extraction, scoped references, search, and HL7 validator contexts.
+Index DTR conformance definitions and metadata-selected documentation. Published
+Questionnaire/Library instances remain source examples, outside the top-level
+conformance index; do not introduce CQL execution or a questionnaire runtime.
+
+Acceptance: exact profile and operation retrieval, workflow search with source
+provenance, a valid synthetic Questionnaire and a DTR-specific invalid variant,
+core comparison, published-example findings retained unchanged, CLI/API/MCP parity,
+coherent inventory/validator snapshot, and existing PAS/CRD/documentation regressions.
+
+Verified: DTR 2.2.0 contributes 50 supported definitions and 14 pinned pages.
+All four MCP tools match the shared API; synthetic DTR/core comparisons and
+unmodified published-example checks passed. Published findings and reference
+coverage limits are recorded in README.md. PAS 2.0.1/2.1.0, CRD 2.2.1, and all
+51 documentation-page checks passed. Ruff, Pyright, formatting, and all 21 tests
+(including live index and validator smoke checks) passed; tests took 134.41 seconds.
+No resolver, extraction, schema, embedding model, or validator-policy changes were
+needed. Existing caches were reused and the expanded validator snapshot is ready.
