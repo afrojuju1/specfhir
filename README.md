@@ -463,6 +463,13 @@ uv run specfhir sync --with-validator --json
 # Add --update-lock only when intentionally updating the configured package graph.
 ```
 
+Snapshot identity covers package checksums and dependency resolutions, support
+packages, default context, protocol, and validator binary. Documentation, embedding
+settings, and download URLs do not change that identity. The full index lock digest
+remains in index metadata and validation responses, independently of the immutable
+validator manifest. This identity change requires a one-time validator refresh;
+subsequent retrieval-only updates reuse the same snapshot.
+
 A healthy validator with the matching snapshot is reused. A missing or stale service
 is prepared and recreated. Runtime source changes still require an explicit Compose
 rebuild/recreation. The phases are sequential: if validator preparation or recreation fails, the index may

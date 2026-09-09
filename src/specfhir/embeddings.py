@@ -21,7 +21,6 @@ from specfhir.models import Error
 
 MODEL = "BAAI/bge-small-en-v1.5"
 REPO = "Qdrant/bge-small-en-v1.5-onnx-Q"
-REVISION = "52398278842ec682c6f32300af41344b1c0b0bb2"
 FILES = (
     "config.json",
     "model_optimized.onnx",

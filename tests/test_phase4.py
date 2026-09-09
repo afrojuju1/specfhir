@@ -13,7 +13,7 @@ from typer.testing import CliRunner
 
 from specfhir import db, index, validator
 from specfhir.cli import app
-from specfhir.models import Lock
+from specfhir.models import DocumentPin, Lock, PackagePin, PublicationPin
 
 
 def test_validator_lifecycle(tmp_path, database, monkeypatch):
@@ -24,9 +24,37 @@ def test_validator_lifecycle(tmp_path, database, monkeypatch):
     cache = tmp_path / ".specfhir/packages"
     archive(cache, "example.patient#1.0.0", [profile()])
     index.sync(config)
-    monkeypatch.setattr(validator, "support_lock", lambda: Lock(roots=[], packages=[]))
+    support_reads = []
+
+    def support():
+        support_reads.append(True)
+        return Lock(roots=[], packages=[])
+
+    monkeypatch.setattr(validator, "support_lock", support)
     report = validator.setup(config)
+    assert len(support_reads) == 1
     assert validator.setup(config)["snapshot_id"] == report["snapshot_id"]
+    assert len(support_reads) == 2
+    # Retrieval metadata cannot conflict with an existing immutable validator manifest.
+    lock_path = config.with_name("specfhir.lock")
+    original = lock_path.read_bytes()
+    changed = Lock.model_validate_json(original)
+    changed.embedding = {"revision": "different-retrieval-model"}
+    changed.documents = [
+        DocumentPin(
+            package=changed.roots[0],
+            url="https://example.org/page.html",
+            title="New documentation",
+            sha256="a" * 64,
+        )
+    ]
+    manifest = tmp_path / ".specfhir/validator-service" / report["snapshot_id"] / "manifest.json"
+    before_manifest = manifest.read_bytes()
+    lock_path.write_text(changed.model_dump_json())
+    assert validator.setup(config)["snapshot_id"] == report["snapshot_id"]
+    assert len(support_reads) == 3
+    assert manifest.read_bytes() == before_manifest
+    lock_path.write_bytes(original)
     calls = []
     scenario = "valid"
 
@@ -165,3 +193,40 @@ def test_real_validator_and_mcp(tmp_path, database):
             assert actual.structured_content == bad.model_dump(exclude_none=True)
 
     asyncio.run(parity())
+
+
+def test_validator_identity_inputs(monkeypatch):
+    pin = PackagePin(
+        key="example#1.0.0", url="https://example.org/package.tgz", sha256="a" * 64, dependencies=[]
+    )
+    locked = Lock(roots=[pin.key], packages=[pin])
+    support = Lock(roots=[], packages=[])
+    identity = validator.snapshot_identity(locked, pin.key, support)
+    changed = locked.model_copy(deep=True)
+    changed.roots = []
+    changed.embedding = {"model": "different"}
+    changed.publications = [
+        PublicationPin(package=pin.key, url="https://example.org/full-ig.zip", sha256="b" * 64)
+    ]
+    changed.documents = [
+        DocumentPin(
+            package=pin.key, url="https://example.org/page.html", title="Changed", sha256="c" * 64
+        )
+    ]
+    changed.packages[0].url = "https://mirror.example.org/package.tgz"
+    assert validator.snapshot_identity(changed, pin.key, support) == identity
+    for field, value in (
+        ("key", "example#2.0.0"),
+        ("sha256", "b" * 64),
+        ("dependencies", ["dependency#1.0.0"]),
+        ("dependency_resolutions", {"dependency#1.0.0": "dependency#1.0.1"}),
+    ):
+        changed = locked.model_copy(deep=True)
+        setattr(changed.packages[0], field, value)
+        assert validator.snapshot_identity(changed, pin.key, support) != identity
+    assert validator.snapshot_identity(locked, "another#1.0.0", support) != identity
+    support.packages.append(pin)
+    assert validator.snapshot_identity(locked, pin.key, support) != identity
+    support.packages.clear()
+    monkeypatch.setattr(validator, "JAR_SHA256", "f" * 64)
+    assert validator.snapshot_identity(locked, pin.key, support) != identity

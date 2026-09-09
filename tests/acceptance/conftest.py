@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[2]
 CONFIG = ROOT / "specfhir.toml"
 
 
-@pytest.fixture(scope="module", autouse=True)
+@pytest.fixture(scope="session", autouse=True)
 def installed():
     report = checks.run(CONFIG, with_validator=True)
     assert report["status"] == "ok", report

@@ -6,6 +6,7 @@ import pytest
 from helpers import archive, profile
 
 from specfhir import db, embeddings, index, search
+from specfhir.config import load
 from specfhir.files import checksum
 from specfhir.models import Error, Lock
 
@@ -34,7 +35,8 @@ def test_fusion_and_vector_validation():
 
 def test_real_model_atomicity_and_modes(tmp_path, database, monkeypatch):
     repo = Path(__file__).resolve().parents[1]
-    model_dir = repo / ".specfhir/models" / embeddings.REVISION
+    settings = load(repo / "specfhir.toml").embedding
+    model_dir = repo / ".specfhir/models" / settings.revision
     if not model_dir.exists():
         pytest.skip("Run embedding-enabled sync to download the pinned model")
     cache = tmp_path / ".specfhir/packages"
@@ -63,7 +65,8 @@ def test_real_model_atomicity_and_modes(tmp_path, database, monkeypatch):
     exact = search.resolve("Patient.id", config_path=config)
     with pytest.raises(Error, match="Semantic index unavailable"):
         search.search("translator", mode="hybrid", config_path=config)
-    config.write_text(base + "[embedding]\nenabled=true\nmax_tokens=256\n")
+    embedding_config = base + f'[embedding]\nenabled=true\nrevision="{settings.revision}"\n'
+    config.write_text(embedding_config + "max_tokens=256\n")
     report = index.sync(config)
     assert report["counts"]["embeddings"] > 0
     assert search.resolve("Patient.id", config_path=config) == exact
@@ -112,7 +115,7 @@ def test_real_model_atomicity_and_modes(tmp_path, database, monkeypatch):
             ).fetchone()["n"]
             == 384
         )
-    config.write_text(base + "[embedding]\nenabled=true\nmax_tokens=128\n")
+    config.write_text(embedding_config + "max_tokens=128\n")
     with pytest.raises(Error, match="differ from lock"):
         index.sync(config)
     original = embeddings.prepare

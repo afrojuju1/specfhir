@@ -35,13 +35,16 @@ def support_lock() -> Lock:
     )
 
 
-def snapshot_identity(lock: Lock, default_package: str) -> str:
+def snapshot_identity(lock: Lock, default_package: str, support: Lock | None = None) -> str:
+    support = support if support is not None else support_lock()
     return digest(
         {
             "protocol": 1,
-            "lock": lock.model_dump(),
+            **{
+                name: [p.model_dump(exclude={"url"}) for p in sorted(pins, key=lambda p: p.key)]
+                for name, pins in (("packages", lock.packages), ("support", support.packages))
+            },
             "default_package": default_package,
-            "support": support_lock().model_dump(),
             "validator_sha256": JAR_SHA256,
         }
     )
@@ -55,12 +58,14 @@ def setup(config_path: Path = Path("specfhir.toml")) -> dict:
         raise Error("Lock/config mismatch; run sync")
     work = config_path.resolve().parent / ".specfhir"
     pins = {p.key: p for p in lock.packages}
-    for pin in support_lock().packages:
+    support = support_lock()
+    support_keys = {p.key for p in support.packages}
+    for pin in support.packages:
         if pin.key in pins and pins[pin.key].sha256 != pin.sha256:
             raise Error("Validator support package conflicts with retrieval checksum")
         obtain(work / "packages", pin.key, pin.url, pin.sha256)
         pins[pin.key] = pin
-    identity = snapshot_identity(lock, config.default_package)
+    identity = snapshot_identity(lock, config.default_package, support)
     directory = work / "validator-service"
     directory.mkdir(parents=True, exist_ok=True)
     destination = directory / identity
@@ -88,7 +93,7 @@ def setup(config_path: Path = Path("specfhir.toml")) -> dict:
         for pin in lock.packages:
             if pin.key not in compatible:
                 continue
-            required = {p.key for p in support_lock().packages}
+            required = set(support_keys)
             pending = [pin.key]
             visited = set()
             while pending:
@@ -102,7 +107,6 @@ def setup(config_path: Path = Path("specfhir.toml")) -> dict:
         content = {
             "snapshot_id": identity,
             "validator_sha256": JAR_SHA256,
-            "index_lock_digest": digest(lock.model_dump()),
             "contexts": contexts,
             "default_package": config.default_package,
             "files": files,

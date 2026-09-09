@@ -647,3 +647,24 @@ negative JSON copies and all three custom acceptance manifests/evaluator models.
 Eight distinct synthetic resources remain; retrieval datasets are shared with the
 benchmark and existing core retrieval tests. No runtime pytest dependency or new
 validation semantics were introduced.
+
+## Remove redundant validator inputs and repeated setup
+
+Validator snapshot identity uses exact package/support pins and effective dependency
+resolutions, the default context, protocol, and validator binary. Retrieval-only
+roots, documentation, embedding metadata, and download locations do not invalidate
+identical validator inputs. Keep the full index digest in index metadata and each
+validation response; remove it from the immutable validator manifest so reusing a
+snapshot after documentation-only changes cannot conflict with its manifest.
+Load support metadata once per setup, check acceptance readiness once per session,
+and use the configured embedding revision in model tests instead of a duplicate
+constant. Verify stable identity and setup reuse for retrieval-only changes, and
+invalidation for package, dependency resolution, support, default, or binary changes.
+
+Verified: all 69 tests passed in 312.94 seconds, including live acceptance and
+real index/validator smoke checks. Pytest recorded one session readiness setup.
+Identity and lifecycle tests prove retrieval-only changes reuse the exact manifest,
+while package bytes, dependency resolutions, support packages, default context, and
+validator binary changes invalidate identity. Support metadata was read once per
+setup invocation. The live validator adopted the new identity with no index rebuild;
+subsequent sync reused it. Ruff, Pyright, formatting, and diff checks passed.
