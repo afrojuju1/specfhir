@@ -509,3 +509,43 @@ Verified: 37 selected pages across the three releases; all page provenance and
 version-isolation checks passed. The 18-test suite and dedicated PAS/CRD acceptance
 passed. An unchanged sync with validator verification took 4.696 seconds and reused
 the existing snapshot. See README.md for discovery/configuration commands.
+
+## Reference coverage in the existing onboarding flow (implemented and verified)
+
+`sync` extracts explicit references from indexed StructureDefinitions (inheritance,
+profile/targetProfile constraints, value-set bindings, local element contentReference)
+and ValueSets (compose include/exclude value-set imports). Each occurrence retains
+its source artifact and JSON pointer; snapshot and differential occurrences are
+counted separately. Malformed projections remain visible through existing inventory.
+
+Reuse lookup's candidate selection: canonical identity and exact optional version,
+source package's dependency closure, and preference for its own matching definition.
+Canonical links never resolve through friendly-name aliases. Cache distinct target
+checks during publication. Retain lightweight canonical identities from excluded
+supported definitions to distinguish known exclusions from absent targets.
+
+Persist reference findings with the same atomic index transaction. Report resolved,
+ambiguous, excluded, outside_scope, not_found_in_scope, and unsupported separately.
+An absent local element in a differential-only definition is inconclusive, not proof
+of a missing inherited element. Never fetch targets or select a different version.
+These findings are retrieval coverage, not FHIR validation results, and do not by
+themselves block sync. Actual acquisition/publication failures still abort safely.
+
+`sync` and `packages list` expose complete status counts per package and globally.
+`inspect` exposes counts and up to 100 source-located outgoing findings, unresolved
+first, with candidate samples capped at 10 and explicit truncation indicators.
+All reads use the same published generation; older indexes report unavailable
+coverage until rebuilt. No new command group, service, or graph workflow is added.
+HTML hyperlinks, instance references, arbitrary URI scanning, terminology membership,
+and unlisted resource relationships remain outside this first pass.
+
+Acceptance: source-package isolation, exact versions, own-package preference,
+ambiguous and excluded targets, imports, local/differential references, bounded
+inspection, and rollback after reference-publication failure. Re-run existing
+lookup/search, CLI/MCP, publication, PAS, and CRD acceptance against the live index.
+
+Verified: all 20 tests, Ruff, Pyright, 37 documentation checks, and dedicated
+PAS 2.0.1/2.1.0 and CRD 2.2.1 acceptance passed. The live index records 75,063
+reference occurrences; checking and persisting them took 15.596 seconds within
+publication. An unchanged sync took 4.594 seconds and reused both findings and the
+validator snapshot. Status totals and coverage limits are documented in README.md.

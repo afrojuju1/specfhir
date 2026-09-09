@@ -261,6 +261,7 @@ def inventory(config_path: Path) -> dict:
         "inventory": metadata["inventory"],
         "publications": [p.model_dump() for p in lock.publications],
         "counts": metadata["counts"],
+        "reference_checks": metadata.get("reference_checks", {"status": "unavailable"}),
     }
 
 

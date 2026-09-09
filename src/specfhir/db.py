@@ -7,7 +7,7 @@ from psycopg.rows import dict_row
 
 from specfhir.config import dsn
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 SYNC_LOCK = 1936746086
 
 DDL = """
@@ -47,6 +47,25 @@ CREATE INDEX IF NOT EXISTS artifacts_package ON artifacts(package_key);
 CREATE INDEX IF NOT EXISTS artifacts_canonical ON artifacts(canonical);
 CREATE INDEX IF NOT EXISTS artifacts_name ON artifacts(name);
 CREATE INDEX IF NOT EXISTS artifacts_resource_id ON artifacts(resource_id);
+CREATE TABLE IF NOT EXISTS excluded_artifacts (
+    package_key text NOT NULL REFERENCES packages(key),
+    file_path text NOT NULL,
+    canonical text NOT NULL,
+    version text,
+    resource_type text NOT NULL,
+    reason text NOT NULL,
+    PRIMARY KEY (package_key, file_path)
+);
+CREATE INDEX IF NOT EXISTS excluded_canonical ON excluded_artifacts(canonical);
+CREATE TABLE IF NOT EXISTS artifact_references (
+    artifact_id bigint NOT NULL REFERENCES artifacts(id),
+    pointer text NOT NULL,
+    relationship text NOT NULL,
+    target text NOT NULL,
+    status text NOT NULL,
+    detail jsonb NOT NULL,
+    PRIMARY KEY (artifact_id, pointer)
+);
 CREATE TABLE IF NOT EXISTS elements (
     artifact_id bigint NOT NULL REFERENCES artifacts(id),
     representation text NOT NULL CHECK (representation IN ('snapshot', 'differential')),

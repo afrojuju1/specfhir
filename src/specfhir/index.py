@@ -11,7 +11,7 @@ from typing import Any
 
 from psycopg.types.json import Jsonb
 
-from specfhir import db, documents, embeddings
+from specfhir import db, documents, embeddings, references
 from specfhir.config import digest, load
 from specfhir.models import Error, Lock
 from specfhir.packages import (
@@ -42,6 +42,8 @@ def prepare_package(lock: Lock, cache: Path, spool: Path) -> dict[str, Any]:
         spool.open("w") as output,
         spool.with_suffix(".documents").open("w") as docs,
         spool.with_suffix(".elements").open("w") as elements,
+        spool.with_suffix(".references").open("w") as links,
+        spool.with_suffix(".excluded").open("w") as excluded,
     ):
         for pin in lock.packages:
             archive = cache / f"{pin.key}.tgz"
@@ -51,7 +53,7 @@ def prepare_package(lock: Lock, cache: Path, spool: Path) -> dict[str, Any]:
             package_count = 0
             # Validate every archive member, even for packages excluded from indexing.
             for path, raw in archive_files(archive):
-                if reason or not path.startswith("package/") or not path.endswith(".json"):
+                if not path.startswith("package/") or not path.endswith(".json"):
                     continue
                 if len(path.split("/")) != 2 or path.split("/")[-1].startswith("."):
                     skipped["nested_or_metadata"] += 1
@@ -73,7 +75,21 @@ def prepare_package(lock: Lock, cache: Path, spool: Path) -> dict[str, Any]:
                     if kind == "ImplementationGuide"
                     else release == "4.0.1"
                 )
-                if not compatible_release:
+                if reason or not compatible_release:
+                    if isinstance(resource.get("url"), str):
+                        excluded.write(
+                            json.dumps(
+                                [
+                                    pin.key,
+                                    path,
+                                    resource["url"],
+                                    resource.get("version"),
+                                    kind,
+                                    reason or "Resource does not declare R4 4.0.1 support",
+                                ]
+                            )
+                            + "\n"
+                        )
                     skipped["incompatible_resource_release"] += 1
                     continue
                 issues = {}
@@ -107,6 +123,8 @@ def prepare_package(lock: Lock, cache: Path, spool: Path) -> dict[str, Any]:
                     counts["artifacts_with_projection_issues"] += 1
                 counts["artifacts"] += 1
                 package_count += 1
+                for link in references.extract(resource, issues):
+                    links.write(json.dumps([counts["artifacts"], pin.key, *link]) + "\n")
                 if kind == "StructureDefinition":
                     for view in ("snapshot", "differential"):
                         if view in issues:
@@ -177,7 +195,7 @@ def prepare_package(lock: Lock, cache: Path, spool: Path) -> dict[str, Any]:
 
 
 # Bump when extraction or spool semantics change (including documents.extract).
-PREPARATION_VERSION = 1
+PREPARATION_VERSION = 2
 
 
 def file_digest(path: Path) -> str:
@@ -192,7 +210,7 @@ def prepare(lock: Lock, cache: Path, spool: Path) -> dict[str, Any]:
     counts: Counter[str] = Counter()
     inventory = []
     hits = 0
-    suffixes = (".jsonl", ".documents", ".elements")
+    suffixes = (".jsonl", ".documents", ".elements", ".references", ".excluded")
     for suffix in suffixes:
         spool.with_suffix(suffix).write_text("")
     for pin in lock.packages:
@@ -250,6 +268,9 @@ def prepare(lock: Lock, cache: Path, spool: Path) -> dict[str, Any]:
                 spool.with_suffix(suffix).open("a") as output,
             ):
                 for line in source:
+                    if suffix == ".excluded":
+                        output.write(line)
+                        continue
                     local_id, rest = line.split(",", 1)
                     output.write("[" + str(int(local_id[1:]) + offset) + "," + rest)
         counts.update(summary["counts"])
@@ -270,6 +291,8 @@ def publish(conn, lock: Lock, spool: Path, identity: str, summary: dict[str, Any
     with conn.transaction():
         # DELETE (not TRUNCATE) lets readers retain the previous committed snapshot.
         for table in (
+            "artifact_references",
+            "excluded_artifacts",
             "documents",
             "elements",
             "artifacts",
@@ -310,6 +333,12 @@ def publish(conn, lock: Lock, spool: Path, identity: str, summary: dict[str, Any
                     )
                 )
         with (
+            conn.cursor().copy("COPY excluded_artifacts FROM STDIN") as copy,
+            spool.with_suffix(".excluded").open() as stream,
+        ):
+            for line in stream:
+                copy.write_row(json.loads(line))
+        with (
             conn.cursor().copy("COPY elements FROM STDIN") as copy,
             spool.with_suffix(".elements").open() as stream,
         ):
@@ -331,7 +360,11 @@ def publish(conn, lock: Lock, spool: Path, identity: str, summary: dict[str, Any
                 elif row[-1] is not None:
                     row[-1] = json.dumps(row[-1])
                 copy.write_row(row)
+        started = time.monotonic()
+        summary["reference_checks"] = references.publish(conn, spool, summary["inventory"])
+        reference_seconds = round(time.monotonic() - started, 3)
         conn.execute("INSERT INTO index_state VALUES (true,%s,%s)", (identity, Jsonb(summary)))
+    return reference_seconds
 
 
 def sync(config_path: Path = Path("specfhir.toml"), *, update_lock: bool = False) -> dict[str, Any]:
@@ -386,6 +419,7 @@ def sync(config_path: Path = Path("specfhir.toml"), *, update_lock: bool = False
                 embedding_seconds=0.0,
                 publication_seconds=0.0,
                 analyze_seconds=0.0,
+                reference_seconds=0.0,
             )
             timings["total_seconds"] = round(time.monotonic() - started, 3)
             return {"status": "unchanged", **metadata, "timings": timings}
@@ -410,7 +444,7 @@ def sync(config_path: Path = Path("specfhir.toml"), *, update_lock: bool = False
             # A failed publication may leave a pending lock, never mislabel old DB content.
             save_lock(lock_path, lock)
             stage = time.monotonic()
-            publish(conn, lock, spool, identity, summary)
+            timings["reference_seconds"] = publish(conn, lock, spool, identity, summary)
             timings["publication_seconds"] = round(time.monotonic() - stage, 3)
         stage = time.monotonic()
         conn.execute("ANALYZE")

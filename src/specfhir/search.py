@@ -67,6 +67,46 @@ def provenance(row: dict[str, Any], pointer: str = "") -> dict[str, Any]:
     }
 
 
+def candidates(
+    conn, context, selector, artifact_version=None, *, canonical_only=False, metadata_only=False
+):
+    columns = (
+        "a.id,a.package_key,a.file_path,a.resource_type,a.resource_id,a.canonical,a.version"
+        if metadata_only
+        else "a.*"
+    )
+    rows = conn.execute(
+        f"""
+        WITH RECURSIVE scope(key) AS (
+            SELECT key FROM packages WHERE key=%s
+            UNION
+            SELECT dependency_key FROM package_dependencies d
+            JOIN scope s ON d.package_key=s.key
+        )
+        SELECT {columns} FROM artifacts a JOIN scope s ON a.package_key=s.key
+        WHERE (a.canonical=%s OR (%s AND (a.resource_id=%s OR a.name=%s OR a.name=%s)))
+          AND (%s::text IS NULL OR a.version=%s)
+        ORDER BY (a.package_key=%s) DESC, a.package_key, a.file_path LIMIT 101
+    """,
+        (
+            context,
+            selector,
+            not canonical_only,
+            selector,
+            selector,
+            selector + "Profile",
+            artifact_version,
+            artifact_version,
+            context,
+        ),
+    ).fetchall()
+    # An explicit package picks its own matching definition before its dependency closure.
+    direct = [row for row in rows if row["package_key"] == context]
+    if direct:
+        rows = direct
+    return rows
+
+
 def lookup(
     selector: str,
     *,
@@ -75,6 +115,7 @@ def lookup(
     element: str | None = None,
     view: Literal["snapshot", "differential", "raw"] = "snapshot",
     config_path: Path = Path("specfhir.toml"),
+    include_references: bool = False,
 ) -> Result:
     if not selector or len(selector) > 2048:
         raise Error("Selector must contain 1–2048 characters")
@@ -85,7 +126,12 @@ def lookup(
             raise Error("Conflicting artifact version selectors")
         artifact_version = version
     # URLs contain dots and are never interpreted as dotted shorthand.
-    if "://" not in selector and "." in selector and element is None:
+    if (
+        "://" not in selector
+        and not selector.lower().startswith("urn:")
+        and "." in selector
+        and element is None
+    ):
         selector, element = selector.split(".", 1)
     if view not in {"snapshot", "differential", "raw"}:
         raise Error("view must be snapshot, differential, or raw")
@@ -105,34 +151,7 @@ def lookup(
             return Result(
                 status="not_found", context=context, message=package_row["excluded_reason"]
             )
-        rows = conn.execute(
-            """
-            WITH RECURSIVE scope(key) AS (
-                SELECT key FROM packages WHERE key=%s
-                UNION
-                SELECT dependency_key FROM package_dependencies d
-                JOIN scope s ON d.package_key=s.key
-            )
-            SELECT a.* FROM artifacts a JOIN scope s ON a.package_key=s.key
-            WHERE (a.canonical=%s OR a.resource_id=%s OR a.name=%s OR a.name=%s)
-              AND (%s::text IS NULL OR a.version=%s)
-            ORDER BY (a.package_key=%s) DESC, a.package_key, a.file_path LIMIT 101
-        """,
-            (
-                context,
-                selector,
-                selector,
-                selector,
-                selector + "Profile",
-                artifact_version,
-                artifact_version,
-                context,
-            ),
-        ).fetchall()
-        # An explicit package picks its own matching definition before its dependency closure.
-        direct = [row for row in rows if row["package_key"] == context]
-        if direct:
-            rows = direct
+        rows = candidates(conn, context, selector, artifact_version)
         if not rows:
             return Result(status="not_found", context=context, message="Artifact not found")
         if len(rows) > 1:
@@ -145,9 +164,18 @@ def lookup(
         row = rows[0]
         resource = row["resource"]
         source = provenance(row)
+        reference_data = {}
+        if include_references:
+            from specfhir.references import inspection
+
+            reference_data = {
+                "references": inspection(conn, row["id"], state["metadata"], row["resource_type"])
+            }
         if view == "raw" and element is None:
             return Result(
-                status="ok", context=context, data={"source": source, "resource": resource}
+                status="ok",
+                context=context,
+                data={"source": source, "resource": resource, **reference_data},
             )
         if view == "raw":
             raise Error("Use snapshot or differential when selecting an element")
@@ -156,7 +184,7 @@ def lookup(
                 return Result(
                     status="effective_definition_unavailable",
                     context=context,
-                    data={"source": source},
+                    data={"source": source, **reference_data},
                     message=f"Invalid {view}: {issue}; inspect raw",
                 )
             entries = resource.get(view, {}).get("element", [])
@@ -164,7 +192,7 @@ def lookup(
                 return Result(
                     status="effective_definition_unavailable",
                     context=context,
-                    data={"source": source},
+                    data={"source": source, **reference_data},
                     message="No supplied snapshot; inspect differential or raw",
                 )
             if element:
@@ -185,7 +213,7 @@ def lookup(
                     return Result(
                         status="not_found",
                         context=context,
-                        data={"source": source},
+                        data={"source": source, **reference_data},
                         message="Element not found in selected representation",
                     )
                 if len(matches) > 1:
@@ -213,6 +241,7 @@ def lookup(
                     context=context,
                     data={
                         "source": provenance(row, f"/{view}/element/{match['ordinal']}"),
+                        **reference_data,
                         "representation": view,
                         "element": fields,
                     },
@@ -223,6 +252,7 @@ def lookup(
             )
         data: dict[str, Any] = {
             "source": source,
+            **reference_data,
             "artifact": {key: resource[key] for key in ARTIFACT_FIELDS if key in resource},
         }
         if resource["resourceType"] == "StructureDefinition":
@@ -250,7 +280,7 @@ def resolve(selector: str, **kwargs) -> Result:
 
 
 def inspect(selector: str, **kwargs) -> Result:
-    return lookup(selector, **kwargs)
+    return lookup(selector, include_references=True, **kwargs)
 
 
 def search(

@@ -605,3 +605,63 @@ or page in the publication ZIP.
 The expansion passed 18 tests with real-package and Java/MCP smokes enabled, plus
 dedicated PAS and CRD acceptance. A subsequent locked sync with validator checking
 completed in 4.696 seconds with no rebuild or validator restart.
+
+### Reference coverage during sync and inspection
+
+Normal `sync` now records outgoing reference findings as part of atomic index
+publication. There is no separate graph command or validation workflow:
+
+```sh
+uv run specfhir sync --with-validator --json
+uv run specfhir packages list --json
+uv run specfhir inspect PASClaim --package 'hl7.fhir.us.davinci-pas#2.1.0' --json
+```
+
+`sync` and `packages list` include global `reference_checks` and each package's
+`reference_counts`. Package counts cover its own artifacts, not a second count of
+its dependency closure. Snapshot and differential occurrences are counted
+separately, with exact source JSON pointers. An unchanged sync returns the findings
+from the current indexed generation without recomputing them.
+
+`inspect` adds a `references` section with complete status counts and up to 100
+outgoing findings, unresolved first. Candidate details are capped at 10, with
+explicit truncation indicators. Raw resource JSON remains available under
+`data.resource`; unsupported resource types report `not_checked`. `resolve` keeps
+its existing contract and shares candidate selection with the reference checks.
+
+Statuses distinguish `resolved`, `ambiguous`, `excluded`, `outside_scope`,
+`not_found_in_scope`, and `unsupported`. Excluded supported definitions retain only
+identity metadata and exclusion reasons, allowing known exclusions to be reported
+without indexing their FHIR content. No match means no evidence of the exact target
+in the available local identity inventory; it does not prove global nonexistence.
+Canonical references never use friendly-name aliases or choose a newer version.
+They resolve in the source artifact's package context, even when that artifact was
+found through another root's dependency closure.
+
+This first pass checks StructureDefinition.baseDefinition, element type profile and
+targetProfile, element binding.valueSet, local contentReference, and ValueSet.compose
+include/exclude valueSet imports. An absent local target in a differential-only
+profile is inconclusive. Malformed projections and fields, contained canonical
+fragments, external element references, instance references, HTML hyperlinks,
+terminology membership, and other resource relationships are not covered.
+These are retrieval findings, not HL7 validator results: they do not by themselves
+block sync or alter validation findings. Acquisition or publication failures still
+abort safely, retaining the previous index and its reference findings.
+
+`timings.reference_seconds` measures the checks and their persistence inside
+`publication_seconds`; it is a substage, not an additional duration to sum.
+The reference schema requires one rebuild; older published generations explicitly
+report coverage as unavailable until that rebuild completes.
+
+The first live reference pass checked 75,063 occurrences: 73,614 resolved,
+299 ambiguous, 17 excluded, 216 outside scope, 543 not found locally, and 374
+unsupported. Checks and persistence took 15.596 seconds within the publication
+transaction; the validator snapshot was reused. These are observations from the
+installed graph, not a claim of complete FHIR conformance or globally missing
+resources. For example, CRD's logical-model Base target is evidenced in an excluded
+R5 package, while certain PAS X12 value sets have no matching local identity.
+
+An unchanged sync with validator verification took 4.594 seconds, reused the same
+findings and validator snapshot, and reported zero extraction, embedding,
+publication, and reference-check time. The 20-test suite (including real index and
+validator smoke checks), Ruff, Pyright, and all 37 documentation checks passed.

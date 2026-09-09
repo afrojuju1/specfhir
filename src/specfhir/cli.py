@@ -24,6 +24,11 @@ def emit(operation, as_json: bool):
         for item in result["inventory"]:
             detail = item["excluded_reason"] or str(item["artifacts"]) + " artifacts"
             typer.echo(f"  {item['key']}: {detail}")
+            if "reference_counts" in item:
+                typer.echo(f"    references: {item['reference_counts']}")
+        if "reference_checks" in result:
+            coverage = result["reference_checks"]
+            typer.echo(f"Reference coverage: {coverage.get('counts', coverage)}")
     else:
         typer.echo(json.dumps(result, indent=2), err=result["status"] == "error")
     if result.get("data", {}).get("execution") == "completed":
