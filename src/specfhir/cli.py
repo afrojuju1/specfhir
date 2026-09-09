@@ -4,7 +4,7 @@ from typing import Annotated
 
 import typer
 
-from specfhir import index, search
+from specfhir import index, search, validator
 from specfhir.models import invoke
 
 app = typer.Typer(no_args_is_help=True, help="Local, source-backed FHIR package knowledge.")
@@ -22,6 +22,9 @@ def emit(operation, as_json: bool):
             typer.echo(f"  {item['key']}: {detail}")
     else:
         typer.echo(json.dumps(result, indent=2), err=result["status"] == "error")
+    if result.get("data", {}).get("execution") == "completed":
+        if result["data"]["findings"]["errors"]:
+            raise typer.Exit(4)
     code = {"error": 1, "not_found": 2, "effective_definition_unavailable": 2, "ambiguous": 3}
     if result["status"] in code:
         raise typer.Exit(code[result["status"]])
@@ -109,7 +112,43 @@ def search_command(
 
 @app.command()
 def mcp(config: ConfigOption = Path("specfhir.toml")):
-    """Serve resolve, inspect, and search over local MCP stdio."""
+    """Serve resolve, inspect, search, and validate over local MCP stdio."""
     from specfhir.mcp import create_server
 
     create_server(config.resolve()).run(transport="stdio")
+
+
+@app.command("validator-setup")
+def validator_setup(
+    config: ConfigOption = Path("specfhir.toml"),
+    as_json: Annotated[bool, typer.Option("--json")] = False,
+):
+    """Prepare the verified package snapshot for the Compose validator service."""
+    emit(lambda: validator.setup(config), as_json)
+
+
+@app.command("validate")
+def validate_command(
+    instance: Path,
+    package: str | None = None,
+    profile: str | None = None,
+    terminology_mode: str = "offline",
+    config: ConfigOption = Path("specfhir.toml"),
+    as_json: Annotated[bool, typer.Option("--json")] = False,
+):
+    """Validate a JSON instance with HL7; offline terminology is limited."""
+
+    def operation():
+        with instance.open("rb") as stream:
+            content = stream.read(validator.MAX_INPUT + 1)
+        if len(content) > validator.MAX_INPUT:
+            raise ValueError("Instance exceeds 10 MiB limit")
+        return validator.validate(
+            json.loads(content),
+            package=package,
+            profile=profile,
+            terminology_mode=terminology_mode,
+            config_path=config,
+        )
+
+    emit(operation, as_json)

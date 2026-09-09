@@ -35,11 +35,20 @@ class EmbeddingConfig(BaseModel):
     max_tokens: int = Field(default=256, ge=128, le=512)
 
 
+class ValidatorConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    timeout_seconds: int = Field(default=180, ge=1, le=600)
+    service_url: str = "http://127.0.0.1:55433"
+    online_service_url: str | None = None
+    terminology_endpoint: str | None = Field(default=None, pattern=r"^https://[^\s]+$")
+
+
 class Config(BaseModel):
     model_config = ConfigDict(extra="forbid")
     packages: list[str] = Field(min_length=1)
     default_package: str
     embedding: EmbeddingConfig = Field(default_factory=EmbeddingConfig)
+    validator: ValidatorConfig = Field(default_factory=ValidatorConfig)
 
     @model_validator(mode="after")
     def check_packages(self):

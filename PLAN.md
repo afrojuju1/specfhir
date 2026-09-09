@@ -1,6 +1,6 @@
 # SpecFHIR — Implementation Plan
 
-Status: Phases 1–3 implemented; Phase 4 remains planned. See README.md for runnable
+Status: Phases 1–4 implemented. See README.md for runnable
 commands and the actual package coverage.
 
 ## 1. Purpose
@@ -52,7 +52,7 @@ application storage. Tests use synthetic fixtures.
 | --- | --- | --- |
 | FHIR definitions | Published packages and original FHIR JSON | A parallel FHIR object model |
 | Effective profile elements | Supplied StructureDefinition snapshots | A differential merge algorithm |
-| Validation | Pinned HL7 Validator CLI | Validation semantics or a custom validator |
+| Validation | Pinned HL7 validation engine service | Validation semantics or a custom validator |
 | Package acquisition | Standard FHIR registry protocol and package metadata | A private package format or general dependency solver |
 | Structured and text queries | PostgreSQL JSONB, SQL, FTS, pg_trgm | A search engine or ORM framework |
 | Semantic search | FastEmbed and pgvector | An embedding service or vector database |
@@ -86,7 +86,7 @@ Use pytest for meaningful behavioral checks and Ruff plus one type checker
 (initially pyright). Add respx only if HTTP tests need it. Use standard json until
 measurement justifies orjson. Do not install fhirpathpy without an execution feature.
 
-The validation phase adds a pinned validator JAR and a compatible Java runtime.
+The validation phase adds a pinned validator JAR and Java runtime in Docker Compose.
 Verify dependency compatibility and runtime requirements when producing uv.lock
 and the Compose definition; this plan does not assert an untested version matrix.
 
@@ -313,8 +313,8 @@ an explicit profile when profile-level validation is intended; absent one, repor
 that only base R4 validation was requested. Include instance-declared profiles
 and unresolved references in the reported validation context.
 
-Run a pinned HL7 Validator CLI through subprocess with argument arrays, a timeout,
-and temporary files. Use the locked package versions and verify that the validator
+Run the pinned HL7 validation engine in a persistent Compose service with bounded
+engine reuse, admission, and execution deadlines. Publish its port directly on loopback. Use the locked package versions and verify that the validator
 loads those versions. Prevent silent downloads or version substitutions in offline
 mode. Capture machine-readable OperationOutcome output and retain relevant issue
 severity, code, diagnostics, and location/expression in the returned result.
@@ -325,10 +325,10 @@ explicit mode and configured endpoint. Do not implement terminology expansion,
 membership checking, or SNOMED/LOINC semantics inside SpecFHIR.
 
 Keep three separate result dimensions: execution completed/failed, findings
-including error/warning counts, and coverage complete/limited/unknown. A subprocess
+including error/warning counts, and coverage complete/limited/unknown. A service
 failure or missing dependency is not a successful validation result. Include the
-validator version, selected profiles/packages, and terminology mode. Remove
-temporary instance files on normal completion and error paths; do not log inputs.
+validator version, selected profiles/packages, and terminology mode. Keep
+instances in memory and do not log inputs.
 
 ## 13. Delivery phases and acceptance
 
@@ -376,15 +376,17 @@ exact resolution or crossing package context; changing the model forces reindexi
 model failure preserves the previous index. Record sync time, warm query latency,
 and disk usage on the actual development machine before adding optimizations.
 
-### Phase 4 — Delegated validation and v0.1 completion
+### Phase 4 — Delegated validation and v0.1 completion (implemented)
 
-Integrate the validator and expose validate through the shared API, CLI, and MCP.
-Document Java setup, lock reproducibility, rebuilds, terminology limitations, and
+Implemented HL7 Validator 6.10.4 through the shared API, CLI, and MCP, with explicit
+snapshot setup, bounded warm engines, and loaded-package verification.
+Its required support packages are separately pinned from the retrieval lock.
+Document Compose setup, lock reproducibility, rebuilds, terminology limitations, and
 unsupported content.
 
 Acceptance: synthetic valid/invalid fixtures, explicit profile selection, missing
-profile/dependency errors, subprocess failure/timeout, offline terminology limits,
-and temporary-input cleanup behave as specified. Confirm that the validator and
+profile/dependency errors, service failure/timeout, offline terminology limits,
+snapshot integrity, overload rejection, and restart recovery behave as specified. Confirm that the validator and
 retrieval use the same package versions.
 
 Use the smallest meaningful automated checks for these behaviors, with small

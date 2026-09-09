@@ -14,3 +14,36 @@ services:
       interval: 2s
       timeout: 3s
       retries: 30
+
+  validator:
+    build: ./validator-service
+    image: specfhir-validator:local
+    restart: unless-stopped
+    init: true
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 4g
+    cpus: 2
+    pids_limit: 128
+    ports:
+      - "127.0.0.1:${SPECFHIR_VALIDATOR_PORT:-55433}:8080"
+    volumes:
+      - ./.specfhir/validator-service:/snapshots:ro
+    tmpfs:
+      - /work:uid=10001,gid=10001,mode=0700,size=2g
+    healthcheck:
+      test: ["CMD", "java", "-Xmx32m", "-cp", "/app:/app/validator.jar", "Server", "health"]
+      interval: 10s
+      timeout: 5s
+      start_period: 150s
+      retries: 3
+
+  validator-online:
+    extends: validator
+    profiles: [online]
+    ports: !override
+      - "127.0.0.1:${SPECFHIR_VALIDATOR_ONLINE_PORT:-55434}:8080"
+    environment:
+      TERMINOLOGY_ENDPOINT: ${SPECFHIR_TERMINOLOGY_ENDPOINT:-}
+      REQUIRE_ONLINE: "true"

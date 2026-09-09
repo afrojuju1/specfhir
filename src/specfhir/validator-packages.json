@@ -1,0 +1,82 @@
+{
+  "format": 1,
+  "roots": [
+    "hl7.fhir.uv.extensions#5.1.0-snapshot1",
+    "hl7.fhir.uv.extensions.r4#5.2.0",
+    "hl7.fhir.xver-extensions#0.1.0",
+    "hl7.terminology#5.5.0",
+    "hl7.terminology.r4#6.2.0"
+  ],
+  "packages": [
+    {
+      "key": "hl7.fhir.r4.core#4.0.1",
+      "url": "https://packages.fhir.org/hl7.fhir.r4.core/4.0.1",
+      "sha256": "ebd7731df7d36b5b7d39d5fb6c9d77b44bb7fe5742f1a2e87f164738c3289d44",
+      "dependencies": []
+    },
+    {
+      "key": "hl7.fhir.r5.core#5.0.0",
+      "url": "https://packages.fhir.org/hl7.fhir.r5.core/5.0.0",
+      "sha256": "74b27cd1bfce9e80eaceac431edf230b0945a443564fbf5512f82e5fa50a80d4",
+      "dependencies": []
+    },
+    {
+      "key": "hl7.fhir.uv.extensions#5.1.0-snapshot1",
+      "url": "https://packages.fhir.org/hl7.fhir.uv.extensions/5.1.0-snapshot1",
+      "sha256": "8a1f92c1e77535cb2ae21b69028de81a21ea27bd24d0a76c43c7224b8f46b35c",
+      "dependencies": [
+        "hl7.terminology.r5#5.3.0"
+      ]
+    },
+    {
+      "key": "hl7.fhir.uv.extensions.r4#1.0.0",
+      "url": "https://packages.fhir.org/hl7.fhir.uv.extensions.r4/1.0.0",
+      "sha256": "b270eb5b0ea3d015398a5af6c86cab2718070cbb850e366ef050ce6d6eb4a9d3",
+      "dependencies": [
+        "hl7.fhir.r4.core#4.0.1"
+      ]
+    },
+    {
+      "key": "hl7.fhir.uv.extensions.r4#5.2.0",
+      "url": "https://packages.fhir.org/hl7.fhir.uv.extensions.r4/5.2.0",
+      "sha256": "b406e75575f05676559d0759770c5939d023ee72fb2ef38e0b3259328487720a",
+      "dependencies": [
+        "hl7.fhir.r4.core#4.0.1"
+      ]
+    },
+    {
+      "key": "hl7.fhir.xver-extensions#0.1.0",
+      "url": "https://packages.fhir.org/hl7.fhir.xver-extensions/0.1.0",
+      "sha256": "f3bb9fa2083402e88a02b41f433655274e8a1cca563211c8f7ba6fd0badf537a",
+      "dependencies": [
+        "hl7.fhir.r4.core#4.0.1"
+      ]
+    },
+    {
+      "key": "hl7.terminology#5.5.0",
+      "url": "https://packages.fhir.org/hl7.terminology/5.5.0",
+      "sha256": "6d0947f9be882c06c29c693b784b751e8bd8700acdc0cf042bf4ce48d6b16698",
+      "dependencies": [
+        "hl7.fhir.r4.core#4.0.1",
+        "hl7.fhir.uv.extensions.r4#1.0.0"
+      ]
+    },
+    {
+      "key": "hl7.terminology.r4#6.2.0",
+      "url": "https://packages.fhir.org/hl7.terminology.r4/6.2.0",
+      "sha256": "79404c9cc95491fc0155627cd039c401a6eb4748175328131e91b709a41300e2",
+      "dependencies": [
+        "hl7.fhir.r4.core#4.0.1"
+      ]
+    },
+    {
+      "key": "hl7.terminology.r5#5.3.0",
+      "url": "https://packages.fhir.org/hl7.terminology.r5/5.3.0",
+      "sha256": "5366fbaf1b8a3d0bb69099a659d0a01377a541df284146d71f3a7dbea889d6c3",
+      "dependencies": [
+        "hl7.fhir.r5.core#5.0.0"
+      ]
+    }
+  ],
+  "embedding": null
+}

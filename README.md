@@ -1,15 +1,15 @@
 # SpecFHIR
 
-Local, source-backed FHIR knowledge for agents. **Phases 1–3 are implemented:** package
+Local, source-backed FHIR knowledge for agents. **Phases 1–4 are implemented:** package
 sync, exact resolution, snapshot/differential/raw inspection, lexical/hybrid search,
-and local MCP. Delegated validation remains planned in [PLAN.md](PLAN.md).
+delegated HL7 instance validation, and local MCP. Scope is recorded in [PLAN.md](PLAN.md).
 
 ## Run
 
 Requires uv and Docker with Compose. Python 3.13 is selected by .python-version.
 
 ```bash
-docker compose up -d --wait
+docker compose up -d --wait postgres
 uv run specfhir sync
 uv run specfhir resolve USCorePatient.identifier --json
 uv run specfhir inspect USCorePatient --json
@@ -23,8 +23,8 @@ is stored under `.specfhir/postgres/`. To use a different port, set SPECFHIR_POR
 for Compose and SPECFHIR_DSN for the application:
 
 ```bash
-SPECFHIR_PORT=55433 docker compose up -d --wait
-SPECFHIR_DSN=postgresql://specfhir@localhost:55433/specfhir uv run specfhir sync
+SPECFHIR_PORT=55435 docker compose up -d --wait postgres
+SPECFHIR_DSN=postgresql://specfhir@localhost:55435/specfhir uv run specfhir sync
 ```
 
 Use `--config /path/to/specfhir.toml` on each command when outside the project.
@@ -72,7 +72,8 @@ they return the same Pydantic Result serialized by the CLI. They accept
 raise actionable exceptions; the CLI converts them to error results.
 
 Exit codes: 0 success; 1 execution/configuration failure; 2 not found or effective
-definition unavailable; 3 ambiguous. JSON output is written to stdout.
+definition unavailable; 3 ambiguous; 4 validation completed with errors/fatal findings.
+Warnings alone do not change exit code 0. JSON output is written to stdout.
 
 ## Reproducibility and actual coverage
 
@@ -116,7 +117,7 @@ access to fetch the locked archives:
 ```bash
 docker compose down
 rm -rf .specfhir
-docker compose up -d --wait
+docker compose up -d --wait postgres
 uv run specfhir sync
 ```
 
@@ -198,10 +199,11 @@ uv run --no-sync specfhir mcp --config /Users/adeb/Projects/specfhir/specfhir.to
 ```
 
 The [official MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk)
-serves three read-only stdio tools: `resolve`, `inspect`, and `search`. It handles
+serves four stdio tools: `resolve`, `inspect`, `search`, and `validate`. It handles
 protocol framing and structured tool results; the tools share the Python API and
 serialization/error boundary with the CLI. Logs use stderr. There is no HTTP
-listener, sync tool, validation placeholder, or implicit package download.
+listener, sync tool, or implicit package download. Validation accepts JSON content,
+never a client-supplied filesystem path; online terminology requires an explicit mode.
 
 Example client configuration (adjust the checkout path on another machine):
 
@@ -233,7 +235,7 @@ service once to use the pinned pgvector/PostgreSQL 17 **Trixie** image (the same
 collation-library family as the previous PostgreSQL image), then sync:
 
 ```bash
-docker compose up -d --wait
+docker compose up -d --wait postgres
 uv run specfhir sync
 uv run specfhir search "Where can I put a person's medical record number?" --mode hybrid --json
 uv run specfhir search "patient identifier requirements" --mode lexical --json
@@ -307,3 +309,130 @@ setting uses eight ONNX threads and length-grouped batches of 64.
 
 Measured results and known retrieval misses are recorded in [PHASE3_VALIDATION.md](PHASE3_VALIDATION.md).
 The current semantic index contains **130,444 passages and 101,389 vectors**.
+
+
+## Delegated validation (Phase 4)
+
+Prepare the locked package snapshot, then start the persistent validator. Java 21
+is included in its Docker image; no host Java installation is required.
+
+```bash
+uv run specfhir validator-setup --json
+docker compose up -d --build --force-recreate --wait validator
+uv run specfhir validate patient.json --profile USCorePatient --json
+```
+
+Docker publishes the Java service directly at `http://127.0.0.1:55433`, with readiness
+at `/health`. Setup/build may download pinned dependencies; validation does not
+provision packages. After changing the retrieval lock, repeat setup and recreate the
+service. Requests against an older snapshot fail explicitly.
+
+The shared Python operation is `specfhir.validator.validate(instance, package=...,
+profile=..., terminology_mode="offline", config_path=...)`. It returns the same
+Result used by CLI and MCP. An explicit profile resolves through SpecFHIR's locked
+package context and is passed as canonical URL plus artifact version. Without
+`--profile`, the request is base R4 validation; HL7 still checks profiles declared
+in `meta.profile`. Declared profiles must resolve in the selected retrieval context.
+No profile is inferred from the default package.
+
+The result separates `execution` (completed/failed), `findings` (severity counts),
+and `coverage` (limited/unknown). An invalid instance can have `status: "ok"` because
+the validator completed; inspect `findings.errors` or CLI exit code 4. Failures keep
+findings unavailable. Returned issues retain HL7 severity, code, details, diagnostics,
+location/expression, and HL7 issue extensions. Input references are listed in context;
+`-check-references` enables HL7 reference checks. Unresolved findings appear in issues;
+SpecFHIR supplies no external instance repository. Coverage stays limited even when
+there are no errors. Results cap issues at 500, expose truncation and full counts,
+and accept JSON instances up to 10 MiB; validator output is capped at 16 MiB when read.
+
+Setup verifies archive checksums and prepares an immutable snapshot; startup verifies
+its extracted files. The service prewarms the default context and retains at most two
+engines. One validation executes at a time, with eight additional admitted requests;
+excess work receives HTTP 429 and queue waits are bounded to ten seconds. A stuck
+validation terminates the JVM after at most 150 seconds; Compose restarts and prewarms
+it. Callers receive a failure and must explicitly retry. Health checks remain available.
+
+The container has a 2 GiB Java heap and a 4 GiB memory limit. Package indexes and
+terminology caches use tmpfs. Submitted instances and results stay in memory; there
+is no instance cache or request logging. Findings may contain input values.
+
+```toml
+[validator]
+timeout_seconds = 180
+service_url = "http://127.0.0.1:55433"
+# Optional separate online service:
+# online_service_url = "http://127.0.0.1:55434"
+# terminology_endpoint = "https://tx.fhir.org/r4"
+```
+
+Offline mode uses HL7's prohibited-network policy and disables remote terminology.
+The container uses Docker's normal bridge network, so this is application policy,
+not OS-enforced network isolation. Local terminology checks may still run; remote
+expansion/membership checks remain unavailable.
+
+Online terminology requires a separate process because HL7's network policy is global.
+Configure the matching endpoint and online URL above, then start it explicitly:
+
+```bash
+SPECFHIR_TERMINOLOGY_ENDPOINT=https://tx.fhir.org/r4 \
+  docker compose --profile online up -d --build --wait validator-online
+```
+
+Requests must explicitly select `--terminology-mode online`. Coverage depends on the
+configured server. Online server interoperability is not exercised by the offline smoke.
+See [VALIDATOR_SERVICE.md](VALIDATOR_SERVICE.md) for lifecycle decisions and checks.
+
+### Runtime and package reproducibility
+
+HL7 Validator **6.10.4** is pinned by SHA-256 in `validator.py`. The runtime is from
+the [official release](https://github.com/hapifhir/org.hl7.fhir.core/releases/tag/6.10.4).
+The [pinned upstream loader](https://github.com/hapifhir/org.hl7.fhir.core/blob/6.10.4/org.hl7.fhir.validation/src/main/java/org/hl7/fhir/validation/service/ValidationService.java)
+loads terminology/extensions even for base R4 validation. Their exact archive pins
+are shipped in [validator-packages.json](src/specfhir/validator-packages.json), separate
+from `specfhir.lock`, so runtime setup does not rebuild the retrieval index.
+
+The selected retrieval dependency closure is supplied unchanged alongside those
+support packages. Results report the retrieval pins, support pins, retrieval
+exclusions, and HL7's actual loaded-package summary. Unexpected/missing versions
+fail validation execution. HL7 skips the R5 core dependency for R4 validation and
+may load/convert other transitive R5 content that retrieval excludes; these are
+reported, not represented as native R4 retrieval coverage. The core R4 package and
+explicit US Core profile versions match retrieval; support terminology includes
+HL7's required 6.2.0 alongside the graph's newer versions.
+
+To rebuild, retain `uv.lock` and `specfhir.lock`, run
+`uv sync --locked`, `specfhir sync`, and `specfhir validator-setup`, then rebuild/recreate
+the validator service. Package/runtime
+setup may download only their pinned artifacts. A missing or changed local archive
+causes validation to fail, rather than letting HL7 select an online replacement.
+The loaded package summary is also checked in online mode. Changes to the validator
+runtime/support pins require source review and renewed smoke checks.
+
+Unsupported in v0.1: non-R4 input versions, XML/Turtle input, local terminology-server
+implementation, FHIRPath reimplementation, snapshot generation, and automatic
+profile inference. Complex FHIR rules remain owned by HL7 tooling.
+
+### Phase 4 checks
+
+After the application's R4 / US Core index and validator setup are present:
+
+```bash
+SPECFHIR_TEST_DSN=postgresql://specfhir@localhost:55432/specfhir \
+SPECFHIR_VALIDATOR_SMOKE=1 uv run pytest -q tests/test_phase4.py
+```
+
+The real smoke copies only lookup metadata into an isolated schema and performs
+base-R4 and US-Core valid/invalid checks plus MCP/API parity. The synthetic lifecycle
+check covers missing profiles/packages, unexpected package versions, service failure,
+timeout, malformed output, CLI exit codes, and snapshot integrity. Existing
+Phase 1–3 acceptance checks remain in the full suite.
+
+The live lifecycle benchmark exercises warm reuse, profile isolation, concurrency,
+overload rejection, LRU eviction, and optional JVM watchdog recovery:
+
+```bash
+uv run python scripts/benchmark_validator.py --restart-check
+```
+
+The restart check intentionally interrupts the validator service. Online terminology
+is not contacted by these checks.

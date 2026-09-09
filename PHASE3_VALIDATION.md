@@ -47,4 +47,4 @@ uv run python scripts/benchmark_search.py
 SPECFHIR_TEST_DSN=postgresql://specfhir@localhost:55432/specfhir SPECFHIR_REAL_SMOKE=1 uv run pytest -q
 ```
 
-Phase 4 validator integration is still pending. Phase 3 does not add FHIR instance validation or generate clinical answers.
+At this Phase 3 checkpoint, validator integration was pending. Phase 4 is now implemented; see README.md for validation setup and checks. SpecFHIR does not generate clinical answers.
