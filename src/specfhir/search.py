@@ -275,6 +275,8 @@ def search(
         "ConceptMap",
         "OperationDefinition",
         "ImplementationGuide",
+        "CapabilityStatement",
+        "Documentation",
     }:
         raise Error("Unsupported resource_type filter")
     if mode not in {"auto", "lexical", "semantic", "hybrid"}:

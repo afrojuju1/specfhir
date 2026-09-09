@@ -8,7 +8,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from specfhir.models import Error
+from specfhir.models import DocumentSource, Error
 
 PACKAGE = re.compile(r"[a-z0-9][a-z0-9.-]*#[0-9]+\.[0-9]+\.[0-9]+(?:-[a-zA-Z0-9.-]+)?")
 DEFAULT_DSN = "postgresql://specfhir@localhost:55432/specfhir"
@@ -47,6 +47,7 @@ class Config(BaseModel):
     model_config = ConfigDict(extra="forbid")
     packages: list[str] = Field(min_length=1)
     default_package: str
+    documents: list[DocumentSource] = Field(default_factory=list)
     embedding: EmbeddingConfig = Field(default_factory=EmbeddingConfig)
     validator: ValidatorConfig = Field(default_factory=ValidatorConfig)
 
@@ -58,6 +59,10 @@ class Config(BaseModel):
             raise Error("Duplicate configured packages")
         if self.default_package not in self.packages:
             raise Error("default_package must be a configured root")
+        if len({d.url for d in self.documents}) != len(self.documents):
+            raise Error("Duplicate documentation URL")
+        if any(d.package not in self.packages for d in self.documents):
+            raise Error("Documentation must belong to a configured root package")
         return self
 
 

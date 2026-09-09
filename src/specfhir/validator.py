@@ -14,7 +14,14 @@ from specfhir import db, search
 from specfhir.config import digest, load
 from specfhir.embeddings import checksum
 from specfhir.models import Error, Lock, Result
-from specfhir.packages import archive_files, compatibility, dependencies, manifest, obtain
+from specfhir.packages import (
+    archive_files,
+    compatibility,
+    dependencies,
+    effective_dependencies,
+    manifest,
+    obtain,
+)
 
 VERSION = "6.10.4"
 JAR_SHA256 = "1106b9d58f9e363e47bea7c4fc065841e5fc91fe9d062775c3bfdd212bd653cc"
@@ -90,7 +97,7 @@ def setup(config_path: Path = Path("specfhir.toml")) -> dict:
                     continue
                 visited.add(key)
                 required.add(key)
-                pending.extend(pins[key].dependencies)
+                pending.extend(effective_dependencies(pins[key]))
             contexts[pin.key] = sorted(k for k in required if not k.startswith("hl7.fhir.r5.core#"))
         content = {
             "snapshot_id": identity,
@@ -188,6 +195,16 @@ def validate(
             index_lock_digest=digest(lock.model_dump()),
             packages=sorted(keys),
             retrieval_exclusions=[r for r in rows if r["excluded_reason"]],
+            dependency_resolutions=[
+                {
+                    "package": p.key,
+                    "declared": declared,
+                    "selected": selected,
+                    "reason": "Explicit R4 core selection",
+                }
+                for p in pins.values()
+                for declared, selected in p.dependency_resolutions.items()
+            ],
             requested_profile=profile,
             validation_scope="explicit_profile" if profile else "base_R4_with_declared_profiles",
         )
@@ -345,3 +362,105 @@ def validate(
         )
     except (ValueError, OSError, KeyError, TypeError, psycopg.Error, tarfile.TarError) as exc:
         return Result(status="error", context=context, data=data, message=str(exc))
+
+
+def refresh(config_path: Path) -> dict:
+    """Reuse a matching warm service; explicitly recreate it when its snapshot changes."""
+    import subprocess
+
+    config_path = config_path.resolve()
+    project = config_path.parent
+    if not (project / "compose.yaml").is_file():
+        raise Error("Coordinated refresh requires compose.yaml beside the configuration")
+    config = load(config_path)
+    lock = Lock.model_validate_json(config_path.with_name("specfhir.lock").read_bytes())
+    expected = snapshot_identity(lock, config.default_package)
+    try:
+        response = httpx.get(f"{config.validator.service_url}/health", timeout=5, trust_env=False)
+        response.raise_for_status()
+        health = response.json()
+        if (
+            isinstance(health, dict)
+            and health.get("ready") is True
+            and health.get("snapshot_id") == expected
+            and health.get("mode") == "offline"
+        ):
+            return {"status": "unchanged", "snapshot_id": expected, "ready": True}
+    except (httpx.HTTPError, ValueError):
+        pass
+    prepared = setup(config_path)
+    try:
+        subprocess.run(
+            ["docker", "compose", "up", "-d", "--build", "--force-recreate", "--wait", "validator"],
+            cwd=project,
+            check=True,
+            timeout=600,
+            stdout=subprocess.DEVNULL,
+        )
+        response = httpx.get(
+            f"{load(config_path).validator.service_url}/health", timeout=5, trust_env=False
+        )
+        response.raise_for_status()
+        health = response.json()
+        if (
+            not isinstance(health, dict)
+            or health.get("ready") is not True
+            or health.get("snapshot_id") != prepared["snapshot_id"]
+            or health.get("mode") != "offline"
+        ):
+            raise Error("Validator readiness snapshot differs from the prepared snapshot")
+    except (subprocess.SubprocessError, httpx.HTTPError, OSError, ValueError) as exc:
+        raise Error(
+            "Index sync completed but validator refresh failed; rerun sync --with-validator"
+        ) from exc
+    return {**prepared, "ready": True}
+
+
+def validate_cases(manifest_path: Path, config_path: Path) -> dict:
+    """Run an explicit build manifest through the shared validator; retain every result."""
+    from pydantic import BaseModel, ConfigDict, Field
+
+    class Case(BaseModel):
+        model_config = ConfigDict(extra="forbid")
+        name: str = Field(min_length=1)
+        instance: str = Field(min_length=1)
+        package: str = Field(min_length=1)
+        profile: str = Field(min_length=1)
+
+    class Cases(BaseModel):
+        model_config = ConfigDict(extra="forbid")
+        cases: list[Case] = Field(min_length=1, max_length=1000)
+
+    cases = Cases.model_validate_json(manifest_path.read_bytes()).cases
+    if len({c.name for c in cases}) != len(cases):
+        raise Error("Build case names must be unique")
+    results = []
+    errors = warnings = failures = 0
+    for case in cases:
+        result: dict[str, Any]
+        try:
+            with (manifest_path.parent / case.instance).open("rb") as stream:
+                raw = stream.read(MAX_INPUT + 1)
+            if len(raw) > MAX_INPUT:
+                raise Error("Instance exceeds 10 MiB limit")
+            result = validate(
+                json.loads(raw), package=case.package, profile=case.profile, config_path=config_path
+            ).model_dump(exclude_none=True)
+        except (ValueError, OSError) as exc:
+            result = {"status": "error", "message": str(exc)}
+        results.append({"name": case.name, "result": result})
+        data = result.get("data", {})
+        if data.get("execution") != "completed":
+            failures += 1
+        else:
+            errors += data["findings"]["errors"]
+            warnings += data["findings"]["warnings"]
+    return {
+        "status": "error" if failures else "ok",
+        "data": {
+            "execution": "failed" if failures else "completed",
+            "findings": {"errors": errors, "warnings": warnings},
+            "execution_failures": failures,
+            "cases": results,
+        },
+    }

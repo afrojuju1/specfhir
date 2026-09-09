@@ -30,8 +30,9 @@ services:
       - "127.0.0.1:${SPECFHIR_VALIDATOR_PORT:-55433}:8080"
     volumes:
       - ./.specfhir/validator-service:/snapshots:ro
+      - /cache
     tmpfs:
-      - /work:uid=10001,gid=10001,mode=0700,size=2g
+      - /work:uid=10001,gid=10001,mode=0700,size=64m
     healthcheck:
       test: ["CMD", "java", "-Xmx32m", "-cp", "/app:/app/validator.jar", "Server", "health"]
       interval: 10s

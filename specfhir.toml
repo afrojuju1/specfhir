@@ -1,4 +1,10 @@
-packages = ["hl7.fhir.r4.core#4.0.1", "hl7.fhir.us.core#9.0.0"]
+packages = [
+  "hl7.fhir.r4.core#4.0.1",
+  "hl7.fhir.us.core#9.0.0",
+  "hl7.fhir.us.davinci-pas#2.0.1",
+  "hl7.fhir.us.davinci-pas#2.1.0",
+  "hl7.fhir.us.davinci-crd#2.2.1",
+]
 default_package = "hl7.fhir.us.core#9.0.0"
 
 [embedding]
@@ -6,3 +12,28 @@ enabled = true
 model = "BAAI/bge-small-en-v1.5"
 revision = "52398278842ec682c6f32300af41344b1c0b0bb2"
 max_tokens = 256
+
+[[documents]]
+package = "hl7.fhir.us.davinci-pas#2.0.1"
+url = "https://hl7.org/fhir/us/davinci-pas/STU2/specification.html"
+title = "PAS 2.0.1 Technical Specification"
+
+[[documents]]
+package = "hl7.fhir.us.davinci-pas#2.1.0"
+url = "https://hl7.org/fhir/us/davinci-pas/STU2.1/specification.html"
+title = "PAS 2.1.0 Technical Specification"
+
+[[documents]]
+package = "hl7.fhir.us.davinci-crd#2.2.1"
+url = "https://hl7.org/fhir/us/davinci-crd/2.2.1/en/foundation.html"
+title = "CRD 2.2.1 Foundational Requirements"
+
+[[documents]]
+package = "hl7.fhir.us.davinci-crd#2.2.1"
+url = "https://hl7.org/fhir/us/davinci-crd/2.2.1/en/hooks.html"
+title = "CRD 2.2.1 Supported Hooks"
+
+[[documents]]
+package = "hl7.fhir.us.davinci-crd#2.2.1"
+url = "https://hl7.org/fhir/us/davinci-crd/2.2.1/en/cards.html"
+title = "CRD 2.2.1 Hook Response Profiles"

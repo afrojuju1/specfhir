@@ -94,3 +94,77 @@ def extract(resource: dict, issues: dict):
                 continue
             seen.add((pointer, checksum))
             yield [kind, pointer, element_id, view, ordinal, title, passage, checksum]
+
+
+def page_text(html: str) -> str:
+    """Extract the published IG content region, excluding shared navigation/footer."""
+
+    class Page(Narrative):
+        depth = 0
+        found = False
+
+        def handle_starttag(self, tag, attrs):
+            if tag == "div" and dict(attrs).get("id") == "segment-content":
+                self.depth = 1
+                self.found = True
+                return
+            if self.depth:
+                if tag == "div":
+                    self.depth += 1
+                super().handle_starttag(tag, attrs)
+
+        def handle_endtag(self, tag):
+            if self.depth:
+                super().handle_endtag(tag)
+                if tag == "div":
+                    self.depth -= 1
+
+        def handle_data(self, data):
+            if self.depth:
+                super().handle_data(data)
+
+    parser = Page()
+    parser.feed(html)
+    text = "".join(parser.parts).strip()
+    if not parser.found or not text:
+        raise ValueError("Published page has no IG segment-content region")
+    return text
+
+
+def pin_pages(sources, previous, cache):
+    """Pin explicitly configured publication pages; never crawl or select latest."""
+    import httpx
+
+    from specfhir.models import DocumentPin, Error
+
+    old = {p.url: p for p in previous} if previous is not None else None
+    if old is not None and set(old) != {s.url for s in sources}:
+        raise Error("Documentation config/lock mismatch; run sync --update-lock")
+    cache.mkdir(parents=True, exist_ok=True)
+    pins = []
+    for source in sources:
+        pin = old[source.url] if old is not None else None
+        path = cache / f"{pin.sha256}.html" if pin else None
+        if pin and any(getattr(pin, k) != v for k, v in source.model_dump().items()):
+            raise Error("Documentation config/lock mismatch; run sync --update-lock")
+        if path is None or not path.exists():
+            content = bytearray()
+            with httpx.stream("GET", source.url, follow_redirects=True, timeout=60) as response:
+                response.raise_for_status()
+                for chunk in response.iter_bytes():
+                    content.extend(chunk)
+                    if len(content) > 2 * 1024 * 1024:
+                        raise Error("Documentation page exceeds 2 MiB")
+            sha = hashlib.sha256(content).hexdigest()
+            if pin and pin.sha256 != sha:
+                raise Error(f"Published documentation checksum changed: {source.url}")
+            page_text(content.decode("utf-8"))
+            path = cache / f"{sha}.html"
+            temporary = path.with_suffix(".tmp")
+            temporary.write_bytes(content)
+            temporary.replace(path)
+        sha = hashlib.sha256(path.read_bytes()).hexdigest()
+        if pin and pin.sha256 != sha:
+            raise Error(f"Cached documentation checksum changed: {source.url}")
+        pins.append(DocumentPin(**source.model_dump(), sha256=sha))
+    return pins

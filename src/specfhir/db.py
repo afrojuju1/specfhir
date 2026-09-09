@@ -7,7 +7,7 @@ from psycopg.rows import dict_row
 
 from specfhir.config import dsn
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 SYNC_LOCK = 1936746086
 
 DDL = """

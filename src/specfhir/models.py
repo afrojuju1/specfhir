@@ -15,6 +15,18 @@ class PackagePin(BaseModel):
     url: str
     sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     dependencies: list[str]
+    dependency_resolutions: dict[str, str] = Field(default_factory=dict)
+
+
+class DocumentSource(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    package: str
+    url: str = Field(pattern=r"^https://[^\s]+$")
+    title: str = Field(min_length=1)
+
+
+class DocumentPin(DocumentSource):
+    sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
 
 
 class Lock(BaseModel):
@@ -23,6 +35,7 @@ class Lock(BaseModel):
     roots: list[str]
     packages: list[PackagePin]
     embedding: dict[str, Any] | None = None
+    documents: list[DocumentPin] = Field(default_factory=list)
 
 
 class Result(BaseModel):

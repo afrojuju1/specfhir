@@ -156,7 +156,7 @@ public final class Server {
                 "validator_sha256", manifest.get("validator_sha256").getAsString(), "terminology_mode", mode,
                 "terminology_endpoint", endpoint == null ? "" : endpoint, "package", context,
                 "loaded_packages", loaded(current), "outcome", serialized));
-        } catch (IllegalArgumentException | NullPointerException | ClassCastException e) {
+        } catch (IllegalArgumentException | NullPointerException | ClassCastException | JsonParseException e) {
             send(exchange, 400, Map.of("error", "Invalid request or unresolved profile"));
         } catch (Exception e) {
             if (locked && context != null) { ENGINES.remove(context); cached = List.copyOf(ENGINES.keySet()); }
@@ -179,6 +179,8 @@ public final class Server {
         String selected = Files.readString(snapshots.resolve("current")).trim();
         if (!selected.matches("[0-9a-f]{64}")) throw new IllegalStateException("Invalid snapshot pointer");
         Path snapshot = snapshots.resolve(selected);
+        Path home = Path.of("/cache").resolve(selected);
+        System.setProperty("user.home", home.toString());
         manifest = com.google.gson.JsonParser.parseString(Files.readString(snapshot.resolve("manifest.json"))).getAsJsonObject();
         if (!sha256(Path.of("/app/validator.jar")).equals(manifest.get("validator_sha256").getAsString()))
             throw new IllegalStateException("Runtime checksum differs");
@@ -186,9 +188,10 @@ public final class Server {
             Path source = snapshot.resolve(entry.getKey()).normalize();
             if (!source.startsWith(snapshot) || !sha256(source).equals(entry.getValue().getAsString()))
                 throw new IllegalStateException("Snapshot checksum differs");
-            Path target = Path.of("/work").resolve(entry.getKey());
+            Path target = home.resolve(entry.getKey());
             Files.createDirectories(target.getParent());
-            Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
+            if (!Files.exists(target) || !sha256(target).equals(entry.getValue().getAsString()))
+                Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
         }
         endpoint = System.getenv("TERMINOLOGY_ENDPOINT");
         if (endpoint != null && endpoint.isBlank()) endpoint = null;

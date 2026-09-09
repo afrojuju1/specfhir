@@ -16,7 +16,7 @@ from specfhir.models import Error, Lock, PackagePin
 REGISTRY = "https://packages.fhir.org"
 MAX_ARCHIVE = 256 * 1024 * 1024
 MAX_FILE = 64 * 1024 * 1024
-MAX_EXPANDED = 1024 * 1024 * 1024
+MAX_EXPANDED = 2 * 1024 * 1024 * 1024
 
 
 def archive_files(path: Path) -> Iterator[tuple[str, bytes]]:
@@ -100,6 +100,7 @@ def obtain(cache: Path, key: str, url: str, checksum: str | None) -> tuple[Path,
                 if checksum and checksum != actual:
                     raise Error(f"Checksum mismatch for {key}")
                 temporary.replace(path)
+                path.with_suffix(".source-url").write_text(url)
             finally:
                 temporary.unlink(missing_ok=True)
     if path.stat().st_size > MAX_ARCHIVE:
@@ -108,6 +109,22 @@ def obtain(cache: Path, key: str, url: str, checksum: str | None) -> tuple[Path,
     if checksum and checksum != actual:
         raise Error(f"Checksum mismatch for {key}; cache was not modified")
     return path, actual
+
+
+def core_resolutions(key: str, declared: list[str]) -> dict[str, str]:
+    # Approved upstream manifest exception; never a general version fallback.
+    if (
+        key == "hl7.fhir.uv.subscriptions-backport.r4#1.1.0"
+        and "hl7.fhir.r4.core#4.0.0" in declared
+    ):
+        return {"hl7.fhir.r4.core#4.0.0": "hl7.fhir.r4.core#4.0.1"}
+    return {}
+
+
+def effective_dependencies(pin: PackagePin) -> list[str]:
+    if pin.dependency_resolutions != core_resolutions(pin.key, pin.dependencies):
+        raise Error(f"Unapproved dependency resolution in {pin.key}; run sync --update-lock")
+    return sorted({pin.dependency_resolutions.get(dep, dep) for dep in pin.dependencies})
 
 
 def resolve_lock(config: Config, cache: Path, previous: Lock | None) -> Lock:
@@ -132,16 +149,37 @@ def resolve_lock(config: Config, cache: Path, previous: Lock | None) -> Lock:
         name, version = split_key(key)
         pin = pins.get(key)
         url = pin.url if pin else f"{REGISTRY}/{name}/{version}"
-        path, checksum = obtain(cache, key, url, pin.sha256 if pin else None)
+        origin = (cache / f"{key}.tgz").with_suffix(".source-url")
+        if not pin and origin.is_file():
+            recorded = origin.read_text().strip()
+            if recorded not in (url, f"https://packages2.fhir.org/packages/{name}/{version}"):
+                raise Error(f"Unrecognized cached package origin: {key}")
+            url = recorded
+        try:
+            path, checksum = obtain(cache, key, url, pin.sha256 if pin else None)
+        except httpx.HTTPStatusError as exc:
+            if pin or exc.response.status_code != 404:
+                raise
+            url = f"https://packages2.fhir.org/packages/{name}/{version}"
+            path, checksum = obtain(cache, key, url, None)
         value = manifest(path, key)
         deps = dependencies(value)
         if pin and deps != pin.dependencies:
             raise Error(f"Locked dependency edges do not match manifest: {key}")
         if key in config.packages and (reason := compatibility(value)):
             raise Error(f"Unsupported root {key}: {reason}")
-        for dep in deps:
+        selected = PackagePin(
+            key=key,
+            url=url,
+            sha256=checksum,
+            dependencies=deps,
+            dependency_resolutions=core_resolutions(key, deps),
+        )
+        if pin and pin.dependency_resolutions != selected.dependency_resolutions:
+            raise Error(f"Dependency resolution policy changed for {key}; run sync --update-lock")
+        for dep in effective_dependencies(selected):
             visit(dep)
-        found[key] = PackagePin(key=key, url=url, sha256=checksum, dependencies=deps)
+        found[key] = selected
         active.remove(key)
 
     for key in sorted(config.packages):
@@ -160,3 +198,60 @@ def save_lock(path: Path, lock: Lock):
             temporary.replace(path)
         finally:
             temporary.unlink(missing_ok=True)
+
+
+def versions(name: str) -> dict:
+    """Discover registry releases without changing configuration or the lock."""
+    split_key(f"{name}#0.0.0")
+    response = httpx.get(f"{REGISTRY}/{name}", timeout=30, follow_redirects=True)
+    response.raise_for_status()
+    metadata = response.json()
+    releases = metadata.get("versions") if isinstance(metadata, dict) else None
+    if not isinstance(releases, dict):
+        raise Error("Registry response has no release metadata")
+    return {
+        "status": "ok",
+        "package": name,
+        "source": f"{REGISTRY}/{name}",
+        "releases": [
+            {"version": v, "fhir_version": info.get("fhirVersion"), "url": info.get("url")}
+            for v, info in releases.items()
+            if isinstance(info, dict)
+        ],
+    }
+
+
+def inventory(config_path: Path) -> dict:
+    """Report published coverage and whether the validator matches the current lock."""
+    from specfhir import db, validator
+    from specfhir.config import digest, load
+
+    config = load(config_path)
+    lock = Lock.model_validate_json(config_path.with_name("specfhir.lock").read_bytes())
+    expected = validator.snapshot_identity(lock, config.default_package)
+    with db.connect() as conn:
+        state = conn.execute("SELECT metadata FROM index_state").fetchone()
+    if not state:
+        raise Error("Index unavailable; run sync")
+    health = {"ready": False}
+    try:
+        response = httpx.get(f"{config.validator.service_url}/health", timeout=5, trust_env=False)
+        response.raise_for_status()
+        health = response.json()
+        if not isinstance(health, dict):
+            raise Error("Invalid validator health response")
+    except (httpx.HTTPError, ValueError):
+        health = {"ready": False}
+    metadata = state["metadata"]
+    return {
+        "status": "ok",
+        "configured_roots": config.packages,
+        "published_roots": metadata["roots"],
+        "index_matches_lock": metadata["lock_digest"] == digest(lock.model_dump()),
+        "config_matches_lock": sorted(config.packages) == lock.roots
+        and [d.model_dump() for d in config.documents]
+        == [d.model_dump(exclude={"sha256"}) for d in lock.documents],
+        "validator": {**health, "matches_lock": health.get("snapshot_id") == expected},
+        "inventory": metadata["inventory"],
+        "counts": metadata["counts"],
+    }

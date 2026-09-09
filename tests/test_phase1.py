@@ -198,8 +198,21 @@ def test_download_checksum_and_cleanup(tmp_path, monkeypatch):
 def test_real_r4_us_core_rebuild(tmp_path, database, monkeypatch):
     repo = Path(__file__).resolve().parents[1]
     config = tmp_path / "specfhir.toml"
-    config.write_text((repo / "specfhir.toml").read_text().split("[embedding]")[0])
-    (tmp_path / "specfhir.lock").write_bytes((repo / "specfhir.lock").read_bytes())
+    roots = ["hl7.fhir.r4.core#4.0.1", "hl7.fhir.us.core#9.0.0"]
+    config.write_text(f'packages={json.dumps(roots)}\ndefault_package="{roots[1]}"\n')
+    lock = Lock.model_validate_json((repo / "specfhir.lock").read_bytes())
+    pins = {p.key: p for p in lock.packages}
+    selected = set()
+    pending = roots.copy()
+    while pending:
+        key = pending.pop()
+        if key not in selected:
+            selected.add(key)
+            pending.extend(packages.effective_dependencies(pins[key]))
+    lock.roots = sorted(roots)
+    lock.packages = [p for p in lock.packages if p.key in selected]
+    lock.documents = []
+    (tmp_path / "specfhir.lock").write_text(lock.model_dump_json())
     (tmp_path / ".specfhir").mkdir()
     (tmp_path / ".specfhir/packages").symlink_to(
         repo / ".specfhir/packages", target_is_directory=True

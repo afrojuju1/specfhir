@@ -1,6 +1,6 @@
 # SpecFHIR — Implementation Plan
 
-Status: Phases 1–4 implemented. See README.md for runnable
+Status: Phases 1–4 implemented. PAS 2.0.1 / 2.1.0 side-by-side onboarding implemented and verified; see PAS_VALIDATION.md. See README.md for runnable
 commands and the actual package coverage.
 
 ## 1. Purpose
@@ -443,3 +443,46 @@ the explicit graph, exclusion, alias, and projection policies above.
   authoritative implementation and release artifacts for delegated validation.
 - [HL7 Validator overview](https://info.hl7.org/hubfs/FHIR%20Open%20Source%20Tooling%20Webinar%20Series/Open%20Source%20Tooling%20-%20FHIR%20Validator%2020241015%20David%20Otasek.pdf):
   validator operation and offline terminology limitations.
+
+
+## PAS side-by-side milestone: approved core exception
+
+PAS 2.0.1 and 2.1.0 retain exact non-core package versions. The published
+Subscriptions Backport 1.1.0 manifest requests unavailable core 4.0.0. Its declared
+edge is preserved in the lock; an explicit dependency resolution selects core 4.0.1,
+matching the HL7 engine's selected R4 core. This is limited to that package and edge,
+not a version fallback rule. Archive manifests are never rewritten.
+
+Published technical-specification pages can be explicitly attached to a root package
+using `[[documents]]` entries. Their exact URLs, titles, owners, and SHA-256 hashes
+are locked; only the IG content region is indexed as `Documentation` (not a FHIR
+resource). No crawling, latest-release selection, or automatic upgrades occur.
+
+## CRD onboarding and measured preparation reuse (implemented and verified)
+
+Add the published CRD 2.2.1 package as an explicit root; retain both PAS versions
+and the existing default. Pin the foundational, supported-hooks, and response
+pages at the release-specific publication URLs. Use existing retrieval, validation,
+package inventory, and build-manifest interfaces. No CDS Hooks server or custom
+workflow validation is part of this milestone.
+
+Record current-invocation acquisition, extraction, embedding, publication, analyze,
+and validator-refresh timings. Unchanged syncs report zero skipped-stage time,
+not the previous rebuild's elapsed time. Keep timings outside dataset metadata.
+
+Prepare element rows alongside artifact extraction. Reuse per-package spools keyed
+by exact archive SHA, package identity, attached document pins, and extraction
+format version. Check archive/document integrity and spool hashes before reuse;
+regenerate corrupt derived spools. Remap local artifact IDs when composing the
+index, and retain atomic PostgreSQL publication. Extraction changes must increment
+PREPARATION_VERSION; changes to published semantics also increment SCHEMA_VERSION.
+
+Acceptance: cache reuse after adding a package preserves artifact/element joins;
+corruption regenerates the affected package; format changes invalidate cached
+projections. CRD acceptance checks exact profile resolution, pinned workflow
+retrieval, real HL7 validation of representative valid/invalid FHIR resources,
+loaded-package identity, build-manifest execution, and continued PAS acceptance.
+Report FHIR validation separately from CDS Hooks protocol/workflow conformance.
+
+CRD and PAS acceptance passed with the expanded graph. Measured stage timings,
+coverage limits, and reproduction commands are recorded in CRD_VALIDATION.md.

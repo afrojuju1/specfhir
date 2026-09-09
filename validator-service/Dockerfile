@@ -9,6 +9,7 @@ FROM eclipse-temurin:21-jre-jammy@sha256:54b382c9d790d3201004d4e3921f4eff7dc7d67
 WORKDIR /app
 COPY --from=build /app/validator.jar /app/*.class ./
 COPY logback.xml /app/logback.xml
+RUN mkdir /cache && chown 10001:10001 /cache
 USER 10001:10001
 ENV JAVA_TOOL_OPTIONS="-Xmx2g -XX:+ExitOnOutOfMemoryError -Duser.home=/work -Djava.io.tmpdir=/work -Duser.language=en -Duser.country=US -Dlogback.configurationFile=/app/logback.xml -Dsun.net.httpserver.maxReqTime=20 -Dsun.net.httpserver.maxConnections=32"
 ENTRYPOINT ["java", "-cp", "/app:/app/validator.jar", "Server"]

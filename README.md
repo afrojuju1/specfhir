@@ -84,13 +84,17 @@ ignored. First sync creates a missing package lock. Subsequent sync honors it;
 use `sync --update-lock` after changing roots. Only exact dependency versions are
 supported. Version ranges and cycles fail explicitly.
 
-The checked R4 4.0.1 / US Core 9.0.0 graph contains **18 packages**,
-**25,033 artifacts and 90,048 elements**. The lexical-only extraction produces
+The initial R4 4.0.1 / US Core 9.0.0 checkpoint contained **18 packages**,
+**25,033 artifacts and 90,048 elements**. Its lexical-only extraction produced
 121,738 passages; enabling embeddings splits eligible passages further to respect
 the tokenizer limit. `sync --json` reports the published passage/vector counts:
 
-- All exact dependency versions are retained; there is no version unification.
+- Exact non-core dependency versions are retained. The approved Backport core exception
+  is recorded explicitly; there is no general version unification.
 - Three R5 dependencies are inventoried but excluded from R4 retrieval.
+- Subscriptions Backport 1.1.0 declares FHIR 4.0.0 and is excluded from retrieval;
+  HL7 loads it for validation with the explicitly selected core 4.0.1. This distinction
+  is retained in the inventory and validation coverage report.
 - The R4 examples package is inventoried but instance content is excluded.
 - Sixteen artifacts contain malformed snapshot/differential representations.
   Raw JSON remains available; affected element projections are unavailable.
@@ -308,7 +312,8 @@ FHIR retrieval-quality benchmark. Initial indexing is CPU-bound; the tested loca
 setting uses eight ONNX threads and length-grouped batches of 64.
 
 Measured results and known retrieval misses are recorded in [PHASE3_VALIDATION.md](PHASE3_VALIDATION.md).
-The current semantic index contains **130,444 passages and 101,389 vectors**.
+The Phase 3 checkpoint contained **130,444 passages and 101,389 vectors**.
+Current PAS coverage and acceptance results are recorded in [PAS_VALIDATION.md](PAS_VALIDATION.md).
 
 
 ## Delegated validation (Phase 4)
@@ -353,7 +358,8 @@ validation terminates the JVM after at most 150 seconds; Compose restarts and pr
 it. Callers receive a failure and must explicitly retry. Health checks remain available.
 
 The container has a 2 GiB Java heap and a 4 GiB memory limit. Package indexes and
-terminology caches use tmpfs. Submitted instances and results stay in memory; there
+terminology caches use a private Docker volume, separated by snapshot identity.
+Temporary files use a bounded tmpfs. Submitted instances and results stay in memory; there
 is no instance cache or request logging. Findings may contain input values.
 
 ```toml
@@ -436,3 +442,99 @@ uv run python scripts/benchmark_validator.py --restart-check
 
 The restart check intentionally interrupts the validator service. Online terminology
 is not contacted by these checks.
+
+## IG onboarding and build commands
+
+Release discovery is read-only; explicitly choose exact versions in `specfhir.toml`:
+
+```bash
+uv run specfhir packages versions hl7.fhir.us.davinci-pas --json
+uv run specfhir packages list --json
+```
+
+`packages list` reports the published inventory and whether configuration, lock, index,
+and the offline validator snapshot agree. An unavailable validator does not hide the
+inventory; it appears as not ready.
+
+To synchronize the index and prepare this checkout's offline validator:
+
+```bash
+uv run specfhir sync --with-validator --json
+# Add --update-lock only when intentionally updating the configured package graph.
+```
+
+A healthy validator with the matching snapshot is reused. A missing or stale service
+is prepared and recreated. Runtime source changes still require an explicit Compose
+rebuild/recreation. The phases are sequential: if validator preparation or recreation fails, the index may
+already be updated. The command fails; repeat it to finish recovery. The optional online
+validator must be recreated separately. This command requires `compose.yaml` beside the
+configuration and a service URL that points to that Compose validator.
+
+Build cases use a JSON manifest with paths relative to the manifest file:
+
+```json
+{
+  "cases": [
+    {
+      "name": "patient",
+      "instance": "patient.json",
+      "package": "hl7.fhir.us.core#9.0.0",
+      "profile": "USCorePatient"
+    }
+  ]
+}
+```
+
+```bash
+uv run specfhir validate-cases cases.json --json
+```
+
+All cases run and retain their results. Exit 0 means completed without error findings,
+4 means completed with error findings, and 1 means at least one execution/input failure.
+Warnings remain visible. Case names must be unique; each case requires a package and profile.
+Validation uses offline terminology and never downloads missing packages implicitly.
+
+PAS 2.0.1 / 2.1.0 onboarding status and the approved core exception are tracked in
+[PAS_VALIDATION.md](PAS_VALIDATION.md). CapabilityStatements are now included in the
+structured index; the next sync rebuilds the disposable index to include them.
+
+
+Published guidance can be attached to a configured root using `[[documents]]` with
+`package`, an exact-release HTTPS `url`, and `title`. Sync locks the page checksum and
+indexes its IG content region as `Documentation`, excluding navigation/footer content.
+It never crawls links. Changed cached or downloaded content fails checksum verification
+until an intentional `sync --update-lock`. Package archives and page caches stay in
+`.specfhir/`; rebuilds require those cached inputs or access to their pinned URLs.
+
+The PAS configuration records one approved core exception: Subscriptions Backport
+1.1.0 declares unavailable core 4.0.0; the effective edge selects core 4.0.1. The lock
+retains `dependencies` unchanged and records `dependency_resolutions` separately.
+Inventory and validation results expose the exception. Other package versions are
+never substituted, and the installed PAS releases retain separate validation contexts.
+
+### CRD and reusable preparation
+
+CRD `hl7.fhir.us.davinci-crd#2.2.1` is an explicit root alongside both PAS releases.
+Its release-specific foundational, supported-hooks, and response pages are pinned
+in the same lock as its packages. Select it with `--package`; the default remains
+US Core 9.0.0. `uv run python scripts/check_crd.py` runs the local acceptance check
+and writes synthetic build cases and full findings to `.specfhir/crd-acceptance/`.
+
+CRD FHIR profiles and logical-model definitions are searchable. The validator
+accepts FHIR resource instances; indexing CDS Hooks logical models and prose does
+not implement validation of hook envelopes, card behavior, authentication, or
+end-to-end CRD workflows. Offline terminology warnings remain visible.
+
+`specfhir sync --json` now returns current-invocation stage timings. With
+`--with-validator`, it also reports validator refresh and command total time.
+Skipped stages have zero elapsed time; unchanged syncs no longer repeat an old
+rebuild's preparation duration. Times are operation results, not dataset metadata.
+
+Rebuilds reuse `.specfhir/prepared/` projections by exact package/archive content,
+attached document pins, and extraction format version. Archives and document pins
+are still checked; cached spool hashes are checked before reuse. Damaged derived
+spools are rebuilt. Local artifact IDs are remapped before one atomic database
+publication. The separate element spool avoids parsing every large terminology
+resource twice during publication. Existing embedding caching remains in place.
+This trades local disk space for repeat extraction speed. The prepared directory
+is disposable: remove it only while no sync is running to reclaim its space.

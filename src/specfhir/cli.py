@@ -1,13 +1,17 @@
 import json
+import time
 from pathlib import Path
 from typing import Annotated
 
 import typer
 
-from specfhir import index, search, validator
+from specfhir import index, packages, search, validator
 from specfhir.models import invoke
 
 app = typer.Typer(no_args_is_help=True, help="Local, source-backed FHIR package knowledge.")
+package_app = typer.Typer(help="Published releases and installed package coverage.")
+app.add_typer(package_app, name="packages")
+
 ConfigOption = Annotated[Path, typer.Option("--config", help="Project configuration file")]
 
 
@@ -34,10 +38,22 @@ def emit(operation, as_json: bool):
 def sync(
     config: ConfigOption = Path("specfhir.toml"),
     update_lock: bool = False,
+    with_validator: bool = False,
     as_json: Annotated[bool, typer.Option("--json")] = False,
 ):
     """Download pinned packages and atomically rebuild the structured index."""
-    emit(lambda: index.sync(config, update_lock=update_lock), as_json)
+
+    def operation():
+        started = time.monotonic()
+        result = index.sync(config, update_lock=update_lock)
+        if with_validator:
+            stage = time.monotonic()
+            result["validator"] = validator.refresh(config)
+            result["timings"]["validator_refresh_seconds"] = round(time.monotonic() - stage, 3)
+        result["timings"]["command_total_seconds"] = round(time.monotonic() - started, 3)
+        return result
+
+    emit(operation, as_json)
 
 
 @app.command()
@@ -152,3 +168,28 @@ def validate_command(
         )
 
     emit(operation, as_json)
+
+
+@package_app.command("versions")
+def package_versions(name: str, as_json: Annotated[bool, typer.Option("--json")] = False):
+    """List registry releases without selecting or installing one."""
+    emit(lambda: packages.versions(name), as_json)
+
+
+@package_app.command("list")
+def package_list(
+    config: ConfigOption = Path("specfhir.toml"),
+    as_json: Annotated[bool, typer.Option("--json")] = False,
+):
+    """Show published coverage, lock consistency, and validator readiness."""
+    emit(lambda: packages.inventory(config), as_json)
+
+
+@app.command("validate-cases")
+def validate_cases_command(
+    manifest: Path,
+    config: ConfigOption = Path("specfhir.toml"),
+    as_json: Annotated[bool, typer.Option("--json")] = False,
+):
+    """Validate a JSON manifest of named instances, exact packages, and profiles."""
+    emit(lambda: validator.validate_cases(manifest, config), as_json)

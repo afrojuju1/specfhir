@@ -27,7 +27,9 @@ It implements no FHIR rules.
   Optional online terminology uses a separate process and an operator-set
   endpoint; the global HL7 network policy can never be toggled by a validation request.
 - No submitted instances, results, or request logs are persisted. Requests stay in memory;
-  writable package indexes and terminology cache live in container tmpfs.
+  writable package indexes and terminology cache live in a private Docker volume
+  under the snapshot identity. The PAS graph expands beyond 3 GB, so this cache must
+  not consume the JVM memory budget. Temporary files use a 64 MiB tmpfs.
 
 ## Acceptance
 
@@ -49,3 +51,16 @@ These are local lifecycle checks, not a general FHIR throughput benchmark.
 Full regression: 10 tests passed in 89.76 seconds with real package and validator
 smokes enabled, including CLI/API/MCP checks. Ruff, Pyright, formatting, Compose
 configuration, and source/wheel builds passed. Online terminology was not tested.
+
+## PAS package cache
+
+The side-by-side PAS graph expands to approximately 3.6 GB before validator support
+packages. `/cache` is an anonymous Docker volume owned by UID 10001, separated by
+snapshot identity; `/work` remains a 64 MiB tmpfs. Startup verifies source files and
+reuses matching cache files. This cache may survive container recreation and stores
+package indexes/terminology data, never submitted instances or validation results.
+To discard an unused validator cache deliberately, remove its stopped container with
+`docker compose rm -s -v validator`, then start it again from the prepared snapshot.
+
+`sync --with-validator` reuses a ready service with the expected snapshot. It does
+not rebuild warm engines merely because another build ran.
