@@ -65,6 +65,44 @@ def test_readiness_and_provenance(tmp_path, monkeypatch):
     assert json.loads(result.output)["counts"] == {"passed": 2, "skipped": 1}
     result = runner.invoke(app, [*command, "--with-validator"])
     assert result.exit_code == 1
+    lock_path = tmp_path / "specfhir.lock"
+    lock = Lock.model_validate_json(lock_path.read_bytes())
+    sibling = "example#0.9.0"
+    lock.packages += [
+        pin.model_copy(update={"key": sibling, "dependencies": [key]}),
+        pin.model_copy(update={"key": "bridge#1.0.0", "dependencies": [sibling]}),
+    ]
+    lock.documents.append(
+        page.model_copy(
+            update={
+                "package": sibling,
+                "url": "https://example.org/old/page.html",
+                "publication": None,
+            }
+        )
+    )
+    lock_path.write_text(lock.model_dump_json())
+    monkeypatch.setattr(
+        search,
+        "resolve",
+        lambda *a, **kw: Result(
+            status="ok",
+            data={"source": {"package": sibling}},
+        ),
+    )
+    assert checks.run(config)["status"] == "error"  # Sibling is outside the closure.
+    lock.packages[0].dependencies = ["bridge#1.0.0"]
+    lock_path.write_text(lock.model_dump_json())
+    assert checks.run(config)["status"] == "ok"  # Transitive dependency, including a cycle.
+    monkeypatch.setattr(
+        search,
+        "resolve",
+        lambda *a, **kw: Result(
+            status="ok",
+            data={"source": {"package": key}},
+        ),
+    )
+    assert checks.run(config)["status"] == "error"  # Correct URL, wrong release.
     monkeypatch.setattr(search, "inspect", lambda *a, **kw: Result(status="not_found"))
     result = runner.invoke(app, command)
     assert result.exit_code == 1 and "provenance differs" in result.output

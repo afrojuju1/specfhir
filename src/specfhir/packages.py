@@ -104,6 +104,17 @@ def effective_dependencies(pin: PackagePin) -> list[str]:
     return sorted({pin.dependency_resolutions.get(dep, dep) for dep in pin.dependencies})
 
 
+def dependency_closure(pins: dict[str, PackagePin], root: str) -> set[str]:
+    visited: set[str] = set()
+    pending = [root]
+    while pending:
+        key = pending.pop()
+        if key not in visited:
+            visited.add(key)
+            pending.extend(effective_dependencies(pins[key]))
+    return visited
+
+
 def resolve_lock(config: Config, cache: Path, previous: Lock | None) -> Lock:
     pins = {pin.key: pin for pin in previous.packages} if previous else {}
     if previous and (

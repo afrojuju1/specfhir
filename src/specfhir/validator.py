@@ -18,7 +18,7 @@ from specfhir.packages import (
     archive_files,
     compatibility,
     dependencies,
-    effective_dependencies,
+    dependency_closure,
     manifest,
     obtain,
 )
@@ -40,6 +40,7 @@ def snapshot_identity(lock: Lock, default_package: str, support: Lock | None = N
     return digest(
         {
             "protocol": 1,
+            "package_loading": "pinned-only",
             **{
                 name: [p.model_dump(exclude={"url"}) for p in sorted(pins, key=lambda p: p.key)]
                 for name, pins in (("packages", lock.packages), ("support", support.packages))
@@ -93,16 +94,7 @@ def setup(config_path: Path = Path("specfhir.toml")) -> dict:
         for pin in lock.packages:
             if pin.key not in compatible:
                 continue
-            required = set(support_keys)
-            pending = [pin.key]
-            visited = set()
-            while pending:
-                key = pending.pop()
-                if key in visited:
-                    continue
-                visited.add(key)
-                required.add(key)
-                pending.extend(effective_dependencies(pins[key]))
+            required = set(support_keys) | dependency_closure(pins, pin.key)
             contexts[pin.key] = sorted(k for k in required if not k.startswith("hl7.fhir.r5.core#"))
         content = {
             "snapshot_id": identity,

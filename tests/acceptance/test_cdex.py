@@ -61,3 +61,19 @@ def test_task(call, fhir, published, version, record_property):
         result = call("validate", instance=instance, package=package, profile=profile)
         assert result["data"]["execution"] == "completed"
         record_property("published_outcome_" + name, json.dumps(result))
+
+
+def test_core_context_stays_pinned(call, fhir):
+    # CDEX URLs used to auto-load the latest cached IG into this core-only engine.
+    instance = fhir("cdex-task")
+    for _ in range(2):
+        result = call("validate", instance=instance, package="hl7.fhir.r4.core#4.0.1")["data"]
+        assert result["execution"] == "completed"
+        assert not any("davinci-" in p for p in result["loaded_packages"])
+        assert result["findings"]["errors"] == 2
+        assert "No definition could be found for URL value" in json.dumps(result["issues"])
+    result = call(
+        "validate", instance={"resourceType": "Patient"}, package="hl7.fhir.r4.core#4.0.1"
+    )["data"]
+    assert result["execution"] == "completed" and result["findings"]["errors"] == 0
+    assert not any("davinci-" in p for p in result["loaded_packages"])

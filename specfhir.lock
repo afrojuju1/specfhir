@@ -7,6 +7,7 @@
     "hl7.fhir.us.davinci-cdex#2.1.0",
     "hl7.fhir.us.davinci-crd#2.1.0",
     "hl7.fhir.us.davinci-crd#2.2.1",
+    "hl7.fhir.us.davinci-dtr#2.1.0",
     "hl7.fhir.us.davinci-dtr#2.2.0",
     "hl7.fhir.us.davinci-pas#2.0.1",
     "hl7.fhir.us.davinci-pas#2.1.0"
@@ -1513,6 +1514,94 @@
       "sha256": "8e35519b916ce9bfd5efab3be78cbc09b96758460ccf908f8e2b962fc9ff62d5",
       "publication": "https://hl7.org/fhir/us/davinci-crd/STU2.1/full-ig.zip",
       "member": "site/history.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-dtr#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-dtr/STU2.1/index.html",
+      "title": "Documentation Templates and Rules Implementation Guide Home Page",
+      "sha256": "7a41c049a83b395c4033e1fa2aecc3a9702307c5d192ab10908405a602fdce83",
+      "publication": "https://hl7.org/fhir/us/davinci-dtr/STU2.1/full-ig.zip",
+      "member": "site/index.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-dtr#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-dtr/STU2.1/usecases.html",
+      "title": "Use Cases",
+      "sha256": "98fd0beaf9b92e2459398033ccaa52da6f0f272086f53b217f0bbe2381bdece8",
+      "publication": "https://hl7.org/fhir/us/davinci-dtr/STU2.1/full-ig.zip",
+      "member": "site/usecases.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-dtr#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-dtr/STU2.1/burden.html",
+      "title": "Burden Reduction",
+      "sha256": "a8a8c2bf18a0bbfe498b7c610f29556e95249b8ab37779eabb250cbebd7ab8c6",
+      "publication": "https://hl7.org/fhir/us/davinci-dtr/STU2.1/full-ig.zip",
+      "member": "site/burden.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-dtr#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-dtr/STU2.1/changehistory.html",
+      "title": "Change History",
+      "sha256": "b6718b1196b754448725cb0253faefc2fa2a2698881dabc58aab9f1fdd850a3f",
+      "publication": "https://hl7.org/fhir/us/davinci-dtr/STU2.1/full-ig.zip",
+      "member": "site/changehistory.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-dtr#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-dtr/STU2.1/background.html",
+      "title": "Reading this IG",
+      "sha256": "dfd0be7e2c77fc2487528920d55f2b7543b2a48c4071a24bb1a3450a098e99d6",
+      "publication": "https://hl7.org/fhir/us/davinci-dtr/STU2.1/full-ig.zip",
+      "member": "site/background.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-dtr#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-dtr/STU2.1/epa.html",
+      "title": "Electronic Prior Authorization (ePA) Coordinators",
+      "sha256": "1c2d860e90b535d0d62081a14e4ae7289bd4ee00d5b87b5f7f482327b5ccf854",
+      "publication": "https://hl7.org/fhir/us/davinci-dtr/STU2.1/full-ig.zip",
+      "member": "site/epa.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-dtr#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-dtr/STU2.1/confexpectations.html",
+      "title": "Conformance Expectations",
+      "sha256": "84055b949dde65ab27ee3467ad147cd244494b4e6125a3dba895ba8642173b4f",
+      "publication": "https://hl7.org/fhir/us/davinci-dtr/STU2.1/full-ig.zip",
+      "member": "site/confexpectations.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-dtr#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-dtr/STU2.1/specification.html",
+      "title": "Formal Specification",
+      "sha256": "d9b92ce5277d962cfeac618c2cde31fe0e6e19aaa6f3348ebd3696191ebd7901",
+      "publication": "https://hl7.org/fhir/us/davinci-dtr/STU2.1/full-ig.zip",
+      "member": "site/specification.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-dtr#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-dtr/STU2.1/security.html",
+      "title": "Privacy, Security, and Safety",
+      "sha256": "4495cecf990f13934b267667d162e33751c4a2bd9540816806549fb5cd09849a",
+      "publication": "https://hl7.org/fhir/us/davinci-dtr/STU2.1/full-ig.zip",
+      "member": "site/security.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-dtr#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-dtr/STU2.1/metrics.html",
+      "title": "DTR Metrics",
+      "sha256": "abd6dce474be9356242ef465bdfcb92ca81ede2be20268ca81318d0265aa1192",
+      "publication": "https://hl7.org/fhir/us/davinci-dtr/STU2.1/full-ig.zip",
+      "member": "site/metrics.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-dtr#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-dtr/STU2.1/allartifacts.html",
+      "title": "FHIR Artifacts",
+      "sha256": "5b81de440585c58029abf8af64c8922adaebe58ed7699a8e512e57247a840c4d",
+      "publication": "https://hl7.org/fhir/us/davinci-dtr/STU2.1/full-ig.zip",
+      "member": "site/allartifacts.html"
     }
   ],
   "publications": [
@@ -1557,6 +1646,12 @@
       "url": "https://hl7.org/fhir/us/davinci-crd/STU2.1/full-ig.zip",
       "page_prefix": "",
       "sha256": "7ad9165236e9b5e0e254f54a51deb95c2e5a35a34b286e184ed1e2a5447c75c8"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-dtr#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-dtr/STU2.1/full-ig.zip",
+      "page_prefix": "",
+      "sha256": "d35d20c56c176247adbb553897b847f1cc6d1c908889358c5c8147eefabe811d"
     }
   ]
 }

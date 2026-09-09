@@ -19,4 +19,7 @@ Complete outcomes can be retained in pytest JUnit properties.
 
 `retrieval/` contains source-backed query datasets. The search benchmark and core
 retrieval tests consume the same existing datasets; IG acceptance uses ig_queries.json
-with pytest parametrization for lexical and hybrid modes. No second expectation DSL.
+with pytest parametrization for lexical and hybrid modes. Each IG case names a
+reviewed expected canonical page or definition that must occur within the top five
+results from the requested package. Page expectations come from the pinned publication
+content; definition expectations come from the package JSON. No second expectation DSL.

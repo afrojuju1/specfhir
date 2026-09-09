@@ -821,11 +821,10 @@ results, and publication queries run in lexical and hybrid modes. Published-exam
 findings are retained in JUnit properties; completed validation is not a claim that
 upstream examples have no findings or that offline terminology is complete.
 
-A core-only package context cannot validate this CDEX-coded Task reliably: HL7
-auto-loads the CDEX terminology package and SpecFHIR rejects the resulting package
-set mismatch. The base Task comparison therefore retains CDEX dependencies while
-explicitly selecting the R4 Task profile. No declared profiles are present in the
-synthetic fixture, and the package guard is unchanged.
+The base Task comparison retains CDEX dependencies while explicitly selecting the
+R4 Task profile, so CDEX terminology remains available. A separate core-only
+regression now verifies that unfamiliar CDEX URLs cannot load extra packages;
+unknown IG terminology remains a visible validation limitation.
 
 CDEX contributes 20 supported conformance definitions in 2.0.0 and 22 in 2.1.0;
 CRD contributes 52 in 2.1.0 and 87 in 2.2.1 (documentation counted separately).
@@ -848,3 +847,57 @@ Expansion verification: all 97 tests passed in 505.97 seconds, including 74 live
 acceptance cases and real index/validator smokes. Ruff, Pyright and formatting passed.
 A subsequent unchanged sync completed in 4.625 seconds, reusing both the index and
 ready validator snapshot with zero extraction, embedding or publication work.
+
+### DTR release parity and retrieval relevance
+
+DTR 2.1.0 is an explicit root alongside 2.2.0, with 11 pinned publication pages.
+Both use the same synthetic Questionnaire and versioned acceptance; the older
+publication calls its base example `dtr-base-questionnaire`, while 2.2.0 uses
+`dtr-questionnaire`. Their exact dependency closures remain distinct.
+
+The shared IG query dataset now specifies expected canonical pages and definitions.
+Pytest requires the reviewed source from the requested release within the top five
+lexical and hybrid hits, then checks CLI/MCP parity. This measures source retrieval,
+not generated-answer correctness, and does not tune the model to the test set.
+
+### Validator package-loading boundary
+
+HL7 6.10.4's `StandAloneValidatorFetcher.resolveURL` can discover a package from
+an unfamiliar FHIR URL and install it from the shared cache. Offline mode alone
+does not prevent this. After loading each exact context, SpecFHIR retains HL7's
+fetcher with an `IPackageInstaller` that denies further package installation.
+The existing reference-validation policy and terminology mode remain unchanged.
+The service also checks the loaded package set after every validation and evicts
+an engine if it changes; the Python response guard remains in place.
+
+The package-loading policy is part of validator snapshot identity, so the normal
+`sync --with-validator` flow replaces the previous service. The live regression
+validates a CDEX-coded Task twice in a core-only context and then a plain Patient,
+checking that no Da Vinci package appears in that context. Unknown terminology
+can still produce findings; this boundary does not add terminology knowledge.
+
+DTR 2.1.0 contributes 36 supported conformance definitions plus its 11 pages.
+The complete graph remains 60 packages and now has 109 publication pages. Its
+reference check counts are 399 resolved, 56 ambiguous, 27 unsupported and 6 excluded.
+The unchanged published home-oxygen Questionnaire has one example-URL error and
+the referred Questionnaire has ten; the other two published Questionnaires have
+zero errors. Warnings and full outcomes remain in the pytest JUnit report.
+
+Readiness uses the same locked dependency traversal as validator setup. A sibling
+release is allowed when it is a real transitive dependency, with source provenance
+checked; unrelated siblings must remain unavailable. DTR 2.2.0 reaches DTR 2.1.0
+through PAS/CDEX, so an explicit older-version lookup is valid there while an
+unversioned lookup still prefers 2.2.0.
+
+Focused verification passed 93 cases, including 40 reviewed queries in both search
+modes and CLI/MCP parity, without changing search ranking or the embedding model.
+The expansion reused 59 package preparations and prepared one; embedding took
+4.184 seconds, index sync 145.469 seconds, and validator refresh 158.648 seconds.
+
+Full verification: 128 tests passed in 1012.28 seconds, including 105 live acceptance
+cases and real index/validator smokes. The strengthened core-only regression also
+passed separately: the CDEX-coded Task completes with two unknown-URL errors for
+its unavailable CDEX/HREX code systems, without adding packages; the following plain
+Patient succeeds. Twelve comparable published-example outcomes have unchanged
+finding counts. Ruff, Pyright and formatting passed. An unchanged sync reused the
+index and healthy validator in 6.534 seconds with no preparation or rebuild.

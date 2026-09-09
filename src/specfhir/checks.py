@@ -12,6 +12,7 @@ from specfhir.models import Error, Lock
 def run(config_path: Path, package=None, with_validator=False):
     config_path = config_path.resolve()
     lock = Lock.model_validate_json(lock_path(config_path).read_bytes())
+    pins = {p.key: p for p in lock.packages}
     if package:
         split_key(package)
         if package not in {p.key for p in lock.packages}:
@@ -81,14 +82,18 @@ def run(config_path: Path, package=None, with_validator=False):
                 ),
                 None,
             )
-            if (
-                sibling
-                and search.resolve(
+            if sibling:
+                result = search.resolve(
                     sibling.url, package=publication.package, config_path=config_path
-                ).status
-                != "not_found"
-            ):
-                failures.append("Sibling release page leaked into scope")
+                )
+                if sibling.package in packages.dependency_closure(pins, publication.package):
+                    if (
+                        result.status != "ok"
+                        or (result.data or {}).get("source", {}).get("package") != sibling.package
+                    ):
+                        failures.append("Dependency release page provenance differs")
+                elif result.status != "not_found":
+                    failures.append("Sibling release page leaked into scope")
             record(name, failures, {"pages": len(pinned), "sha256": publication.sha256})
         except (ValueError, OSError) as exc:
             record(name, [str(exc)])

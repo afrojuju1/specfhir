@@ -19,6 +19,8 @@ import org.hl7.fhir.utilities.TimeTracker;
 import org.hl7.fhir.utilities.http.ManagedWebAccess;
 import org.hl7.fhir.validation.ValidationEngine;
 import org.hl7.fhir.validation.service.ValidationService;
+import org.hl7.fhir.validation.service.IPackageInstaller;
+import org.hl7.fhir.validation.service.StandAloneValidatorFetcher;
 import org.hl7.fhir.validation.service.model.*;
 
 /** Transport and lifecycle only. FHIR semantics remain in the pinned HL7 engine. */
@@ -41,8 +43,16 @@ public final class Server {
             var options = new ValidationEngineParameters().setSv("4.0.1").setTxServer(endpoint)
                 .setLocale(Locale.US).setCheckReferences(true);
             if (!context.equals("hl7.fhir.r4.core#4.0.1")) options.addIg(context);
-            return buildValidationEngine(options, new InstanceValidatorParameters(),
+            var result = buildValidationEngine(options, new InstanceValidatorParameters(),
                 "hl7.fhir.r4.core#4.0.1", new TimeTracker());
+            // Context setup loads the exact closure; instance URLs cannot add packages.
+            var fetcher = new StandAloneValidatorFetcher(result.getPcm(), result.getContext(), new IPackageInstaller() {
+                public boolean packageExists(String id, String version) { return false; }
+                public void loadPackage(String id, String version) { throw new IllegalStateException("Package context is frozen"); }
+            });
+            result.setFetcher(fetcher);
+            result.getContext().setLocator(fetcher);
+            return result;
         }
     }
 
@@ -150,6 +160,8 @@ public final class Server {
                 options.addProfile(profile);
             }
             var outcome = current.validate("instance.json", ByteProvider.forBytes(instance), FhirFormat.JSON, options, new ArrayList<>());
+            if (!loaded(current).equals(strings(manifest.getAsJsonObject("contexts").getAsJsonArray(context))))
+                throw new IllegalStateException("Loaded package mismatch after validation");
             var serialized = com.google.gson.JsonParser.parseString(new JsonParser().composeString(outcome));
             COMPLETED.incrementAndGet();
             send(exchange, 200, Map.of("snapshot_id", manifest.get("snapshot_id").getAsString(),

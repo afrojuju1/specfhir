@@ -687,3 +687,28 @@ required by older CRD. Published findings and the core-only CDEX terminology-con
 limitation are documented in README.md, without changing validator policy.
 The subsequent unchanged sync took 4.625 seconds and reused the index and healthy
 validator snapshot, with no extraction, embedding or publication.
+
+## DTR release parity, retrieval relevance, and fixed validator contexts
+
+Add DTR 2.1.0 as an explicit root with its pinned full publication, reusing
+versioned pytest acceptance and shared fixtures. Give publication queries reviewed
+expected pages and add representative definition queries to the same dataset;
+assert relevant hits within a bounded result set, in lexical and hybrid modes.
+Prevent HL7's URL fetcher from installing packages after context initialization,
+while retaining reference checks and loaded-package guards. Test core CDEX-coded
+requests, subsequent clean requests, profile scope and CLI/MCP parity.
+
+Verified: all 128 tests passed in 1012.28 seconds, including 105 live acceptance
+cases and real index/validator smokes. All 40 reviewed queries find their expected
+source in the top five in both lexical and hybrid modes; no ranking/model changes
+were needed. A strengthened core-only regression subsequently passed in 3.74 seconds,
+asserting the two unknown-URL errors as well as fixed package scope and a succeeding
+plain Patient request. Ruff, Pyright, formatting and diff checks passed.
+
+DTR 2.1.0 adds 11 pages to the existing package graph (60 packages, 109 pages).
+Readiness now shares validator setup's dependency traversal and checks provenance
+for legitimate sibling dependencies; its regression covers an out-of-scope sibling,
+a transitive cycle and a wrong-release result. DTR 2.2.0's dependency on 2.1.0 is
+explicitly exercised. Twelve comparable published-example outcomes retain the same
+finding counts. The unchanged sync reused the index and healthy validator snapshot
+in 6.534 seconds with no extraction, embedding, publication or service rebuild.

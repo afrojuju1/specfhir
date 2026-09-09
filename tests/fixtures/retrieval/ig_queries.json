@@ -1,114 +1,242 @@
 [
   {
     "package": "hl7.fhir.us.davinci-pas#2.0.1",
-    "query": "submission of a prior authorization request"
+    "query": "submission of a prior authorization request",
+    "resource_type": "Documentation",
+    "expected_canonical": "https://hl7.org/fhir/us/davinci-pas/STU2/specification.html"
   },
   {
     "package": "hl7.fhir.us.davinci-pas#2.0.1",
-    "query": "authorization inquiry"
+    "query": "authorization inquiry",
+    "resource_type": "Documentation",
+    "expected_canonical": "https://hl7.org/fhir/us/davinci-pas/STU2/specification.html"
   },
   {
     "package": "hl7.fhir.us.davinci-pas#2.0.1",
-    "query": "cancel authorization"
+    "query": "cancel authorization",
+    "resource_type": "Documentation",
+    "expected_canonical": "https://hl7.org/fhir/us/davinci-pas/STU2/specification.html"
   },
   {
     "package": "hl7.fhir.us.davinci-pas#2.0.1",
-    "query": "privacy security"
+    "query": "privacy security",
+    "resource_type": "Documentation",
+    "expected_canonical": "https://hl7.org/fhir/us/davinci-pas/STU2/privacy.html"
   },
   {
     "package": "hl7.fhir.us.davinci-pas#2.1.0",
-    "query": "submission of a prior authorization request"
+    "query": "submission of a prior authorization request",
+    "resource_type": "Documentation",
+    "expected_canonical": "https://hl7.org/fhir/us/davinci-pas/STU2.1/specification.html"
   },
   {
     "package": "hl7.fhir.us.davinci-pas#2.1.0",
-    "query": "authorization inquiry"
+    "query": "authorization inquiry",
+    "resource_type": "Documentation",
+    "expected_canonical": "https://hl7.org/fhir/us/davinci-pas/STU2.1/specification.html"
   },
   {
     "package": "hl7.fhir.us.davinci-pas#2.1.0",
-    "query": "cancel authorization"
+    "query": "cancel authorization",
+    "resource_type": "Documentation",
+    "expected_canonical": "https://hl7.org/fhir/us/davinci-pas/STU2.1/specification.html"
   },
   {
     "package": "hl7.fhir.us.davinci-pas#2.1.0",
-    "query": "privacy security"
+    "query": "privacy security",
+    "resource_type": "Documentation",
+    "expected_canonical": "https://hl7.org/fhir/us/davinci-pas/STU2.1/privacy.html"
   },
   {
     "package": "hl7.fhir.us.davinci-crd#2.2.1",
-    "query": "order-sign"
+    "query": "order-sign",
+    "resource_type": "Documentation",
+    "expected_canonical": "https://hl7.org/fhir/us/davinci-crd/2.2.1/en/hooks.html"
   },
   {
     "package": "hl7.fhir.us.davinci-crd#2.2.1",
-    "query": "coverage information system action"
+    "query": "coverage information system action",
+    "resource_type": "Documentation",
+    "expected_canonical": "https://hl7.org/fhir/us/davinci-crd/2.2.1/en/cards.html"
   },
   {
     "package": "hl7.fhir.us.davinci-crd#2.2.1",
-    "query": "prefetch"
+    "query": "prefetch",
+    "resource_type": "Documentation",
+    "expected_canonical": "https://hl7.org/fhir/us/davinci-crd/2.2.1/en/foundation.html"
   },
   {
     "package": "hl7.fhir.us.davinci-crd#2.2.1",
-    "query": "privacy security"
+    "query": "privacy security",
+    "resource_type": "Documentation",
+    "expected_canonical": "https://hl7.org/fhir/us/davinci-crd/2.2.1/en/security.html"
   },
   {
     "package": "hl7.fhir.us.davinci-dtr#2.2.0",
-    "query": "questionnaire package"
+    "query": "questionnaire package",
+    "resource_type": "Documentation",
+    "expected_canonical": "https://hl7.org/fhir/us/davinci-dtr/2.2.0/en/specification.html"
   },
   {
     "package": "hl7.fhir.us.davinci-dtr#2.2.0",
-    "query": "CQL"
+    "query": "CQL",
+    "resource_type": "Documentation",
+    "expected_canonical": "https://hl7.org/fhir/us/davinci-dtr/2.2.0/en/specification.html"
   },
   {
     "package": "hl7.fhir.us.davinci-dtr#2.2.0",
-    "query": "adaptive questionnaire"
+    "query": "adaptive questionnaire",
+    "resource_type": "Documentation",
+    "expected_canonical": "https://hl7.org/fhir/us/davinci-dtr/2.2.0/en/specification.html"
   },
   {
     "package": "hl7.fhir.us.davinci-dtr#2.2.0",
-    "query": "privacy security"
+    "query": "privacy security",
+    "resource_type": "Documentation",
+    "expected_canonical": "https://hl7.org/fhir/us/davinci-dtr/2.2.0/en/security.html"
   },
   {
     "package": "hl7.fhir.us.davinci-crd#2.1.0",
-    "query": "order-sign"
+    "query": "order-sign",
+    "resource_type": "Documentation",
+    "expected_canonical": "https://hl7.org/fhir/us/davinci-crd/STU2.1/hooks.html"
   },
   {
     "package": "hl7.fhir.us.davinci-crd#2.1.0",
-    "query": "coverage information system action"
+    "query": "coverage information system action",
+    "resource_type": "Documentation",
+    "expected_canonical": "https://hl7.org/fhir/us/davinci-crd/STU2.1/cards.html"
   },
   {
     "package": "hl7.fhir.us.davinci-crd#2.1.0",
-    "query": "prefetch"
+    "query": "prefetch",
+    "resource_type": "Documentation",
+    "expected_canonical": "https://hl7.org/fhir/us/davinci-crd/STU2.1/foundation.html"
   },
   {
     "package": "hl7.fhir.us.davinci-crd#2.1.0",
-    "query": "privacy security"
+    "query": "privacy security",
+    "resource_type": "Documentation",
+    "expected_canonical": "https://hl7.org/fhir/us/davinci-crd/STU2.1/security.html"
   },
   {
     "package": "hl7.fhir.us.davinci-cdex#2.0.0",
-    "query": "direct query"
+    "query": "direct query",
+    "resource_type": "Documentation",
+    "expected_canonical": "https://hl7.org/fhir/us/davinci-cdex/STU2/direct-query.html"
   },
   {
     "package": "hl7.fhir.us.davinci-cdex#2.0.0",
-    "query": "task based approach"
+    "query": "task based approach",
+    "resource_type": "Documentation",
+    "expected_canonical": "https://hl7.org/fhir/us/davinci-cdex/STU2/task-based-approach.html"
   },
   {
     "package": "hl7.fhir.us.davinci-cdex#2.0.0",
-    "query": "sending attachments"
+    "query": "sending attachments",
+    "resource_type": "Documentation",
+    "expected_canonical": "https://hl7.org/fhir/us/davinci-cdex/STU2/sending-attachments.html"
   },
   {
     "package": "hl7.fhir.us.davinci-cdex#2.0.0",
-    "query": "security privacy"
+    "query": "security privacy",
+    "resource_type": "Documentation",
+    "expected_canonical": "https://hl7.org/fhir/us/davinci-cdex/STU2/security.html"
   },
   {
     "package": "hl7.fhir.us.davinci-cdex#2.1.0",
-    "query": "direct query"
+    "query": "direct query",
+    "resource_type": "Documentation",
+    "expected_canonical": "https://hl7.org/fhir/us/davinci-cdex/STU2.1/direct-query.html"
   },
   {
     "package": "hl7.fhir.us.davinci-cdex#2.1.0",
-    "query": "task based approach"
+    "query": "task based approach",
+    "resource_type": "Documentation",
+    "expected_canonical": "https://hl7.org/fhir/us/davinci-cdex/STU2.1/task-based-approach.html"
   },
   {
     "package": "hl7.fhir.us.davinci-cdex#2.1.0",
-    "query": "sending attachments"
+    "query": "sending attachments",
+    "resource_type": "Documentation",
+    "expected_canonical": "https://hl7.org/fhir/us/davinci-cdex/STU2.1/sending-attachments.html"
   },
   {
     "package": "hl7.fhir.us.davinci-cdex#2.1.0",
-    "query": "security privacy"
+    "query": "security privacy",
+    "resource_type": "Documentation",
+    "expected_canonical": "https://hl7.org/fhir/us/davinci-cdex/STU2.1/security.html"
+  },
+  {
+    "package": "hl7.fhir.us.davinci-dtr#2.1.0",
+    "query": "questionnaire package",
+    "resource_type": "Documentation",
+    "expected_canonical": "https://hl7.org/fhir/us/davinci-dtr/STU2.1/specification.html"
+  },
+  {
+    "package": "hl7.fhir.us.davinci-dtr#2.1.0",
+    "query": "CQL",
+    "resource_type": "Documentation",
+    "expected_canonical": "https://hl7.org/fhir/us/davinci-dtr/STU2.1/specification.html"
+  },
+  {
+    "package": "hl7.fhir.us.davinci-dtr#2.1.0",
+    "query": "adaptive questionnaire",
+    "resource_type": "Documentation",
+    "expected_canonical": "https://hl7.org/fhir/us/davinci-dtr/STU2.1/specification.html"
+  },
+  {
+    "package": "hl7.fhir.us.davinci-dtr#2.1.0",
+    "query": "privacy security",
+    "resource_type": "Documentation",
+    "expected_canonical": "https://hl7.org/fhir/us/davinci-dtr/STU2.1/security.html"
+  },
+  {
+    "package": "hl7.fhir.us.davinci-pas#2.0.1",
+    "query": "submit preauthorization claim request adjudication",
+    "resource_type": "OperationDefinition",
+    "expected_canonical": "http://hl7.org/fhir/us/davinci-pas/OperationDefinition/Claim-submit"
+  },
+  {
+    "package": "hl7.fhir.us.davinci-pas#2.1.0",
+    "query": "submit preauthorization claim request adjudication",
+    "resource_type": "OperationDefinition",
+    "expected_canonical": "http://hl7.org/fhir/us/davinci-pas/OperationDefinition/Claim-submit"
+  },
+  {
+    "package": "hl7.fhir.us.davinci-crd#2.2.1",
+    "query": "ServiceRequest coverage requirements discovery",
+    "resource_type": "StructureDefinition",
+    "expected_canonical": "http://hl7.org/fhir/us/davinci-crd/StructureDefinition/profile-servicerequest"
+  },
+  {
+    "package": "hl7.fhir.us.davinci-crd#2.1.0",
+    "query": "ServiceRequest coverage requirements discovery",
+    "resource_type": "StructureDefinition",
+    "expected_canonical": "http://hl7.org/fhir/us/davinci-crd/StructureDefinition/profile-servicerequest"
+  },
+  {
+    "package": "hl7.fhir.us.davinci-dtr#2.2.0",
+    "query": "questionnaire package dependency Library ValueSet",
+    "resource_type": "OperationDefinition",
+    "expected_canonical": "http://hl7.org/fhir/us/davinci-dtr/OperationDefinition/questionnaire-package"
+  },
+  {
+    "package": "hl7.fhir.us.davinci-dtr#2.1.0",
+    "query": "questionnaire package dependency Library ValueSet",
+    "resource_type": "OperationDefinition",
+    "expected_canonical": "http://hl7.org/fhir/us/davinci-dtr/OperationDefinition/questionnaire-package"
+  },
+  {
+    "package": "hl7.fhir.us.davinci-cdex#2.0.0",
+    "query": "submit solicited unsolicited attachments",
+    "resource_type": "OperationDefinition",
+    "expected_canonical": "http://hl7.org/fhir/us/davinci-cdex/OperationDefinition/submit-attachment"
+  },
+  {
+    "package": "hl7.fhir.us.davinci-cdex#2.1.0",
+    "query": "submit solicited unsolicited attachments",
+    "resource_type": "OperationDefinition",
+    "expected_canonical": "http://hl7.org/fhir/us/davinci-cdex/OperationDefinition/submit-attachment"
   }
 ]
