@@ -8,7 +8,7 @@ PROFILE = "CDexTaskDataRequest"
 
 
 @pytest.mark.parametrize("version", VERSIONS)
-def test_task(call, fhir, published, version, record_property):
+def test_task(call, fhir, validate_published, version):
     package = "hl7.fhir.us.davinci-cdex#" + version
     other = next(v for v in VERSIONS if v != version)
     result = call("resolve", selector=PROFILE + ".authoredOn", package=package)["data"]
@@ -57,10 +57,7 @@ def test_task(call, fhir, published, version, record_property):
     )["data"]
     assert result["findings"]["errors"] == 0
     for name, profile in [("1", PROFILE), ("19", "CDexTaskAttachmentRequest")]:
-        instance = published(package, f"package/example/Task-cdex-task-example{name}.json")
-        result = call("validate", instance=instance, package=package, profile=profile)
-        assert result["data"]["execution"] == "completed"
-        record_property("published_outcome_" + name, json.dumps(result))
+        validate_published(package, f"package/example/Task-cdex-task-example{name}.json", profile)
 
 
 def test_core_context_stays_pinned(call, fhir):

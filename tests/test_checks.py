@@ -103,6 +103,39 @@ def test_readiness_and_provenance(tmp_path, monkeypatch):
         ),
     )
     assert checks.run(config)["status"] == "error"  # Correct URL, wrong release.
+    # Every sibling release is checked once, even when it has multiple pages.
+    older = "example#0.8.0"
+    lock.packages.append(pin.model_copy(update={"key": older}))
+    lock.documents.extend(
+        page.model_copy(
+            update={
+                "package": older,
+                "url": f"https://example.org/older/{n}.html",
+                "publication": None,
+            }
+        )
+        for n in range(2)
+    )
+    lock_path.write_text(lock.model_dump_json())
+    seen = []
+
+    def resolve(url, **kwargs):
+        seen.append(url)
+        return (
+            Result(status="ok", data={"source": {"package": sibling}})
+            if "/old/" in url
+            else Result(status="not_found")
+        )
+
+    monkeypatch.setattr(search, "resolve", resolve)
+    assert checks.run(config)["status"] == "ok"
+    assert len(seen) == 2 and any("/older/" in url for url in seen)
+    monkeypatch.setattr(
+        search,
+        "resolve",
+        lambda *a, **kw: Result(status="ok", data={"source": {"package": sibling}}),
+    )
+    assert checks.run(config)["status"] == "error"  # Only the second sibling leaks.
     monkeypatch.setattr(search, "inspect", lambda *a, **kw: Result(status="not_found"))
     result = runner.invoke(app, command)
     assert result.exit_code == 1 and "provenance differs" in result.output

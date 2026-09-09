@@ -57,10 +57,7 @@ def test_questionnaire(call, fhir, package):
         "referred-questionnaire",
     ],
 )
-def test_published_questionnaire(call, published, name, record_property, package):
+def test_published_questionnaire(validate_published, name, package):
     if name == "dtr-questionnaire" and package.endswith("#2.1.0"):
         name = "dtr-base-questionnaire"
-    instance = published(package, f"package/example/Questionnaire-{name}.json")
-    result = call("validate", instance=instance, package=package)
-    assert result["data"]["execution"] == "completed"
-    record_property("published_outcome", json.dumps(result))
+    validate_published(package, f"package/example/Questionnaire-{name}.json")

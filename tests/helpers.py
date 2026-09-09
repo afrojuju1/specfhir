@@ -3,6 +3,26 @@
 import io
 import json
 import tarfile
+from collections import Counter
+
+
+def assert_published_errors(data, expected):
+    """Compare reviewed HL7 error categories, retaining warnings in the full outcome."""
+    assert data["execution"] == "completed"
+    assert not data["issues_truncated"]
+    actual = Counter()
+    for issue in data["issues"]:
+        if issue["severity"] in {"error", "fatal"}:
+            assert issue["severity"] == "error", issue
+            identifiers = [
+                e["valueCode"]
+                for e in issue.get("extension", [])
+                if e["url"] == "http://hl7.org/fhir/StructureDefinition/operationoutcome-message-id"
+            ]
+            assert len(identifiers) == 1, issue
+            actual[identifiers[0]] += 1
+    assert dict(actual) == expected
+    assert data["findings"]["errors"] == sum(expected.values())
 
 
 def archive(cache, key, resources=(), deps=None, release="4.0.1"):

@@ -10,7 +10,7 @@ VERSIONS = ["2.1.0", "2.2.1"]
     "kind,required", [("DeviceRequest", "status"), ("ServiceRequest", "authoredOn")]
 )
 @pytest.mark.parametrize("version", VERSIONS)
-def test_orders(call, fhir, published, kind, required, version, record_property):
+def test_orders(call, fhir, validate_published, kind, required, version):
     package = "hl7.fhir.us.davinci-crd#" + version
     other = next(v for v in VERSIONS if v != version)
     profile = "CRD" + kind
@@ -36,7 +36,4 @@ def test_orders(call, fhir, published, kind, required, version, record_property)
     assert result["findings"]["errors"] > 0
     result = call("validate", instance=bad, package="hl7.fhir.r4.core#4.0.1")["data"]
     assert result["findings"]["errors"] == 0
-    instance = published(package, f"package/example/{kind}-example.json")
-    result = call("validate", instance=instance, package=package, profile=profile)
-    assert result["data"]["execution"] == "completed"
-    record_property("published_outcome", json.dumps(result))
+    validate_published(package, f"package/example/{kind}-example.json", profile)

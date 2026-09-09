@@ -37,7 +37,7 @@ def test_inquiry_versions(call, fhir, version):
         ("response", "PASResponseBundle", "ReferralAuthorizationResponseBundleExample"),
     ],
 )
-def test_bundles(call, fhir, published, version, label, profile, example, record_property):
+def test_bundles(call, fhir, validate_published, version, label, profile, example):
     package = "hl7.fhir.us.davinci-pas#" + version
     other = "2.1.0" if version == "2.0.1" else "2.0.1"
     good = fhir(f"pas-{version}-{label}")
@@ -58,7 +58,4 @@ def test_bundles(call, fhir, published, version, label, profile, example, record
         del bad["entry"][0]["resource"]["patient"]
         result = call("validate", instance=bad, package=package, profile=profile)["data"]
         assert result["findings"]["errors"] > 0
-    instance = published(package, f"package/example/Bundle-{example}.json")
-    result = call("validate", instance=instance, package=package, profile=profile)
-    assert result["data"]["execution"] == "completed"
-    record_property("published_outcome", json.dumps(result))
+    validate_published(package, f"package/example/Bundle-{example}.json", profile)

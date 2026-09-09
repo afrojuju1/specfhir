@@ -1,714 +1,178 @@
-# SpecFHIR — Implementation Plan
+# SpecFHIR — Design and work plan
 
-Status: Phases 1–4 implemented. PAS 2.0.1 / 2.1.0 side-by-side onboarding implemented and verified; see PAS_VALIDATION.md. See README.md for runnable
-commands and the actual package coverage.
+Phases 1–4 and the PAS, CRD, CDEX, and DTR release expansions are implemented.
+This file is the current contract; [README.md](README.md) owns operating commands,
+[VALIDATION.md](VALIDATION.md) owns dated evidence, and Git retains superseded plans.
+Implement only requested milestones. Do not introduce custom FHIR semantics.
 
-## 1. Purpose
+## Purpose and boundaries
 
-SpecFHIR is a local, version-aware FHIR knowledge system for AI agents. It
-indexes published FHIR packages and provides structured lookup, source-backed
-search, inspection, and delegated validation through one Python API, a CLI,
-and MCP.
+Provide local, version-aware published FHIR evidence through shared Python, CLI,
+and MCP operations: `resolve`, `inspect`, `search`, and `validate`. Sync makes no
+LLM calls. Search returns attributable passages, not generated clinical answers.
 
-**Structured knowledge first. Semantic retrieval second. Every result is
-attributable to a specific source package and artifact.**
+Index R4-compatible top-level `package/*.json` resources of these types:
+StructureDefinition, SearchParameter, ValueSet, CodeSystem, ConceptMap,
+OperationDefinition, ImplementationGuide, and CapabilityStatement. Preserve raw
+JSON, package identity, FHIR release, canonical/business version, file paths,
+JSON pointers, and document chunk provenance. Original archives preserve bytes;
+JSONB preserves semantic content, not original formatting.
 
-SpecFHIR returns evidence, not LLM-generated answers. Sync makes no LLM calls.
-Local embedding inference is allowed. Retrieval works offline after a successful
-sync. Downloads and optional online terminology validation are explicit network
-operations.
+Reject incompatible configured roots. Inventory incompatible transitive packages
+and skipped content explicitly; do not convert them. Example packages and nested
+instance examples are outside the knowledge index. Selected publication prose
+supplements package JSON; this is not complete ingestion of every published page.
 
-## 2. Scope and boundaries
+DTR Questionnaire/Library instances can be submitted to validation but are not
+indexed knowledge resources. No CQL execution or questionnaire rendering is
+implemented. CRD logical models remain source definitions; no CDS Hooks workflow
+engine is provided. CDEX adds no Task orchestration, attachment transfer, or
+signature verification. PAS adds no transaction server or X12 implementation.
 
-The completed v0.1 supports:
+Patient records are transient validator inputs, never retrieval sources. Defer
+FHIR server access, SMART authentication, UI, terminology hosting, FHIRPath,
+automatic snapshot generation, graph orchestration, and additional FHIR releases
+until explicitly requested and supported by established tooling.
 
-- FHIR R4 4.0.1, with US Core as the first integration target.
-- Other compatible R4 packages using supported package formats and resource types.
-- StructureDefinition, SearchParameter, ValueSet, CodeSystem, ConceptMap, and
-  OperationDefinition; preserve ImplementationGuide metadata for attribution.
-- Exact resolution, profile/element inspection, FTS, fuzzy matching, vector search,
-  and package provenance.
-- A shared Python API, CLI, local stdio MCP server, and HL7 Validator integration.
+## Reuse and ownership
 
-“Other packages” does not mean all FHIR releases, all package types, or every
-artifact format. Report skipped resource types and unsupported package content.
-Reject incompatible configured roots. Retain incompatible transitive dependencies
-in the locked graph and inventory, but explicitly exclude their artifacts from R4
-queries. Do not convert them silently. Packages without an explicit R4 declaration
-are excluded until a compatibility policy is verified. Example packages are retained
-in the graph but their instance content is not indexed.
-
-Defer FHIR server access, SMART auth, UI, HL7 v2, C-CDA, X12, terminology hosting,
-GraphRAG, agent orchestration, FHIRPath execution, full published-site ingestion,
-and automatic snapshot generation.
-
-Patient records are not a knowledge source. Validation accepts transient instance
-inputs, but must not index them or retain their contents in logs or persistent
-application storage. Tests use synthetic fixtures.
-
-## 3. Reuse decisions
-
-| Concern | Approach | Do not build |
-| --- | --- | --- |
-| FHIR definitions | Published packages and original FHIR JSON | A parallel FHIR object model |
-| Effective profile elements | Supplied StructureDefinition snapshots | A differential merge algorithm |
-| Validation | Pinned HL7 validation engine service | Validation semantics or a custom validator |
-| Package acquisition | Standard FHIR registry protocol and package metadata | A private package format or general dependency solver |
-| Structured and text queries | PostgreSQL JSONB, SQL, FTS, pg_trgm | A search engine or ORM framework |
-| Semantic search | FastEmbed and pgvector | An embedding service or vector database |
-| MCP transport | Official MCP Python SDK | Protocol handling |
-| Configuration and basic parsing | Python tomllib, json, pathlib, hashlib, tarfile | Custom parsers |
-
-Before implementing acquisition, evaluate existing FHIR package tooling against
-the actual R4/US Core dependency graph. The FHIR project's package loader is an
-existing option, but it is a Node module: do not add a second runtime solely for
-basic HTTP downloads. If no suitable Python tool fits, a small bounded downloader
-using httpx and standard-library archive/JSON handling is acceptable. It must
-support exact dependency versions, reuse downloads, detect cycles, and reject
-unsupported version expressions with an actionable error. No custom semver solver.
-
-If later requirements demand snapshot generation, terminology operations, or
-FHIRPath evaluation, integrate established tooling only after verifying its
-release support and behavior on representative fixtures.
-
-## 4. Runtime and dependencies
-
-Use Python 3.13 and uv; PostgreSQL through Docker Compose; psycopg 3 for explicit
-SQL; Pydantic for SpecFHIR request/configuration/result boundaries; httpx for
-downloads; Typer for CLI; and the official MCP Python SDK.
-
-Add FastEmbed and pgvector when implementing semantic search. Start with
-BAAI/bge-small-en-v1.5 as the candidate model and verify its retrieval quality on
-the acceptance queries. Pin the actual model artifacts, dimensions, and relevant
-embedding settings. Use pg_trgm with the text-search phase.
-
-Use pytest for meaningful behavioral checks and Ruff plus one type checker
-(initially pyright). Add respx only if HTTP tests need it. Use standard json until
-measurement justifies orjson. Do not install fhirpathpy without an execution feature.
-
-The validation phase adds a pinned validator JAR and Java runtime in Docker Compose.
-Verify dependency compatibility and runtime requirements when producing uv.lock
-and the Compose definition; this plan does not assert an untested version matrix.
-
-No SQLAlchemy, Redis, workers, FastAPI, separate vector service, or frontend.
-
-## 5. Configuration, lockfile, and rebuilds
-
-Proposed user configuration:
-
-```toml
-packages = [
-    "hl7.fhir.r4.core#4.0.1",
-    "hl7.fhir.us.core#9.0.0",
-]
-default_package = "hl7.fhir.us.core#9.0.0"
-
-[embedding]
-enabled = false # Enable in the semantic-search milestone.
-model = "BAAI/bge-small-en-v1.5"
-```
-
-The initial package pair is a target to verify through its downloaded manifests
-and artifacts, not a substitute for checking the full dependency graph.
-
-- Keep specfhir.toml, specfhir.lock, uv.lock, and compose.yaml outside .specfhir/.
-- specfhir.lock records exact resolved package identities, dependency edges,
-  archive checksums, and acquisition sources. Include model/tool pins when used.
-- Ordinary sync honors the lock and rejects configuration mismatches or changed
-  archive bytes. An explicit `sync --update-lock` prepares a new resolution.
-- Exact dependencies are supported first. If a package requires a version range,
-  use a proven resolver or require an explicit exact override that is validated
-  against the declared constraint. Do not guess which version is compatible.
-- Runtime state records the lock digest and indexing/embedding configuration used
-  by the successfully published dataset. A pending lock change must not relabel
-  older database content as current.
-- All .specfhir/ contents are generated: database files, packages, models, and
-  validator cache. Bind the local Compose data directory there; do not silently
-  place authoritative state in a named Docker volume.
-
-The proposed rebuild procedure, once implemented, is:
-
-```bash
-docker compose down
-rm -rf .specfhir
-docker compose up -d --wait
-uv run specfhir sync
-```
-
-Compose owns database startup. Sync checks readiness and gives an actionable
-error; it does not become a process supervisor. A clean rebuild requires network
-access to the locked sources. Offline retrieval requires an existing synced
-database; offline resync requires all necessary cached inputs.
-
-## 6. Version and resolution contract
-
-Keep these identities distinct:
-
-- FHIR release: for example 4.0.1.
-- Package identity: package name plus package version.
-- Artifact identity: canonical URL plus optional artifact business version,
-  located within a specific package.
-- Element identity: owning artifact plus ElementDefinition.id and representation.
-
-Multiple package versions may be stored. Queries select a root package and its
-locked dependency closure, defaulting to default_package. Filter this context
-before ranking search results. Preserve multiple exact versions of the same
-dependency in a root closure; do not unify or replace them. The selected package
-owns its matching definitions. When it contains no match, search the dependency
-closure and return ambiguity if multiple definitions match. Explicit package
-selection can therefore disambiguate without choosing the newest version.
-
-Resolve canonical URLs, resource IDs, and artifact names by exact matching within
-that context. Allow a separate artifact-version selector and an element selector.
-Artifact names ending in `Profile` also have a suffix-free convenience alias,
-with the same collision checks: the actual US Core name is `USCorePatientProfile`.
-The convenient `USCorePatient.identifier` syntax expands to an artifact lookup
-and an element lookup; it is not FHIRPath. Canonical URLs must not be parsed by
-blindly splitting on dots.
-
-An unambiguous match returns its provenance. Multiple matches return `ambiguous`
-with candidates; zero matches return `not_found`. Do not choose a lexical first
-match, newest version, or semantic substitute. Package selection is the way to
-disambiguate duplicates across packages.
-
-## 7. Effective profile and element behavior
-
-Use snapshot.element for effective inspection and retain differential.element
-separately for authored changes. A differential-only profile remains searchable
-and its raw content inspectable, but effective element resolution returns
-`effective_definition_unavailable`. Do not silently fall back to differential
-data. Malformed snapshot/differential
-representations (including duplicate element IDs) are retained in the original
-artifact, marked with projection issues, and excluded from element projections.
-Inspection of an affected representation reports unavailable and points to raw
-inspection; no automatic repair is performed.
-
-Element path is searchable but not unique. Preserve element ID, path, slice name,
-order, and snapshot/differential origin. Distinguish slices and choice elements;
-a selector matching multiple slices returns candidates. Do not create an implicit
-FHIRPath evaluator or recursive datatype expansion.
-
-Compact element inspection includes cardinality, types and target profiles,
-must-support, bindings and binding strength, fixed/pattern values, invariants,
-slicing, definitions, and comments when present. Extract these from the element
-JSON without remodeling all of them as SQL columns. Missing is not equivalent to
-false. Must-support is not synonymous with minimum cardinality or mandatory data
-in every instance; preserve applicable source guidance.
-
-“Effective” means the published snapshot in its package context. It does not
-claim to reconstruct the original author of each inherited field.
-
-## 8. Storage and provenance
-
-Start with these tables and only the projections used by real queries:
-
-| Table | Responsibility |
+| Concern | Owner |
 | --- | --- |
-| packages | Name, version, FHIR compatibility metadata, checksum, manifest |
-| package_dependencies | Exact edges between package versions |
-| artifacts | Package, resource type/id, canonical/version, name/title, file path, raw JSONB |
-| elements | Artifact, representation, element ID/path, slice name, order, common projections, JSONB |
-| documents | Artifact/optional element, kind, source locator, text/hash, FTS vector, optional embedding |
-| index_state | Published lock digest, schema/index format, embedding identity, completion metadata |
-
-Use database constraints for package identity and per-artifact element identity.
-Do not enforce canonical URL uniqueness across all packages. Preserve original
-package archives: JSONB preserves resource content semantically, not original
-byte formatting. Store file paths and JSON pointers for precise attribution.
-
-Every returned fact or passage carries package name/version, FHIR release where
-known, artifact canonical/version or resource ID, and source locator. Human-facing
-documentation links are additional provenance only when they can be established
-from source metadata; do not invent URLs.
-
-## 9. Sync behavior
-
-1. Read configuration and validate the lock relationship.
-2. Download missing locked packages and validate archive checksums and manifests.
-3. Traverse dependencies; detect cycles, missing dependencies, incompatible
-   releases, unsupported constraints, and identity collisions.
-4. Parse supported artifacts and prepare projections/documents outside the database
-   publication transaction. Apply input-size limits and safe archive handling;
-   reject traversal paths, links, and malformed required inputs.
-5. Generate embeddings locally when enabled. Model failure is explicit; it does
-   not silently publish an allegedly complete hybrid index.
-6. Publish the complete configured dataset and index_state in one PostgreSQL
-   transaction, serialized with a database advisory lock. Concurrent sync attempts
-   must not overwrite each other from stale configuration.
-7. Report package/artifact/document counts, skipped content, and completion state.
-
-Start with a full rebuild when source or indexing configuration changes, and a
-no-op when the published identity matches. Transactional replacement is sufficient
-for v0.1; do not build a scheduler, job system, staging service, or incremental DAG.
-Queries see either the old committed dataset or the new one. A failed sync leaves
-the old dataset available. Removed configured packages disappear from the published
-dataset unless still required as dependencies; old download cache files may remain.
-
-Define determinism as stable locked inputs, identities, extraction, and exact
-lookup. Text ranking uses stable tie-breakers. Do not promise bit-identical vector
-scores across different inference hardware or library versions.
-
-## 10. Search and guidance coverage
-
-Index artifact descriptions, resource narratives, and useful element text from
-installed packages. Strip narrative markup using a safe parser; never execute it.
-Attach exact source pointers. This is package-contained guidance, not a guarantee
-of complete published implementation-guide prose.
-
-Start with one document per meaningful artifact text section or element. Split
-oversized passages at paragraph boundaries with explicit model-aware limits, and
-retain source context. Avoid embedding raw JSON, repeating entire snapshots in
-each document, or embedding every terminology code by default.
-
-Retrieval behavior:
-
-1. Exact structured resolution for explicit identifiers.
-2. PostgreSQL FTS for prose and pg_trgm for name/title typo matching.
-3. When enabled, vector candidates combined with lexical candidates using a
-   small, documented reciprocal-rank-fusion implementation.
-
-Return ranked evidence with retrieval method and source locator, not an answer
-invented from the passages. Deduplicate passages, bound result counts, and keep
-package context visible. Begin with exact vector distance queries; add approximate
-indexes only when measured corpus size and latency justify them. No reranker or
-LLM query rewriting in v0.1.
-
-## 11. Shared API, CLI, and MCP
-
-One implementation owns these operations:
-
-```text
-resolve(selector, package, artifact_version, element)
-inspect(selector, package, view, element)
-search(query, package, resource_type, limit, mode)
-validate(instance, package, profile, terminology_mode)
-```
-
-These are conceptual contracts, not final Python signatures. Use typed request
-and result boundaries, parameterized SQL, bounded responses, and explicit status
-values. Inspection defaults to compact output with raw JSON available on request.
-Do not hide incomplete definitions or truncated output.
-
-CLI examples:
-
-```bash
-uv run specfhir sync
-uv run specfhir resolve USCorePatient.identifier --json
-uv run specfhir inspect USCorePatient --json
-uv run specfhir search "patient identifier requirements" --limit 5 --json
-uv run specfhir validate patient.json --profile USCorePatient --json
-uv run specfhir mcp
-```
-
-CLI and MCP serialize the same results. CLI supports human-readable output and
-stable JSON; errors use defined exit codes. MCP initially uses stdio, with logs
-on stderr. MCP validation accepts JSON content rather than arbitrary filesystem
-paths. Sync remains an explicit CLI operation; ordinary retrieval does not mutate
-the package set or download missing dependencies.
-
-## 12. Validation contract
-
-Resolve the chosen profile using the same package context as retrieval. Require
-an explicit profile when profile-level validation is intended; absent one, report
-that only base R4 validation was requested. Include instance-declared profiles
-and unresolved references in the reported validation context.
-
-Run the pinned HL7 validation engine in a persistent Compose service with bounded
-engine reuse, admission, and execution deadlines. Publish its port directly on loopback. Use the locked package versions and verify that the validator
-loads those versions. Prevent silent downloads or version substitutions in offline
-mode. Capture machine-readable OperationOutcome output and retain relevant issue
-severity, code, diagnostics, and location/expression in the returned result.
-
-Default to offline terminology mode. Report terminology coverage as limited,
-even when no validation errors were found. Online terminology checks require an
-explicit mode and configured endpoint. Do not implement terminology expansion,
-membership checking, or SNOMED/LOINC semantics inside SpecFHIR.
-
-Keep three separate result dimensions: execution completed/failed, findings
-including error/warning counts, and coverage complete/limited/unknown. A service
-failure or missing dependency is not a successful validation result. Include the
-validator version, selected profiles/packages, and terminology mode. Keep
-instances in memory and do not log inputs.
-
-## 13. Delivery phases and acceptance
-
-### Phase 1 — Package and structured lookup foundation
-
-Create only the required project files, Compose setup, configuration/lock handling,
-package ingestion, JSONB storage, snapshot projection, resolve, and inspect.
-
-Acceptance:
-
-- Ingest the pinned R4 and US Core package graph with a visible package inventory.
-- Resolve USCorePatient.identifier with exact artifact/element/package provenance.
-- Resolve an inherited snapshot element correctly.
-- Keep sliced elements distinct; ambiguous names return candidates.
-- Differential-only profiles cannot masquerade as effective definitions.
-- Repeated sync creates no duplicates; failed replacement preserves prior data.
-- A rebuild from locked inputs produces the same structured results.
-
-### Phase 2 — First useful agent milestone (implemented)
-
-Implemented package-contained documents, FTS/fuzzy search, compact JSON output, and the
-stdio MCP tools for resolve, inspect, and search. Validation is added in phase 4,
-not exposed as a success-shaped placeholder.
-
-Acceptance:
-
-- “patient identifier requirements” retrieves relevant US Core evidence in the
-  top five results with source pointers.
-- Maintain a small reviewed query set spanning bindings, slices, terminology
-  descriptions, and guidance; expected sources are checked against actual packages.
-- CLI and MCP return equivalent core results and explicit error states.
-- Queries work with network access disabled after sync.
-
-### Phase 3 — Semantic retrieval (implemented)
-
-Implemented pinned local embeddings, pgvector, token-aware document splitting,
-and reciprocal-rank fusion. Generated narratives and copyright remain lexical-only.
-Completed inference is reused through a disposable SQLite cache keyed by model
-pin and exact input; publication remains an atomic PostgreSQL operation.
-Measure lexical and hybrid retrieval against the same reviewed queries. Keep
-semantic search optional and label lexical-only mode explicitly.
-
-Acceptance: semantic matches help representative paraphrases without weakening
-exact resolution or crossing package context; changing the model forces reindexing;
-model failure preserves the previous index. Record sync time, warm query latency,
-and disk usage on the actual development machine before adding optimizations.
-
-### Phase 4 — Delegated validation and v0.1 completion (implemented)
-
-Implemented HL7 Validator 6.10.4 through the shared API, CLI, and MCP, with explicit
-snapshot setup, bounded warm engines, and loaded-package verification.
-Its required support packages are separately pinned from the retrieval lock.
-Document Compose setup, lock reproducibility, rebuilds, terminology limitations, and
-unsupported content.
-
-Acceptance: synthetic valid/invalid fixtures, explicit profile selection, missing
-profile/dependency errors, service failure/timeout, offline terminology limits,
-snapshot integrity, overload rejection, and restart recovery behave as specified. Confirm that the validator and
-retrieval use the same package versions.
-
-Use the smallest meaningful automated checks for these behaviors, with small
-fixtures plus a real R4/US Core integration smoke test. Do not create per-function
-test scaffolding or exhaustive FHIR conformance tests already owned by HL7 tooling.
-
-## 14. Repository shape
-
-Keep source files flat and create them when the corresponding phase needs them:
-
-```text
-specfhir/
-├── PLAN.md
-├── README.md
-├── AGENTS.md
-├── pyproject.toml
-├── uv.lock
-├── specfhir.toml
-├── specfhir.lock
-├── compose.yaml
-├── src/specfhir/
-│   ├── config.py
-│   ├── models.py
-│   ├── packages.py
-│   ├── db.py
-│   ├── index.py
-│   ├── search.py
-│   ├── embeddings.py
-│   ├── validate.py
-│   ├── cli.py
-│   └── mcp.py
-├── tests/
-└── .specfhir/  # generated and gitignored
-```
-
-Do not create empty modules for future phases. The Phase 1 inspection found 18 exact package versions, including several
-extension/terminology versions, three R5 packages, one examples package, and
-16 R4 artifacts with malformed element representations. These findings motivated
-the explicit graph, exclusion, alias, and projection policies above.
-
-## 15. Primary references
-
-- [FHIR package specification](https://hl7.org/fhir/packages.html): package layout,
-  metadata, dependencies, and registry conventions. The packaging reference is
-  cross-release; indexed FHIR resource semantics remain R4.
-- [FHIR R4 StructureDefinition](https://hl7.org/fhir/R4/structuredefinition.html):
-  canonical identity, differential/snapshot representations, and element IDs.
-- [FHIR R4 ElementDefinition](https://hl7.org/fhir/R4/elementdefinition.html):
-  constraints, slicing, bindings, and must-support semantics.
-- [US Core 9.0.0](https://hl7.org/fhir/us/core/STU9/): initial guide integration target.
-- [FHIR package loader](https://github.com/FHIR/fhir-package-loader): existing
-  package-acquisition tooling to evaluate before adding custom behavior.
-- [HL7 Java core and Validator CLI](https://github.com/hapifhir/org.hl7.fhir.core):
-  authoritative implementation and release artifacts for delegated validation.
-- [HL7 Validator overview](https://info.hl7.org/hubfs/FHIR%20Open%20Source%20Tooling%20Webinar%20Series/Open%20Source%20Tooling%20-%20FHIR%20Validator%2020241015%20David%20Otasek.pdf):
-  validator operation and offline terminology limitations.
-
-
-## PAS side-by-side milestone: approved core exception
-
-PAS 2.0.1 and 2.1.0 retain exact non-core package versions. The published
-Subscriptions Backport 1.1.0 manifest requests unavailable core 4.0.0. Its declared
-edge is preserved in the lock; an explicit dependency resolution selects core 4.0.1,
-matching the HL7 engine's selected R4 core. This is limited to that package and edge,
-not a version fallback rule. Archive manifests are never rewritten.
-
-Published technical-specification pages can be explicitly attached to a root package
-using `[[documents]]` entries. Their exact URLs, titles, owners, and SHA-256 hashes
-are locked; only the IG content region is indexed as `Documentation` (not a FHIR
-resource). No crawling, latest-release selection, or automatic upgrades occur.
-
-## CRD onboarding and measured preparation reuse (implemented and verified)
-
-Add the published CRD 2.2.1 package as an explicit root; retain both PAS versions
-and the existing default. Pin the foundational, supported-hooks, and response
-pages at the release-specific publication URLs. Use existing retrieval, validation,
-package inventory, and build-manifest interfaces. No CDS Hooks server or custom
-workflow validation is part of this milestone.
-
-Record current-invocation acquisition, extraction, embedding, publication, analyze,
-and validator-refresh timings. Unchanged syncs report zero skipped-stage time,
-not the previous rebuild's elapsed time. Keep timings outside dataset metadata.
-
-Prepare element rows alongside artifact extraction. Reuse per-package spools keyed
-by exact archive SHA, package identity, attached document pins, and extraction
-format version. Check archive/document integrity and spool hashes before reuse;
-regenerate corrupt derived spools. Remap local artifact IDs when composing the
-index, and retain atomic PostgreSQL publication. Extraction changes must increment
-PREPARATION_VERSION; changes to published semantics also increment SCHEMA_VERSION.
-
-Acceptance: cache reuse after adding a package preserves artifact/element joins;
-corruption regenerates the affected package; format changes invalidate cached
-projections. CRD acceptance checks exact profile resolution, pinned workflow
-retrieval, real HL7 validation of representative valid/invalid FHIR resources,
-loaded-package identity, build-manifest execution, and continued PAS acceptance.
-Report FHIR validation separately from CDS Hooks protocol/workflow conformance.
-
-CRD and PAS acceptance passed with the expanded graph. Measured stage timings,
-coverage limits, and reproduction commands are recorded in CRD_VALIDATION.md.
-
-## Publication archive documentation coverage (implemented and verified)
-
-Discover candidate pages from each locked ImplementationGuide.definition.page tree.
-Expose selected pages and exclusion reasons through `packages pages`. Use configured,
-release-specific publication ZIP URLs for PAS 2.0.1, PAS 2.1.0, and CRD 2.2.1.
-Verify the embedded package.tgz against the locked JSON package before accepting
-any page. Lock archive SHA-256 plus selected page URLs, hashes, and archive members.
-Read selected pages in place; never unpack the publication or follow arbitrary links.
-
-Exclude generated resource renderings already supplied as JSON, table of contents,
-downloads, credits, and release administration. Include narrative overview,
-conformance, workflow, security, and implementation pages. Keep explicit single-page
-sources available for publications without a suitable archive; do not silently
-fall back to a different source when a configured archive fails verification.
-Continue using the existing document cache, extraction, embeddings, atomic index
-publication, and validator refresh. Missing pages, unsafe ZIP entries, and mismatched
-releases fail before publication. Test offline reconstruction and both PAS contexts.
-
-Verified: 37 selected pages across the three releases; all page provenance and
-version-isolation checks passed. The 18-test suite and dedicated PAS/CRD acceptance
-passed. An unchanged sync with validator verification took 4.696 seconds and reused
-the existing snapshot. See README.md for discovery/configuration commands.
-
-## Reference coverage in the existing onboarding flow (implemented and verified)
-
-`sync` extracts explicit references from indexed StructureDefinitions (inheritance,
-profile/targetProfile constraints, value-set bindings, local element contentReference)
-and ValueSets (compose include/exclude value-set imports). Each occurrence retains
-its source artifact and JSON pointer; snapshot and differential occurrences are
-counted separately. Malformed projections remain visible through existing inventory.
-
-Reuse lookup's candidate selection: canonical identity and exact optional version,
-source package's dependency closure, and preference for its own matching definition.
-Canonical links never resolve through friendly-name aliases. Cache distinct target
-checks during publication. Retain lightweight canonical identities from excluded
-supported definitions to distinguish known exclusions from absent targets.
-
-Persist reference findings with the same atomic index transaction. Report resolved,
-ambiguous, excluded, outside_scope, not_found_in_scope, and unsupported separately.
-An absent local element in a differential-only definition is inconclusive, not proof
-of a missing inherited element. Never fetch targets or select a different version.
-These findings are retrieval coverage, not FHIR validation results, and do not by
-themselves block sync. Actual acquisition/publication failures still abort safely.
-
-`sync` and `packages list` expose complete status counts per package and globally.
-`inspect` exposes counts and up to 100 source-located outgoing findings, unresolved
-first, with candidate samples capped at 10 and explicit truncation indicators.
-All reads use the same published generation; older indexes report unavailable
-coverage until rebuilt. No new command group, service, or graph workflow is added.
-HTML hyperlinks, instance references, arbitrary URI scanning, terminology membership,
-and unlisted resource relationships remain outside this first pass.
-
-Acceptance: source-package isolation, exact versions, own-package preference,
-ambiguous and excluded targets, imports, local/differential references, bounded
-inspection, and rollback after reference-publication failure. Re-run existing
-lookup/search, CLI/MCP, publication, PAS, and CRD acceptance against the live index.
-
-Verified: all 20 tests, Ruff, Pyright, 37 documentation checks, and dedicated
-PAS 2.0.1/2.1.0 and CRD 2.2.1 acceptance passed. The live index records 75,063
-reference occurrences; checking and persisting them took 15.596 seconds within
-publication. An unchanged sync took 4.594 seconds and reused both findings and the
-validator snapshot. Status totals and coverage limits are documented in README.md.
-
-## Embedding preparation reuse and measured retrieval tuning (implemented and verified)
-
-Keep the pinned BGE-small model, exact vector search, source provenance, and
-package/version isolation. Cache completed embedded document spools inside the
-existing exact-package preparation entries, keyed by the complete embedding pin
-and embedding-preparation format. Verify cached output checksums; rebuild corrupt
-entries atomically. Merge local artifact IDs through the existing spool path.
-Keep current-invocation cache counts and stage timings separate from dataset identity.
-
-Use transaction-local sort memory for exact semantic ranking and skip lexical SQL
-in semantic-only mode. Retain the original ranking SQL: the more complex scoped
-rewrite did not outperform it. Expand the existing benchmark with PAS/CRD cases,
-semantic-only measurements, exact package checks, top-50 rank diagnostics, and
-complete top-five results for before/after comparison. No model switch, approximate
-index, new service, or changed ranking policy is part of this work.
-
-Measured results and limitations are recorded in PHASE3_VALIDATION.md. Acceptance
-requires identical preparation spools and retrieval results, cache corruption and
-format-invalidation checks, and the repository regression suite.
-
-Verified: all 20 tests with live index/validator smoke checks, Ruff, Pyright, and
-formatting passed. Cached preparation was 20 times faster; median semantic and
-hybrid retrieval improved about 28% and 27% across the expanded 15-query set.
-All five preparation spools and all 45 top-five result lists matched the baseline.
-
-## Retrieval diagnosis, build measurements, and explicit cache cleanup (implemented and verified)
-
-Use one project lock path for custom configuration filenames across sync,
-inventory, page discovery, validator setup, and validation. Exercise the existing
-validator lifecycle and inventory tests with a custom filename.
-
-Investigate the remaining prose misses against actual indexed passages. Do not
-invent FHIR synonyms or change rankings to fit examples. Record failed experiments
-as such. Expand the existing retrieval benchmark with request/response questions,
-exact-version requirements, wrong-version lookups, and unavailable targets. Keep
-negative exact lookups separate from ranked prose search, which does not claim
-that a nearest match proves the requested definition exists.
-
-Add build measurement mode to the existing benchmark: model initialization,
-uncached sample inference, full cached rebuild, and unchanged sync. Add explicit
-`sync --rebuild` and `sync --prune-cache` options. Cleanup shares preparation/model
-cache identities with their producers, runs under the sync lock only after success,
-and preserves current entries, source downloads, validator snapshots, unknown files,
-and symlinks. Remove obsolete local derived caches after verifying those boundaries.
-
-Verified: 21 tests, eight exact lookup checks, Ruff, Pyright, and formatting passed.
-The 19-query prose evaluation reports 17/19 hybrid top-five hits; the diagnosed
-misses remain. A full cached rebuild took 129.879 seconds, with 114.819 seconds in
-publication. The 512-passage uncached inference sample measured 70.2 passages/s.
-Explicit cleanup removed 2.59 GiB of obsolete prepared/vector cache files while
-retaining the current ready validator snapshot. See PHASE3_VALIDATION.md for scope,
-measurement limits, and evidence paths.
-
-## DTR onboarding
-
-Add DTR 2.2.0 (R4 4.0.1) as an exact root and pin its full publication with
-English page metadata. Preserve existing roots and default; resolve the published
-exact dependency closure, including PAS 2.2.1 alongside existing PAS versions.
-Reuse current extraction, scoped references, search, and HL7 validator contexts.
-Index DTR conformance definitions and metadata-selected documentation. Published
-Questionnaire/Library instances remain source examples, outside the top-level
-conformance index; do not introduce CQL execution or a questionnaire runtime.
-
-Acceptance: exact profile and operation retrieval, workflow search with source
-provenance, a valid synthetic Questionnaire and a DTR-specific invalid variant,
-core comparison, published-example findings retained unchanged, CLI/API/MCP parity,
-coherent inventory/validator snapshot, and existing PAS/CRD/documentation regressions.
-
-Verified: DTR 2.2.0 contributes 50 supported definitions and 14 pinned pages.
-All four MCP tools match the shared API; synthetic DTR/core comparisons and
-unmodified published-example checks passed. Published findings and reference
-coverage limits are recorded in README.md. PAS 2.0.1/2.1.0, CRD 2.2.1, and all
-51 documentation-page checks passed. Ruff, Pyright, formatting, and all 21 tests
-(including live index and validator smoke checks) passed; tests took 134.41 seconds.
-No resolver, extraction, schema, embedding model, or validator-policy changes were
-needed. Existing caches were reused and the expanded validator snapshot is ready.
-
-## Consolidate acceptance into pytest
-
-Pytest owns all IG
-assertions and API/CLI/MCP acceptance. Centralize reviewed fixtures and retrieval
-datasets under tests/fixtures; derive one-field negative variants with direct Python
-edits in tests. Move archive/profile builders out of test_phase1 into tests/helpers.
-Keep published examples in checksum-verified package archives. `specfhir check`
-only checks installed readiness and coverage; remove its cases and transport flags.
-Live acceptance is explicitly opt-in and never downloads or rebuilds the dataset.
-
-Verified: 68 pytest tests passed in 292.64 seconds with live acceptance and both
-existing real smoke flags enabled. This includes 46 opt-in IG/publication acceptance
-tests and their shared API/CLI/MCP comparisons. Without --live-acceptance, all 46
-are skipped before fixture setup. Readiness passed all six installed checks; Ruff,
-Pyright, formatting, and diff checks passed. Pytest JUnit output retains published
-example outcomes under .specfhir/pytest-acceptance.xml. Removed five one-field
-negative JSON copies and all three custom acceptance manifests/evaluator models.
-Eight distinct synthetic resources remain; retrieval datasets are shared with the
-benchmark and existing core retrieval tests. No runtime pytest dependency or new
-validation semantics were introduced.
-
-## Remove redundant validator inputs and repeated setup
-
-Validator snapshot identity uses exact package/support pins and effective dependency
-resolutions, the default context, protocol, and validator binary. Retrieval-only
-roots, documentation, embedding metadata, and download locations do not invalidate
-identical validator inputs. Keep the full index digest in index metadata and each
-validation response; remove it from the immutable validator manifest so reusing a
-snapshot after documentation-only changes cannot conflict with its manifest.
-Load support metadata once per setup, check acceptance readiness once per session,
-and use the configured embedding revision in model tests instead of a duplicate
-constant. Verify stable identity and setup reuse for retrieval-only changes, and
-invalidation for package, dependency resolution, support, default, or binary changes.
-
-Verified: all 69 tests passed in 312.94 seconds, including live acceptance and
-real index/validator smoke checks. Pytest recorded one session readiness setup.
-Identity and lifecycle tests prove retrieval-only changes reuse the exact manifest,
-while package bytes, dependency resolutions, support packages, default context, and
-validator binary changes invalidate identity. Support metadata was read once per
-setup invocation. The live validator adopted the new identity with no index rebuild;
-subsequent sync reused it. Ruff, Pyright, formatting, and diff checks passed.
-
-## CDEX and CRD release expansion
-
-Pin CDEX 2.0.0 and 2.1.0 and CRD 2.1.0 alongside current CRD 2.2.1.
-Use published R4 packages and their full publication archives, with metadata-selected
-pages. Reuse exact dependency closures, incremental preparation and the existing
-validator service. Extend pytest acceptance and shared retrieval fixtures for
-version isolation, profile constraints, core comparisons, published examples and
-API/CLI/MCP parity. No new runtime or ingestion commands.
-
-Verified: 97 tests passed in 505.97 seconds, including 74 live acceptance cases,
-shared API/CLI/MCP comparisons, all publication searches and real index/validator
-smoke checks. Ruff, Pyright, formatting and diff checks passed. The lock now contains
-60 packages and 98 publication pages. Both CDEX releases share one synthetic Task;
-both CRD releases share the existing orders with a medical-record identifier type
-required by older CRD. Published findings and the core-only CDEX terminology-context
-limitation are documented in README.md, without changing validator policy.
-The subsequent unchanged sync took 4.625 seconds and reused the index and healthy
-validator snapshot, with no extraction, embedding or publication.
-
-## DTR release parity, retrieval relevance, and fixed validator contexts
-
-Add DTR 2.1.0 as an explicit root with its pinned full publication, reusing
-versioned pytest acceptance and shared fixtures. Give publication queries reviewed
-expected pages and add representative definition queries to the same dataset;
-assert relevant hits within a bounded result set, in lexical and hybrid modes.
-Prevent HL7's URL fetcher from installing packages after context initialization,
-while retaining reference checks and loaded-package guards. Test core CDEX-coded
-requests, subsequent clean requests, profile scope and CLI/MCP parity.
-
-Verified: all 128 tests passed in 1012.28 seconds, including 105 live acceptance
-cases and real index/validator smokes. All 40 reviewed queries find their expected
-source in the top five in both lexical and hybrid modes; no ranking/model changes
-were needed. A strengthened core-only regression subsequently passed in 3.74 seconds,
-asserting the two unknown-URL errors as well as fixed package scope and a succeeding
-plain Patient request. Ruff, Pyright, formatting and diff checks passed.
-
-DTR 2.1.0 adds 11 pages to the existing package graph (60 packages, 109 pages).
-Readiness now shares validator setup's dependency traversal and checks provenance
-for legitimate sibling dependencies; its regression covers an out-of-scope sibling,
-a transitive cycle and a wrong-release result. DTR 2.2.0's dependency on 2.1.0 is
-explicitly exercised. Twelve comparable published-example outcomes retain the same
-finding counts. The unchanged sync reused the index and healthy validator snapshot
-in 6.534 seconds with no extraction, embedding, publication or service rebuild.
+| FHIR definitions and effective elements | Original packages and supplied snapshots |
+| Conformance rules | Pinned HL7 ValidationService/ValidationEngine |
+| Package acquisition | httpx plus bounded stdlib archive handling and exact metadata |
+| Storage and lexical retrieval | PostgreSQL JSONB, SQL, FTS, pg_trgm |
+| Embeddings and vectors | FastEmbed quantized ONNX model and pgvector |
+| MCP framing | Official Python MCP SDK |
+| Configuration and result boundaries | tomllib and Pydantic |
+| Behavioral acceptance | pytest and shared reviewed fixtures |
+| Installed readiness | Existing `specfhir check` operation |
+
+Python 3.13/uv owns orchestration; Compose owns PostgreSQL and the Java 21 service.
+Use direct SQL, existing helpers, and shared API serialization. No ORM, queue,
+embedding service, reverse proxy, custom package format, or general semver solver
+is needed for the current scope.
+
+## Exact versions and effective definitions
+
+Keep FHIR release, package name/version, artifact canonical/business version, and
+element identity distinct. A query selects a package plus its locked dependency
+closure. Own-package matches take precedence; dependency collisions return
+ambiguity. Preserve multiple dependency versions without choosing the latest.
+Exact selectors and collision-aware name aliases never fall back to semantic search.
+
+Effective elements come from `snapshot.element`. Keep differential projections
+separate. Missing or malformed representations are unavailable, with raw content
+retained and projection issues reported; do not repair or synthesize snapshots.
+Keep element ID, path, slice, choice notation, ordering, and representation.
+Must-support is not interchangeable with minimum cardinality; missing is not false.
+
+Reference coverage resolves published SD bases, type/target profiles, bindings,
+local content references, and ValueSet compose imports within the source package
+closure. It reports resolved, ambiguous, excluded, outside-scope, missing-in-scope,
+and unsupported targets. These non-blocking retrieval findings are not a complete
+HTML/instance graph or conformance validation. Inspection bounds findings and
+candidates while retaining summary counts.
+
+One reviewed dependency exception remains explicit: subscriptions-backport.r4
+1.1.0 declares unavailable R4 core 4.0.0; acquisition resolves that edge to 4.0.1
+and records `dependency_resolutions` without changing the manifest. Its definitions
+remain retrieval-excluded under the declared-release policy; HL7 handles validation.
+Do not generalize this exception into silent version substitution.
+
+## Reproducible preparation and publication
+
+Configuration selects exact roots, default context, publication sources, and model
+settings. The lock records recursive exact dependencies, checksums, URLs, document
+members, and model/runtime pins. Reject unsupported ranges and acquisition cycles.
+Ordinary sync honors the lock; intentional changes require `--update-lock`.
+
+Use bounded safe archive readers and verify manifests/checksums before reuse.
+Discover prose through IG page metadata and prefer an exact full-publication ZIP
+whose embedded package archive matches the package pin. Pin selected page bytes
+and provenance. Explicit document sources handle publications without an archive;
+archive integrity failures do not silently downgrade to another source.
+
+Reuse prepared package and embedded-passage spools by exact input/model/format
+identity. A disposable vector cache reuses exact model/input hashes. Preparation
+happens outside the database publication transaction. Publish the full dataset
+and its identity atomically under the existing advisory lock; failure preserves
+the prior dataset. A pending lock must not relabel old database content as current.
+Unchanged sync is a verified no-op. Explicit pruning removes only recognized
+obsolete prepared/embedded/vector generations after successful sync.
+
+Validator snapshots depend on effective package/support pins, default context,
+protocol, JAR, and pinned-only loading policy. Retrieval roots, prose, embedding
+settings, and download URL changes alone do not require cold engines. Coordinated
+sync publishes the index before refreshing a changed validator snapshot; report
+partial completion clearly so rerunning can finish service setup.
+
+## Retrieval contract
+
+Use English FTS, fuzzy name/title matching, and exact cosine scans. Hybrid search
+uses rank fusion `sum(1 / (60 + rank))` over at most 100 candidates from each path,
+with selected-package priority, stable tie-breakers, and source/text deduplication.
+No approximate index, reranker, or query rewrite is justified by current evidence.
+
+Token-aware passages retain headings and source locators; enforce the pinned
+128–512-token setting (configured 256), including special tokens, without silent
+truncation. Generated narratives and copyright are lexical-only. Queries use the
+published model pin, and only sync downloads model files. Failure of a semantic
+index's model is explicit; callers can request lexical mode.
+
+Keep results bounded and provenance visible. Compact inspection exposes up to
+100 elements, reference findings prioritize unresolved entries, and raw inspection
+remains explicit. Search limits and issue caps are documented in README.
+
+## Validation contract
+
+Resolve explicit and instance-declared profiles in the selected package closure.
+Without an explicit profile, request base R4 validation; do not infer a profile
+from the default package. Delegate every FHIR rule to HL7 and return its issues.
+Separate completed/failed execution, severity counts, and limited/unknown coverage.
+Zero errors never promise full terminology or reference coverage.
+
+The small Java HTTP adapter owns bounded engine lifetime, admission, and deadlines.
+It initializes exact pinned contexts, then disables HL7 package installation from
+instance profile requests while retaining reference-check policy. Service and
+Python loaded-package guards detect unexpected packages; evict contaminated engines.
+A stale snapshot or missing service is an execution failure, not a valid instance.
+
+Two LRU engines and serialized execution bound mutable HL7 state. Explicit queue
+and execution deadlines prevent indefinitely occupied service capacity. A stuck
+JVM exits for Compose to restart; callers see failure without automatic retries.
+Offline is the default HL7 network policy; optional online terminology runs in a
+separate process with an explicit HTTPS endpoint. Inputs and outcomes stay in memory;
+private writable caches hold package/terminology data only.
+
+## Completed milestones and acceptance
+
+- Foundation: locked packages, exact lookup, effective/raw inspection, atomic sync.
+- Agent retrieval: FTS/fuzzy search, shared CLI/API/MCP, local pinned embeddings.
+- Delegated validation: persistent Compose service, exact contexts, build manifests.
+- IG expansion: two configured releases each of PAS, CRD, CDEX, and DTR; pinned
+  publication prose, dependency-aware references, shared positive/negative fixtures.
+- Reuse: prepared and embedded spools, measured SQL tuning, explicit cache cleanup,
+  pytest acceptance consolidation, retrieval-independent validator identity.
+- Current hardening: interleave CLI/MCP replay per case while retaining every API
+  comparison; inspect one representative page from every sibling release with
+  dependency-aware provenance; assert reviewed published-example error categories
+  and counts; consolidate operating/design/evidence documentation.
+
+Acceptance must preserve isolation, atomic-failure behavior, exact provenance,
+positive/negative validator findings, and identical API/CLI/MCP results. Published
+examples are original checksum-verified archive bytes; synthetic fixtures are
+separate. Store reviewed error expectations once in fixtures and retain complete
+published outcomes in JUnit. A changed error category/count requires review.
+
+## Next work, when requested
+
+Expand through the existing package/publication configuration and pytest paths.
+For each release, verify exact dependencies, documentation provenance, representative
+positive/negative validation, release isolation, and source-backed retrieval cases.
+Use installed readiness plus live acceptance as the completion gate.
+
+Measure before adding infrastructure. Remaining known prose misses and full database
+publication cost are candidates for targeted work if they matter to actual usage.
+Do not replace the embedding model, add ANN, or build incremental SQL publication
+without a broader evaluation or measured latency/build requirement.

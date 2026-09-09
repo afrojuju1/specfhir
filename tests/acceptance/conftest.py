@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from helpers import assert_published_errors
 from mcp import Client, StdioServerParameters
 
 from specfhir import checks, packages, search, validator
@@ -16,6 +17,7 @@ from specfhir.models import Lock, invoke
 
 ROOT = Path(__file__).resolve().parents[2]
 CONFIG = ROOT / "specfhir.toml"
+PUBLISHED_ERRORS = json.loads((ROOT / "tests/fixtures/published_errors.json").read_bytes())
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -30,6 +32,21 @@ def fhir():
         return validator.read_instance(ROOT / "tests/fixtures/fhir" / f"{name}.json")
 
     return read
+
+
+@pytest.fixture
+def validate_published(call, published, record_property):
+    def validate(package, member, profile=None):
+        result = call(
+            "validate", instance=published(package, member), package=package, profile=profile
+        )
+        record_property("published_outcome:" + member, json.dumps(result))
+        data = result["data"]
+        assert data["validator_version"] == PUBLISHED_ERRORS["validator_version"]
+        assert_published_errors(data, PUBLISHED_ERRORS["packages"][package][member])
+        return result
+
+    return validate
 
 
 @pytest.fixture(scope="module")
@@ -66,34 +83,6 @@ def call(tmp_path_factory):
 
     yield execute
     instance_path = tmp_path_factory.mktemp("acceptance") / "instance.json"
-    for tool, args, expected in responses:
-        options = dict(args)
-        if tool == "validate":
-            instance_path.write_text(json.dumps(options.pop("instance")))
-            positional = str(instance_path)
-        else:
-            positional = options.pop("query" if tool == "search" else "selector")
-        command = [
-            sys.executable,
-            "-m",
-            "specfhir",
-            tool,
-            positional,
-            "--config",
-            str(CONFIG),
-            "--json",
-        ]
-        for name, value in options.items():
-            if value is not None:
-                command.extend(["--" + name.replace("_", "-"), str(value)])
-        output = subprocess.run(command, capture_output=True, text=True, timeout=240)
-        expected_code = (
-            2
-            if expected["status"] == "not_found"
-            else (4 if expected.get("data", {}).get("findings", {}).get("errors") else 0)
-        )
-        assert output.returncode == expected_code, output.stderr
-        assert json.loads(output.stdout) == expected
 
     async def parity():
         params = StdioServerParameters(
@@ -103,6 +92,35 @@ def call(tmp_path_factory):
         )
         async with Client(params, read_timeout_seconds=240) as client:
             for tool, args, expected in responses:
+                options = dict(args)
+                if tool == "validate":
+                    instance_path.write_text(json.dumps(options.pop("instance")))
+                    positional = str(instance_path)
+                else:
+                    positional = options.pop("query" if tool == "search" else "selector")
+                command = [
+                    sys.executable,
+                    "-m",
+                    "specfhir",
+                    tool,
+                    positional,
+                    "--config",
+                    str(CONFIG),
+                    "--json",
+                ]
+                for name, value in options.items():
+                    if value is not None:
+                        command.extend(["--" + name.replace("_", "-"), str(value)])
+                output = await asyncio.to_thread(
+                    subprocess.run, command, capture_output=True, text=True, timeout=240
+                )
+                expected_code = (
+                    2
+                    if expected["status"] == "not_found"
+                    else (4 if expected.get("data", {}).get("findings", {}).get("errors") else 0)
+                )
+                assert output.returncode == expected_code, output.stderr
+                assert json.loads(output.stdout) == expected
                 result = await client.call_tool(tool, args)
                 assert result.structured_content == expected
 

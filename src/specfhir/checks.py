@@ -73,27 +73,27 @@ def run(config_path: Path, package=None, with_validator=False):
                     or resource.get("publication_member") != page.member
                 ):
                     failures.append(f"Page provenance differs: {page.url}")
-            sibling = next(
-                (
-                    d
-                    for d in lock.documents
-                    if d.package != publication.package
-                    and d.package.split("#")[0] == publication.package.split("#")[0]
-                ),
-                None,
-            )
-            if sibling:
+            siblings = {
+                d.package: d
+                for d in lock.documents
+                if d.package != publication.package
+                and d.package.split("#")[0] == publication.package.split("#")[0]
+            }
+            scope = packages.dependency_closure(pins, publication.package)
+            for sibling in siblings.values():
                 result = search.resolve(
                     sibling.url, package=publication.package, config_path=config_path
                 )
-                if sibling.package in packages.dependency_closure(pins, publication.package):
+                if sibling.package in scope:
                     if (
                         result.status != "ok"
                         or (result.data or {}).get("source", {}).get("package") != sibling.package
                     ):
-                        failures.append("Dependency release page provenance differs")
+                        failures.append(
+                            f"Dependency release page provenance differs: {sibling.package}"
+                        )
                 elif result.status != "not_found":
-                    failures.append("Sibling release page leaked into scope")
+                    failures.append(f"Sibling release page leaked into scope: {sibling.package}")
             record(name, failures, {"pages": len(pinned), "sha256": publication.sha256})
         except (ValueError, OSError) as exc:
             record(name, [str(exc)])

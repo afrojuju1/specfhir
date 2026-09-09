@@ -1,6 +1,6 @@
 # SpecFHIR
 
-- Follow PLAN.md. Implement only the requested phase; no custom FHIR semantics.
+- Follow PLAN.md. Implement only the requested phase or milestone; no custom FHIR semantics.
 - Use uv for Python commands. Check with `uv run ruff check .`,
   `uv run pyright`, and `uv run pytest`.
 - Integration tests require the local Compose database and run with

@@ -1,0 +1,86 @@
+{
+  "validator_version": "6.10.4",
+  "packages": {
+    "hl7.fhir.us.davinci-cdex#2.0.0": {
+      "package/example/Task-cdex-task-example1.json": {
+        "TYPE_SPECIFIC_CHECKS_DT_URL_EXAMPLE": 3
+      },
+      "package/example/Task-cdex-task-example19.json": {
+        "Reference_REF_CantMatchChoice": 1,
+        "TYPE_SPECIFIC_CHECKS_DT_URL_EXAMPLE": 5
+      }
+    },
+    "hl7.fhir.us.davinci-cdex#2.1.0": {
+      "package/example/Task-cdex-task-example1.json": {
+        "TYPE_SPECIFIC_CHECKS_DT_URL_EXAMPLE": 3
+      },
+      "package/example/Task-cdex-task-example19.json": {
+        "Reference_REF_CantMatchChoice": 1,
+        "TYPE_SPECIFIC_CHECKS_DT_URL_EXAMPLE": 5
+      }
+    },
+    "hl7.fhir.us.davinci-crd#2.1.0": {
+      "package/example/DeviceRequest-example.json": {
+        "Reference_REF_CantResolve": 4
+      },
+      "package/example/ServiceRequest-example.json": {
+        "Reference_REF_CantResolve": 5
+      }
+    },
+    "hl7.fhir.us.davinci-crd#2.2.1": {
+      "package/example/DeviceRequest-example.json": {
+        "Reference_REF_CantResolve": 4
+      },
+      "package/example/ServiceRequest-example.json": {
+        "Reference_REF_CantResolve": 5
+      }
+    },
+    "hl7.fhir.us.davinci-dtr#2.1.0": {
+      "package/example/Questionnaire-AdaptiveSearchExample.json": {},
+      "package/example/Questionnaire-dtr-base-questionnaire.json": {},
+      "package/example/Questionnaire-home-o2-std-questionnaire.json": {
+        "TYPE_SPECIFIC_CHECKS_DT_URL_EXAMPLE": 1
+      },
+      "package/example/Questionnaire-referred-questionnaire.json": {
+        "TYPE_SPECIFIC_CHECKS_DT_URL_EXAMPLE": 10
+      }
+    },
+    "hl7.fhir.us.davinci-dtr#2.2.0": {
+      "package/example/Questionnaire-AdaptiveSearchExample.json": {},
+      "package/example/Questionnaire-dtr-questionnaire.json": {},
+      "package/example/Questionnaire-home-o2-std-questionnaire.json": {},
+      "package/example/Questionnaire-referred-questionnaire.json": {
+        "TYPE_SPECIFIC_CHECKS_DT_URL_EXAMPLE": 10
+      }
+    },
+    "hl7.fhir.us.davinci-pas#2.0.1": {
+      "package/example/Bundle-ReferralAuthorizationBundleExample.json": {
+        "Reference_REF_CantMatchChoice": 6,
+        "TYPE_SPECIFIC_CHECKS_DT_URL_EXAMPLE": 5,
+        "Type_Specific_Checks_DT_XHTML_Resolve": 10
+      },
+      "package/example/Bundle-ReferralAuthorizationResponseBundleExample.json": {
+        "Reference_REF_CantMatchChoice": 1,
+        "Reference_REF_CantResolve": 1,
+        "TYPE_SPECIFIC_CHECKS_DT_URL_EXAMPLE": 3,
+        "Terminology_TX_NoValid_16": 1,
+        "Type_Specific_Checks_DT_XHTML_Resolve": 3,
+        "UNABLE_TO_INFER_CODESYSTEM": 1
+      }
+    },
+    "hl7.fhir.us.davinci-pas#2.1.0": {
+      "package/example/Bundle-ReferralAuthorizationBundleExample.json": {
+        "BUNDLE_BUNDLE_ENTRY_MULTIPLE_PROFILES_NO_MATCH": 1,
+        "Reference_REF_CantMatchChoice": 11,
+        "TYPE_SPECIFIC_CHECKS_DT_URL_EXAMPLE": 11,
+        "Validation_VAL_Profile_Minimum": 1,
+        "Validation_VAL_Profile_NoMatch": 1
+      },
+      "package/example/Bundle-ReferralAuthorizationResponseBundleExample.json": {
+        "Reference_REF_CantMatchChoice": 1,
+        "Reference_REF_CantResolve": 2,
+        "TYPE_SPECIFIC_CHECKS_DT_URL_EXAMPLE": 3
+      }
+    }
+  }
+}
