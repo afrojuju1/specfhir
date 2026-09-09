@@ -14,7 +14,15 @@
       "identifier": [
         {
           "system": "urn:uuid:ba51bc63-6b10-411c-a7df-d48005b91018",
-          "value": "patient"
+          "value": "patient",
+          "type": {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                "code": "MR"
+              }
+            ]
+          }
         }
       ],
       "name": [

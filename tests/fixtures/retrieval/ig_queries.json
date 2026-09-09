@@ -62,5 +62,53 @@
   {
     "package": "hl7.fhir.us.davinci-dtr#2.2.0",
     "query": "privacy security"
+  },
+  {
+    "package": "hl7.fhir.us.davinci-crd#2.1.0",
+    "query": "order-sign"
+  },
+  {
+    "package": "hl7.fhir.us.davinci-crd#2.1.0",
+    "query": "coverage information system action"
+  },
+  {
+    "package": "hl7.fhir.us.davinci-crd#2.1.0",
+    "query": "prefetch"
+  },
+  {
+    "package": "hl7.fhir.us.davinci-crd#2.1.0",
+    "query": "privacy security"
+  },
+  {
+    "package": "hl7.fhir.us.davinci-cdex#2.0.0",
+    "query": "direct query"
+  },
+  {
+    "package": "hl7.fhir.us.davinci-cdex#2.0.0",
+    "query": "task based approach"
+  },
+  {
+    "package": "hl7.fhir.us.davinci-cdex#2.0.0",
+    "query": "sending attachments"
+  },
+  {
+    "package": "hl7.fhir.us.davinci-cdex#2.0.0",
+    "query": "security privacy"
+  },
+  {
+    "package": "hl7.fhir.us.davinci-cdex#2.1.0",
+    "query": "direct query"
+  },
+  {
+    "package": "hl7.fhir.us.davinci-cdex#2.1.0",
+    "query": "task based approach"
+  },
+  {
+    "package": "hl7.fhir.us.davinci-cdex#2.1.0",
+    "query": "sending attachments"
+  },
+  {
+    "package": "hl7.fhir.us.davinci-cdex#2.1.0",
+    "query": "security privacy"
   }
 ]

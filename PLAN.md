@@ -668,3 +668,22 @@ while package bytes, dependency resolutions, support packages, default context, 
 validator binary changes invalidate identity. Support metadata was read once per
 setup invocation. The live validator adopted the new identity with no index rebuild;
 subsequent sync reused it. Ruff, Pyright, formatting, and diff checks passed.
+
+## CDEX and CRD release expansion
+
+Pin CDEX 2.0.0 and 2.1.0 and CRD 2.1.0 alongside current CRD 2.2.1.
+Use published R4 packages and their full publication archives, with metadata-selected
+pages. Reuse exact dependency closures, incremental preparation and the existing
+validator service. Extend pytest acceptance and shared retrieval fixtures for
+version isolation, profile constraints, core comparisons, published examples and
+API/CLI/MCP parity. No new runtime or ingestion commands.
+
+Verified: 97 tests passed in 505.97 seconds, including 74 live acceptance cases,
+shared API/CLI/MCP comparisons, all publication searches and real index/validator
+smoke checks. Ruff, Pyright, formatting and diff checks passed. The lock now contains
+60 packages and 98 publication pages. Both CDEX releases share one synthetic Task;
+both CRD releases share the existing orders with a medical-record identifier type
+required by older CRD. Published findings and the core-only CDEX terminology-context
+limitation are documented in README.md, without changing validator policy.
+The subsequent unchanged sync took 4.625 seconds and reused the index and healthy
+validator snapshot, with no extraction, embedding or publication.

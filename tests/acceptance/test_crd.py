@@ -3,37 +3,40 @@ import json
 
 import pytest
 
-PACKAGE = "hl7.fhir.us.davinci-crd#2.2.1"
+VERSIONS = ["2.1.0", "2.2.1"]
 
 
 @pytest.mark.parametrize(
     "kind,required", [("DeviceRequest", "status"), ("ServiceRequest", "authoredOn")]
 )
-def test_orders(call, fhir, published, kind, required, record_property):
+@pytest.mark.parametrize("version", VERSIONS)
+def test_orders(call, fhir, published, kind, required, version, record_property):
+    package = "hl7.fhir.us.davinci-crd#" + version
+    other = next(v for v in VERSIONS if v != version)
     profile = "CRD" + kind
-    result = call("resolve", selector=f"{profile}.{required}", package=PACKAGE)["data"]
+    result = call("resolve", selector=f"{profile}.{required}", package=package)["data"]
     assert result["element"]["min"] == 1
-    assert result["source"]["package"] == PACKAGE
-    assert result["source"]["artifact_version"] == "2.2.1"
+    assert result["source"]["package"] == package
+    assert result["source"]["artifact_version"] == version
     assert (
-        call("resolve", selector=result["source"]["canonical"] + "|2.1.0", package=PACKAGE)[
+        call("resolve", selector=result["source"]["canonical"] + "|" + other, package=package)[
             "status"
         ]
         == "not_found"
     )
     good = fhir("crd-" + kind)
-    result = call("validate", instance=good, package=PACKAGE, profile=profile)["data"]
+    result = call("validate", instance=good, package=package, profile=profile)["data"]
     assert result["execution"] == "completed" and result["findings"]["errors"] == 0
-    assert PACKAGE in result["loaded_packages"]
+    assert package in result["loaded_packages"]
     assert not any("davinci-pas#" in p for p in result["loaded_packages"])
     bad = copy.deepcopy(good)
     del bad[required]
-    result = call("validate", instance=bad, package=PACKAGE, profile=profile)["data"]
+    result = call("validate", instance=bad, package=package, profile=profile)["data"]
     assert f"{kind}.{required}: minimum required = 1" in json.dumps(result["issues"])
     assert result["findings"]["errors"] > 0
     result = call("validate", instance=bad, package="hl7.fhir.r4.core#4.0.1")["data"]
     assert result["findings"]["errors"] == 0
-    instance = published(PACKAGE, f"package/example/{kind}-example.json")
-    result = call("validate", instance=instance, package=PACKAGE, profile=profile)
+    instance = published(package, f"package/example/{kind}-example.json")
+    result = call("validate", instance=instance, package=package, profile=profile)
     assert result["data"]["execution"] == "completed"
     record_property("published_outcome", json.dumps(result))

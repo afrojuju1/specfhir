@@ -1,0 +1,17 @@
+{
+  "resourceType": "Task",
+  "id": "synthetic-cdex-request",
+  "status": "requested",
+  "intent": "order",
+  "code": {
+    "coding": [{"system": "http://hl7.org/fhir/us/davinci-cdex/CodeSystem/cdex-temp", "code": "data-request-query"}]
+  },
+  "for": {"identifier": {"system": "https://specfhir.test/members", "value": "synthetic-member"}},
+  "authoredOn": "2026-01-01T00:00:00Z",
+  "requester": {"identifier": {"system": "https://specfhir.test/payers", "value": "synthetic-payer"}},
+  "owner": {"identifier": {"system": "https://specfhir.test/providers", "value": "synthetic-provider"}},
+  "input": [{
+    "type": {"coding": [{"system": "http://hl7.org/fhir/us/davinci-hrex/CodeSystem/hrex-temp", "code": "data-query"}]},
+    "valueString": "Condition?patient=synthetic-patient"
+  }]
+}

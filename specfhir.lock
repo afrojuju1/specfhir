@@ -3,6 +3,9 @@
   "roots": [
     "hl7.fhir.r4.core#4.0.1",
     "hl7.fhir.us.core#9.0.0",
+    "hl7.fhir.us.davinci-cdex#2.0.0",
+    "hl7.fhir.us.davinci-cdex#2.1.0",
+    "hl7.fhir.us.davinci-crd#2.1.0",
     "hl7.fhir.us.davinci-crd#2.2.1",
     "hl7.fhir.us.davinci-dtr#2.2.0",
     "hl7.fhir.us.davinci-pas#2.0.1",
@@ -117,6 +120,22 @@
       "dependency_resolutions": {}
     },
     {
+      "key": "hl7.fhir.us.davinci-cdex#2.0.0",
+      "url": "https://packages.fhir.org/hl7.fhir.us.davinci-cdex/2.0.0",
+      "sha256": "8e12e87a85516204322d516fe128ee097c5456f5557fa19a201aa6b4288fafac",
+      "dependencies": [
+        "hl7.fhir.r4.core#4.0.1",
+        "hl7.fhir.us.carin-bb#2.0.0",
+        "hl7.fhir.us.core#3.1.1",
+        "hl7.fhir.us.davinci-dtr#1.1.0-ballot",
+        "hl7.fhir.us.davinci-hrex#1.0.0",
+        "hl7.fhir.us.davinci-pas#1.2.0-ballot",
+        "hl7.fhir.uv.sdc#3.0.0",
+        "hl7.terminology.r4#5.0.0"
+      ],
+      "dependency_resolutions": {}
+    },
+    {
       "key": "hl7.fhir.us.davinci-cdex#2.1.0",
       "url": "https://packages.fhir.org/hl7.fhir.us.davinci-cdex/2.1.0",
       "sha256": "7c950274d8128934868254e1a620dd44d63d9f62bed36edaa70018b70cd1102d",
@@ -186,6 +205,17 @@
         "hl7.fhir.uv.xver-r5.r4#0.1.0",
         "hl7.terminology.r4#7.1.0",
         "us.nlm.vsac#0.19.0"
+      ],
+      "dependency_resolutions": {}
+    },
+    {
+      "key": "hl7.fhir.us.davinci-dtr#1.1.0-ballot",
+      "url": "https://packages.fhir.org/hl7.fhir.us.davinci-dtr/1.1.0-ballot",
+      "sha256": "e940eb0ee9eebf5cb1d3f8434398155514a5341a1fb7b5938e07351f470f378d",
+      "dependencies": [
+        "hl7.fhir.r4.core#4.0.1",
+        "hl7.fhir.us.core#3.1.1",
+        "hl7.fhir.uv.sdc#3.0.0-preview"
       ],
       "dependency_resolutions": {}
     },
@@ -265,6 +295,16 @@
         "hl7.fhir.uv.tools.r4#1.1.2",
         "hl7.terminology.r4#7.1.0",
         "us.nlm.vsac#0.19.0"
+      ],
+      "dependency_resolutions": {}
+    },
+    {
+      "key": "hl7.fhir.us.davinci-pas#1.2.0-ballot",
+      "url": "https://packages.fhir.org/hl7.fhir.us.davinci-pas/1.2.0-ballot",
+      "sha256": "d0c1a3e0e8072257bd2f5bb646c4f5f9a6c8e2787aa85d55460581b2d7ee4a99",
+      "dependencies": [
+        "hl7.fhir.r4.core#4.0.1",
+        "hl7.fhir.us.core#3.1.1"
       ],
       "dependency_resolutions": {}
     },
@@ -423,6 +463,16 @@
       "key": "hl7.fhir.uv.sdc#3.0.0",
       "url": "https://packages.fhir.org/hl7.fhir.uv.sdc/3.0.0",
       "sha256": "be5c3f0a7f82e072b40739e05fb68f3e58e44c9bd040cd901b1b55c62f23dca2",
+      "dependencies": [
+        "hl7.fhir.r4.core#4.0.1",
+        "hl7.fhir.r4.examples#4.0.1"
+      ],
+      "dependency_resolutions": {}
+    },
+    {
+      "key": "hl7.fhir.uv.sdc#3.0.0-preview",
+      "url": "https://packages.fhir.org/hl7.fhir.uv.sdc/3.0.0-preview",
+      "sha256": "5886026a631c25da3caf8a379e40ec4f3f0c0d57c8f23e5c04c6caa3d8881340",
       "dependencies": [
         "hl7.fhir.r4.core#4.0.1",
         "hl7.fhir.r4.examples#4.0.1"
@@ -1087,6 +1137,382 @@
       "sha256": "60dd5096c0685f8eac4ba4cb73a7081ac96ede1e0efb73da024de74afe1629a7",
       "publication": "https://hl7.org/fhir/us/davinci-dtr/2.2.0/full-ig.zip",
       "member": "site/en/issues.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-cdex#2.0.0",
+      "url": "https://hl7.org/fhir/us/davinci-cdex/STU2/index.html",
+      "title": "Home",
+      "sha256": "b038bd89fea4f815270fb8178fce3c8433e020cdc0578fbf50d6b14a1cf99bd8",
+      "publication": "https://hl7.org/fhir/us/davinci-cdex/STU2/full-ig.zip",
+      "member": "site/index.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-cdex#2.0.0",
+      "url": "https://hl7.org/fhir/us/davinci-cdex/STU2/background.html",
+      "title": "Background",
+      "sha256": "d2d4af64cca22c38855d8cd4e2de38995a4824f9cf9fbdea75c459f9736a4575",
+      "publication": "https://hl7.org/fhir/us/davinci-cdex/STU2/full-ig.zip",
+      "member": "site/background.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-cdex#2.0.0",
+      "url": "https://hl7.org/fhir/us/davinci-cdex/STU2/direct-query.html",
+      "title": "Direct Query",
+      "sha256": "26b37b656256a375663acfe2aa7e863e5208442a2a4c1bd88703a0a763cb099f",
+      "publication": "https://hl7.org/fhir/us/davinci-cdex/STU2/full-ig.zip",
+      "member": "site/direct-query.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-cdex#2.0.0",
+      "url": "https://hl7.org/fhir/us/davinci-cdex/STU2/task-based-approach.html",
+      "title": "Task Based Approach",
+      "sha256": "e03fa150f84033c6383c6cc6cd1f2c56f52ddaa1bf2dd3cf7e36551c7b31f984",
+      "publication": "https://hl7.org/fhir/us/davinci-cdex/STU2/full-ig.zip",
+      "member": "site/task-based-approach.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-cdex#2.0.0",
+      "url": "https://hl7.org/fhir/us/davinci-cdex/STU2/task-based-conformance.html",
+      "title": "Conforming to CDex Task Based Approach",
+      "sha256": "cd667844bf145f07f4e036b98a84904b91d0c2931e9ac94641c72b8649fae2d0",
+      "publication": "https://hl7.org/fhir/us/davinci-cdex/STU2/full-ig.zip",
+      "member": "site/task-based-conformance.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-cdex#2.0.0",
+      "url": "https://hl7.org/fhir/us/davinci-cdex/STU2/attachments.html",
+      "title": "Attachments",
+      "sha256": "4b482c550253c0e7a1b049d4b53ebdfcd5b083055efbc5376bf4357a8cdb8d0a",
+      "publication": "https://hl7.org/fhir/us/davinci-cdex/STU2/full-ig.zip",
+      "member": "site/attachments.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-cdex#2.0.0",
+      "url": "https://hl7.org/fhir/us/davinci-cdex/STU2/solicited-unsolicited-attachments.html",
+      "title": "Solicited and Unsolicited Attachments",
+      "sha256": "bf3eea3875920e6b20184bf19d28bf01f4f6aa8d79f5fce6e018542f96689846",
+      "publication": "https://hl7.org/fhir/us/davinci-cdex/STU2/full-ig.zip",
+      "member": "site/solicited-unsolicited-attachments.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-cdex#2.0.0",
+      "url": "https://hl7.org/fhir/us/davinci-cdex/STU2/sending-attachments.html",
+      "title": "Sending Attachments",
+      "sha256": "16d594e775375c4d0a7328534e835dc4f62844905c8470c4423886efaed19ea1",
+      "publication": "https://hl7.org/fhir/us/davinci-cdex/STU2/full-ig.zip",
+      "member": "site/sending-attachments.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-cdex#2.0.0",
+      "url": "https://hl7.org/fhir/us/davinci-cdex/STU2/requesting-attachments-code.html",
+      "title": "Requesting Attachments Using Attachments Codes",
+      "sha256": "29e3b80ac78cf989068cac2efa21d38295fa9b1302a8918e01d6be14b5280c03",
+      "publication": "https://hl7.org/fhir/us/davinci-cdex/STU2/full-ig.zip",
+      "member": "site/requesting-attachments-code.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-cdex#2.0.0",
+      "url": "https://hl7.org/fhir/us/davinci-cdex/STU2/requesting-attachments-questionnaire.html",
+      "title": "Requesting Attachments Using Questionnaires",
+      "sha256": "aa40463263955835a5637b7fc73d7fcc26c9b30f5fee792806af80efaa50abcb",
+      "publication": "https://hl7.org/fhir/us/davinci-cdex/STU2/full-ig.zip",
+      "member": "site/requesting-attachments-questionnaire.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-cdex#2.0.0",
+      "url": "https://hl7.org/fhir/us/davinci-cdex/STU2/burden-reduction.html",
+      "title": "Using CDex Attachments with DaVinci PAS",
+      "sha256": "f1c518a419884768b8ff2f81ef5b684b4c82a44f9ea41b242947e48502106848",
+      "publication": "https://hl7.org/fhir/us/davinci-cdex/STU2/full-ig.zip",
+      "member": "site/burden-reduction.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-cdex#2.0.0",
+      "url": "https://hl7.org/fhir/us/davinci-cdex/STU2/attachments-conformance.html",
+      "title": "Conforming to CDex Attachments",
+      "sha256": "51ff27efa146c29a8b478b63507557e1b0cb54896c3af45218fbe87c3646837c",
+      "publication": "https://hl7.org/fhir/us/davinci-cdex/STU2/full-ig.zip",
+      "member": "site/attachments-conformance.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-cdex#2.0.0",
+      "url": "https://hl7.org/fhir/us/davinci-cdex/STU2/signatures.html",
+      "title": "Signatures",
+      "sha256": "e53a3b9133cf2cc43a6b6043d75d627aa0fc85f320dadcbb87cb0e64255ea3d1",
+      "publication": "https://hl7.org/fhir/us/davinci-cdex/STU2/full-ig.zip",
+      "member": "site/signatures.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-cdex#2.0.0",
+      "url": "https://hl7.org/fhir/us/davinci-cdex/STU2/signed-searchset-bundle-example.html",
+      "title": "Signed Searchset Bundle Example",
+      "sha256": "2ba6ea27a6eb364d0a626949baa18a062772899e1fcdbfd78d6385666f7dfa02",
+      "publication": "https://hl7.org/fhir/us/davinci-cdex/STU2/full-ig.zip",
+      "member": "site/signed-searchset-bundle-example.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-cdex#2.0.0",
+      "url": "https://hl7.org/fhir/us/davinci-cdex/STU2/signed-document-bundle-example.html",
+      "title": "Signed Document Bundle Example",
+      "sha256": "fd36d338f345566fbde967c8cc7be842f4de075ba94ae16f10fd25be10480411",
+      "publication": "https://hl7.org/fhir/us/davinci-cdex/STU2/full-ig.zip",
+      "member": "site/signed-document-bundle-example.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-cdex#2.0.0",
+      "url": "https://hl7.org/fhir/us/davinci-cdex/STU2/security.html",
+      "title": "Security and Privacy",
+      "sha256": "85eec0301826940206f63fce2e21ad5add9564cfb96ee64949df6fe2d4d87fc5",
+      "publication": "https://hl7.org/fhir/us/davinci-cdex/STU2/full-ig.zip",
+      "member": "site/security.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-cdex#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-cdex/STU2.1/index.html",
+      "title": "IG Home",
+      "sha256": "2a2e00286ddb76752554047afb7b080c1a6e4c10a0cb2a4eebc9406e13c54ba5",
+      "publication": "https://hl7.org/fhir/us/davinci-cdex/STU2.1/full-ig.zip",
+      "member": "site/index.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-cdex#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-cdex/STU2.1/background.html",
+      "title": "Background",
+      "sha256": "85081f37cbdff527915e3e107d15a81a981420018b763a714abce99029f41536",
+      "publication": "https://hl7.org/fhir/us/davinci-cdex/STU2.1/full-ig.zip",
+      "member": "site/background.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-cdex#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-cdex/STU2.1/direct-query.html",
+      "title": "Direct Query",
+      "sha256": "603703aa798c44f445c3ea429aab7ff279780589c533343ba8cd9107f9812cd7",
+      "publication": "https://hl7.org/fhir/us/davinci-cdex/STU2.1/full-ig.zip",
+      "member": "site/direct-query.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-cdex#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-cdex/STU2.1/task-based-approach.html",
+      "title": "Task Based Approach",
+      "sha256": "216aec2a3dae1368c9e650ebcda777001eab665703f8bd12651cb334e950169c",
+      "publication": "https://hl7.org/fhir/us/davinci-cdex/STU2.1/full-ig.zip",
+      "member": "site/task-based-approach.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-cdex#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-cdex/STU2.1/task-based-conformance.html",
+      "title": "Conforming to CDex Task Based Approach",
+      "sha256": "17bd7844c03482af49f66fe97157a619a541d01464b9b09b41912f3a1ed31e3c",
+      "publication": "https://hl7.org/fhir/us/davinci-cdex/STU2.1/full-ig.zip",
+      "member": "site/task-based-conformance.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-cdex#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-cdex/STU2.1/attachments.html",
+      "title": "Attachments",
+      "sha256": "daa70f3bd19a67c24c747dad0f33230fd408dc7565bbfb1dfffdad3f65d59195",
+      "publication": "https://hl7.org/fhir/us/davinci-cdex/STU2.1/full-ig.zip",
+      "member": "site/attachments.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-cdex#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-cdex/STU2.1/solicited-unsolicited-attachments.html",
+      "title": "Solicited and Unsolicited Attachments",
+      "sha256": "1d1f6c3f8e2708fd62f46eb423ee0989723addeab6d3f7dd1e4e556039508a5d",
+      "publication": "https://hl7.org/fhir/us/davinci-cdex/STU2.1/full-ig.zip",
+      "member": "site/solicited-unsolicited-attachments.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-cdex#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-cdex/STU2.1/sending-attachments.html",
+      "title": "Sending Attachments",
+      "sha256": "c3e4d2b900c9af82be5831947fa7e6be0020bf892fb5c6f376f4f46ee09d40f8",
+      "publication": "https://hl7.org/fhir/us/davinci-cdex/STU2.1/full-ig.zip",
+      "member": "site/sending-attachments.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-cdex#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-cdex/STU2.1/requesting-attachments-code.html",
+      "title": "Requesting Attachments Using Attachments Codes",
+      "sha256": "a4a9f095e395d9abc5858b1084b25af042649637ca6113b6885f43e2ce023fc3",
+      "publication": "https://hl7.org/fhir/us/davinci-cdex/STU2.1/full-ig.zip",
+      "member": "site/requesting-attachments-code.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-cdex#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-cdex/STU2.1/requesting-attachments-questionnaire.html",
+      "title": "Requesting Attachments Using Questionnaires",
+      "sha256": "58ff1f67c245ad308662a4125fbb738deb03c11fca353737aaa403d547d516dd",
+      "publication": "https://hl7.org/fhir/us/davinci-cdex/STU2.1/full-ig.zip",
+      "member": "site/requesting-attachments-questionnaire.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-cdex#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-cdex/STU2.1/burden-reduction.html",
+      "title": "Using CDex Attachments with DaVinci PAS",
+      "sha256": "f642bcf2a7c8e4c5d8f7ef32538d8dc7f8be9e02398196560872a76002319a78",
+      "publication": "https://hl7.org/fhir/us/davinci-cdex/STU2.1/full-ig.zip",
+      "member": "site/burden-reduction.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-cdex#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-cdex/STU2.1/attachments-conformance.html",
+      "title": "Conforming to CDex Attachments",
+      "sha256": "0726643e375f6d8424da007cc3347e5049db7c33f4021984397db25b6c3cc6ba",
+      "publication": "https://hl7.org/fhir/us/davinci-cdex/STU2.1/full-ig.zip",
+      "member": "site/attachments-conformance.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-cdex#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-cdex/STU2.1/signatures.html",
+      "title": "Signatures",
+      "sha256": "c124b926e05fdbb5978e16d17acb24cb848c9c458f53cd132dde02e3f2957b15",
+      "publication": "https://hl7.org/fhir/us/davinci-cdex/STU2.1/full-ig.zip",
+      "member": "site/signatures.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-cdex#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-cdex/STU2.1/signed-searchset-bundle-example.html",
+      "title": "Signed Searchset Bundle Example",
+      "sha256": "866a885a2d65abcfc2fa636dc781d743092d32602323ee5865f20a67a154eec4",
+      "publication": "https://hl7.org/fhir/us/davinci-cdex/STU2.1/full-ig.zip",
+      "member": "site/signed-searchset-bundle-example.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-cdex#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-cdex/STU2.1/signed-document-bundle-example.html",
+      "title": "Signed Document Bundle Example",
+      "sha256": "67dbe09087f3eba207ec8699a24f42d4b59ba027b5af2c4b1ca06fff3d97853a",
+      "publication": "https://hl7.org/fhir/us/davinci-cdex/STU2.1/full-ig.zip",
+      "member": "site/signed-document-bundle-example.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-cdex#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-cdex/STU2.1/security.html",
+      "title": "Security and Privacy",
+      "sha256": "be95358cc8bf12ee9b16b855e763f022cb3be0ee7d80f09a6ef5ed434df37f00",
+      "publication": "https://hl7.org/fhir/us/davinci-cdex/STU2.1/full-ig.zip",
+      "member": "site/security.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-crd#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-crd/STU2.1/index.html",
+      "title": "CRD IG Home Page",
+      "sha256": "b82227aba0aded9aee0f894961710fd73fc1e23f6d906a91431683da0435b7d3",
+      "publication": "https://hl7.org/fhir/us/davinci-crd/STU2.1/full-ig.zip",
+      "member": "site/index.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-crd#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-crd/STU2.1/background.html",
+      "title": "Reading this IG",
+      "sha256": "95d7ff9e923e38d8656460a54965a4f7ed434bca4c62a1be09e55c4366b3c4ee",
+      "publication": "https://hl7.org/fhir/us/davinci-crd/STU2.1/full-ig.zip",
+      "member": "site/background.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-crd#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-crd/STU2.1/usecases.html",
+      "title": "Use Cases",
+      "sha256": "00ce27ef265f8ccbfbbae887d8f0b79d67071d10708bf3b03790278cc07e1443",
+      "publication": "https://hl7.org/fhir/us/davinci-crd/STU2.1/full-ig.zip",
+      "member": "site/usecases.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-crd#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-crd/STU2.1/burden.html",
+      "title": "Burden Reduction",
+      "sha256": "6bde7b97feaeb7dbed05a83d2478bb6998066aca89543adc59d056bde1e07c44",
+      "publication": "https://hl7.org/fhir/us/davinci-crd/STU2.1/full-ig.zip",
+      "member": "site/burden.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-crd#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-crd/STU2.1/epa.html",
+      "title": "ePA Coordinators",
+      "sha256": "48e4cbe6f6c00c06ee25ab7af2fdbf2801e68b80b516dbde11ed96a4b4bf247f",
+      "publication": "https://hl7.org/fhir/us/davinci-crd/STU2.1/full-ig.zip",
+      "member": "site/epa.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-crd#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-crd/STU2.1/conformance.html",
+      "title": "Conformance Expectations",
+      "sha256": "444b4f71f0720f49b1ba23723cd49fc1ac3d31d2dd6553f4409935010987c510",
+      "publication": "https://hl7.org/fhir/us/davinci-crd/STU2.1/full-ig.zip",
+      "member": "site/conformance.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-crd#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-crd/STU2.1/security.html",
+      "title": "Privacy, Safety, and Security",
+      "sha256": "7cd66efdab6ece46b470ec0caa4f3f0b3e24d4d1d949c0b49396cfa3bbec06e0",
+      "publication": "https://hl7.org/fhir/us/davinci-crd/STU2.1/full-ig.zip",
+      "member": "site/security.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-crd#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-crd/STU2.1/foundation.html",
+      "title": "Foundational Requirements",
+      "sha256": "c8b22f2673c30fa54fb179ce054588a4e55c16438be79ae4e86083e3ab48860f",
+      "publication": "https://hl7.org/fhir/us/davinci-crd/STU2.1/full-ig.zip",
+      "member": "site/foundation.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-crd#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-crd/STU2.1/deviations.html",
+      "title": "CDS Hook Deviations and Enhancements",
+      "sha256": "b9debee7e685ab3f91b29210d83d20a87d5f1156ecf433d5ee7f72ba86cc7982",
+      "publication": "https://hl7.org/fhir/us/davinci-crd/STU2.1/full-ig.zip",
+      "member": "site/deviations.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-crd#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-crd/STU2.1/hooks.html",
+      "title": "Supported Hooks",
+      "sha256": "d182dee8f5ef9cffd80a32765d9545c6835e4edd0dbf43b5f704336b14eb54c5",
+      "publication": "https://hl7.org/fhir/us/davinci-crd/STU2.1/full-ig.zip",
+      "member": "site/hooks.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-crd#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-crd/STU2.1/cards.html",
+      "title": "CDS Hook Response Profiles",
+      "sha256": "55826f38b4d52dbd605d0a036115c10957b37dfcc58b63ecfae5269446201d46",
+      "publication": "https://hl7.org/fhir/us/davinci-crd/STU2.1/full-ig.zip",
+      "member": "site/cards.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-crd#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-crd/STU2.1/implementation.html",
+      "title": "Implementation Considerations",
+      "sha256": "c2a452c7dd8e28530d02d3e4cd8299c9b6359a74c99a37d228338bbe9690c101",
+      "publication": "https://hl7.org/fhir/us/davinci-crd/STU2.1/full-ig.zip",
+      "member": "site/implementation.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-crd#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-crd/STU2.1/metrics.html",
+      "title": "CRD Metrics",
+      "sha256": "9f7220122e00076470401c7e9a9b333d9ea8d5fc8aabec573e7e5dc6d5ee9e35",
+      "publication": "https://hl7.org/fhir/us/davinci-crd/STU2.1/full-ig.zip",
+      "member": "site/metrics.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-crd#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-crd/STU2.1/allartifacts.html",
+      "title": "FHIR Artifacts",
+      "sha256": "0f5942ed80dddf19fea85b76ba15521c48144df7f75e5eaea88257e6f6c60f6b",
+      "publication": "https://hl7.org/fhir/us/davinci-crd/STU2.1/full-ig.zip",
+      "member": "site/allartifacts.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-crd#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-crd/STU2.1/history.html",
+      "title": "Change History",
+      "sha256": "8e35519b916ce9bfd5efab3be78cbc09b96758460ccf908f8e2b962fc9ff62d5",
+      "publication": "https://hl7.org/fhir/us/davinci-crd/STU2.1/full-ig.zip",
+      "member": "site/history.html"
     }
   ],
   "publications": [
@@ -1113,6 +1539,24 @@
       "url": "https://hl7.org/fhir/us/davinci-dtr/2.2.0/full-ig.zip",
       "page_prefix": "en/",
       "sha256": "9c733b998bdf8f5c957b7938ea84b3965850699f383cb9848c38ce18b6441187"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-cdex#2.0.0",
+      "url": "https://hl7.org/fhir/us/davinci-cdex/STU2/full-ig.zip",
+      "page_prefix": "",
+      "sha256": "b2e2da75bb8a988270c7d38a03ab118baf77fd73c4d5c06498ae61ec1819f43c"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-cdex#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-cdex/STU2.1/full-ig.zip",
+      "page_prefix": "",
+      "sha256": "c33cf45b89130be17d75e61ba3b347cc3fbb9a65a3499bafb8105250a5df2e0a"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-crd#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-crd/STU2.1/full-ig.zip",
+      "page_prefix": "",
+      "sha256": "7ad9165236e9b5e0e254f54a51deb95c2e5a35a34b286e184ed1e2a5447c75c8"
     }
   ]
 }

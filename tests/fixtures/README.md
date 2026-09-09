@@ -2,7 +2,8 @@
 
 `fhir/` contains reviewed synthetic resources, not patient data. Both versioned PAS
 request/response fixtures are retained because the releases contain real structural
-differences. CRD and DTR fixtures were authored for their profile constraints.
+differences. CRD, CDEX and DTR fixtures were authored for their profile constraints.
+The same synthetic CDEX Task and CRD orders exercise both installed releases.
 Invalid variants are created by direct field deletion in the tests, not copied JSON.
 Each load returns fresh JSON; the committed fixture remains unchanged.
 

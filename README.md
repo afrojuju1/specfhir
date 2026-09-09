@@ -794,3 +794,57 @@ code 4. It shares the bounded instance reader with `validate`; it does not becom
 a test framework. Benchmark scripts remain explicit opt-in measurements, using
 the shared retrieval datasets where applicable. Fixture provenance is documented
 in `tests/fixtures/README.md`.
+
+### CDEX and side-by-side CRD releases
+
+Explicit roots include CDEX 2.0.0 and 2.1.0, and CRD 2.1.0 and 2.2.1.
+CDEX 2.1.0 and CRD 2.2.1 were the current published R4 releases at onboarding;
+CRD 2.2.0 was superseded by the 2.2.1 publication correction, so 2.1.0 provides
+the older content baseline. Exact package selectors keep retrieval and validation
+scoped to the chosen release and its pinned dependencies.
+
+Both CDEX publications contribute 16 metadata-selected pages; older CRD contributes
+15 alongside current CRD's 16. The complete lock contains 60 packages and 98 pages.
+CDEX indexing includes supported conformance resources and workflow documentation.
+It does not implement Task orchestration, send attachments, verify digital
+signatures, or execute CRD CDS Hooks. Those are implementation responsibilities.
+
+`tests/acceptance/test_cdex.py` reuses one synthetic Task across both versions,
+checks authoredOn requirements against the base R4 Task profile in the same
+CDEX dependency context, and verifies the real change in
+Task.meta.tag.system cardinality (0 in 2.0.0; 1 in 2.1.0). It also resolves the
+attachment operation, checks references, and validates unmodified published data
+and attachment Tasks. CRD acceptance runs the same DeviceRequest/ServiceRequest
+fixtures against both releases; their contained Patient includes the medical-record
+identifier type required by CRD 2.1.0. The shared fixtures compare API, CLI and MCP
+results, and publication queries run in lexical and hybrid modes. Published-example
+findings are retained in JUnit properties; completed validation is not a claim that
+upstream examples have no findings or that offline terminology is complete.
+
+A core-only package context cannot validate this CDEX-coded Task reliably: HL7
+auto-loads the CDEX terminology package and SpecFHIR rejects the resulting package
+set mismatch. The base Task comparison therefore retains CDEX dependencies while
+explicitly selecting the R4 Task profile. No declared profiles are present in the
+synthetic fixture, and the package guard is unchanged.
+
+CDEX contributes 20 supported conformance definitions in 2.0.0 and 22 in 2.1.0;
+CRD contributes 52 in 2.1.0 and 87 in 2.2.1 (documentation counted separately).
+CDEX 2.0.0 reference checks report 200 resolved, 12 ambiguous, 3 unsupported and
+1 not found in scope; 2.1.0 reports 221 resolved, 24 ambiguous and 16 unsupported.
+These remain visible coverage findings, not silently repaired links.
+The initial expansion reused 54 preparation/embedding entries and prepared six.
+Index sync took 250.518 seconds, including 101.459 seconds embedding and 122.616
+seconds publishing; validator refresh took another 145.016 seconds.
+
+Unmodified CDEX published examples return three errors for the data request
+(example URLs) and six for the attachment request (example URLs plus a contained
+Patient profile match failure), in each release. Published CRD orders return four
+DeviceRequest and five ServiceRequest errors for unresolved external references,
+in both releases. These are retained outcomes under the existing offline policy;
+synthetic positive fixtures pass with zero errors. Full issue details are in
+`.specfhir/cdex-crd-acceptance.xml` when the documented JUnit run is used.
+
+Expansion verification: all 97 tests passed in 505.97 seconds, including 74 live
+acceptance cases and real index/validator smokes. Ruff, Pyright and formatting passed.
+A subsequent unchanged sync completed in 4.625 seconds, reusing both the index and
+ready validator snapshot with zero extraction, embedding or publication work.
