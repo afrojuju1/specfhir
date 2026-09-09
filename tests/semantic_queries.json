@@ -1,0 +1,5 @@
+[
+  {"query":"How do I record that someone needs a translator at their medical appointment?","resource_id":"us-core-patient","element_id":"Patient.extension:interpreterRequired"},
+  {"query":"Which tongue should the care team use when speaking to this person?","resource_id":"us-core-patient","element_id":"Patient.communication.language"},
+  {"query":"Where can I put a person's medical record number?","resource_id":"us-core-patient","element_id":"Patient.identifier"}
+]

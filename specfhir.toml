@@ -1,2 +1,8 @@
 packages = ["hl7.fhir.r4.core#4.0.1", "hl7.fhir.us.core#9.0.0"]
 default_package = "hl7.fhir.us.core#9.0.0"
+
+[embedding]
+enabled = true
+model = "BAAI/bge-small-en-v1.5"
+revision = "52398278842ec682c6f32300af41344b1c0b0bb2"
+max_tokens = 256

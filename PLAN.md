@@ -1,6 +1,6 @@
 # SpecFHIR — Implementation Plan
 
-Status: Phase 1 implemented; Phases 2–4 remain planned. See README.md for runnable
+Status: Phases 1–3 implemented; Phase 4 remains planned. See README.md for runnable
 commands and the actual package coverage.
 
 ## 1. Purpose
@@ -347,9 +347,9 @@ Acceptance:
 - Repeated sync creates no duplicates; failed replacement preserves prior data.
 - A rebuild from locked inputs produces the same structured results.
 
-### Phase 2 — First useful agent milestone
+### Phase 2 — First useful agent milestone (implemented)
 
-Add package-contained documents, FTS/fuzzy search, compact JSON output, and the
+Implemented package-contained documents, FTS/fuzzy search, compact JSON output, and the
 stdio MCP tools for resolve, inspect, and search. Validation is added in phase 4,
 not exposed as a success-shaped placeholder.
 
@@ -362,9 +362,12 @@ Acceptance:
 - CLI and MCP return equivalent core results and explicit error states.
 - Queries work with network access disabled after sync.
 
-### Phase 3 — Semantic retrieval
+### Phase 3 — Semantic retrieval (implemented)
 
-Add pinned local embeddings, pgvector, document size handling, and hybrid ranking.
+Implemented pinned local embeddings, pgvector, token-aware document splitting,
+and reciprocal-rank fusion. Generated narratives and copyright remain lexical-only.
+Completed inference is reused through a disposable SQLite cache keyed by model
+pin and exact input; publication remains an atomic PostgreSQL operation.
 Measure lexical and hybrid retrieval against the same reviewed queries. Keep
 semantic search optional and label lexical-only mode explicitly.
 

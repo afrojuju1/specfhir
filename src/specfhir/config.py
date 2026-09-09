@@ -4,6 +4,7 @@ import os
 import re
 import tomllib
 from pathlib import Path
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -24,10 +25,21 @@ def digest(value: object) -> str:
     return hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()
 
 
+class EmbeddingConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    enabled: bool = False
+    model: Literal["BAAI/bge-small-en-v1.5"] = "BAAI/bge-small-en-v1.5"
+    revision: str = Field(
+        default="52398278842ec682c6f32300af41344b1c0b0bb2", pattern=r"^[0-9a-f]{40}$"
+    )
+    max_tokens: int = Field(default=256, ge=128, le=512)
+
+
 class Config(BaseModel):
     model_config = ConfigDict(extra="forbid")
     packages: list[str] = Field(min_length=1)
     default_package: str
+    embedding: EmbeddingConfig = Field(default_factory=EmbeddingConfig)
 
     @model_validator(mode="after")
     def check_packages(self):

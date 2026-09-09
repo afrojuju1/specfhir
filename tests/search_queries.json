@@ -1,0 +1,7 @@
+[
+  {"query":"patient identifier requirements","resource_id":"us-core-patient","element_id":"Patient.identifier"},
+  {"query":"patient language binding","resource_id":"us-core-patient","element_id":"Patient.communication.language"},
+  {"query":"race categories","resource_id":"us-core-patient","element_id":"Patient.extension:race"},
+  {"query":"interpreter communicate healthcare","resource_id":"us-core-patient","element_id":"Patient.extension:interpreterRequired"},
+  {"query":"administrative gender","package":"hl7.fhir.r4.core#4.0.1","resource_type":"ValueSet","resource_id":"administrative-gender","element_id":null}
+]

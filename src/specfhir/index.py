@@ -2,13 +2,14 @@
 
 import json
 import tempfile
+import time
 from collections import Counter
 from pathlib import Path
 from typing import Any
 
 from psycopg.types.json import Jsonb
 
-from specfhir import db
+from specfhir import db, documents, embeddings
 from specfhir.config import digest, load
 from specfhir.models import Error, Lock
 from specfhir.packages import (
@@ -33,7 +34,7 @@ SUPPORTED = {
 def prepare(lock: Lock, cache: Path, spool: Path) -> dict[str, Any]:
     inventory = []
     counts: Counter[str] = Counter()
-    with spool.open("w") as output:
+    with spool.open("w") as output, spool.with_suffix(".documents").open("w") as docs:
         for pin in lock.packages:
             archive = cache / f"{pin.key}.tgz"
             info = manifest(archive, pin.key)
@@ -92,6 +93,9 @@ def prepare(lock: Lock, cache: Path, spool: Path) -> dict[str, Any]:
                     counts["artifacts_with_projection_issues"] += 1
                 counts["artifacts"] += 1
                 package_count += 1
+                for document in documents.extract(resource, issues):
+                    docs.write(json.dumps([counts["artifacts"], *document]) + "\n")
+                    counts["documents"] += 1
                 output.write(
                     json.dumps([counts["artifacts"], pin.key, path, resource, issues]) + "\n"
                 )
@@ -111,7 +115,14 @@ def prepare(lock: Lock, cache: Path, spool: Path) -> dict[str, Any]:
 def publish(conn, lock: Lock, spool: Path, identity: str, summary: dict[str, Any]):
     with conn.transaction():
         # DELETE (not TRUNCATE) lets readers retain the previous committed snapshot.
-        for table in ("elements", "artifacts", "package_dependencies", "packages", "index_state"):
+        for table in (
+            "documents",
+            "elements",
+            "artifacts",
+            "package_dependencies",
+            "packages",
+            "index_state",
+        ):
             conn.execute(f"DELETE FROM {table}")
         for item in summary["inventory"]:
             conn.execute(
@@ -164,10 +175,25 @@ def publish(conn, lock: Lock, spool: Path, identity: str, summary: dict[str, Any
                                 Jsonb(element),
                             )
                         )
+        with (
+            conn.cursor().copy(
+                "COPY documents (artifact_id,kind,pointer,element_id,representation,"
+                "chunk,heading,text,text_hash,embedding) FROM STDIN"
+            ) as copy,
+            spool.with_suffix(".documents").open() as stream,
+        ):
+            for line in stream:
+                row = json.loads(line)
+                if len(row) == 9:
+                    row.append(None)
+                elif row[-1] is not None:
+                    row[-1] = json.dumps(row[-1])
+                copy.write_row(row)
         conn.execute("INSERT INTO index_state VALUES (true,%s,%s)", (identity, Jsonb(summary)))
 
 
 def sync(config_path: Path = Path("specfhir.toml"), *, update_lock: bool = False) -> dict[str, Any]:
+    started = time.monotonic()
     config_path = config_path.resolve()
     work = config_path.parent / ".specfhir"
     work.mkdir(exist_ok=True)
@@ -182,8 +208,13 @@ def sync(config_path: Path = Path("specfhir.toml"), *, update_lock: bool = False
         config = load(config_path)
         config_bytes = config_path.read_bytes()
         lock_bytes = lock_path.read_bytes() if lock_path.exists() else None
-        previous = Lock.model_validate_json(lock_bytes) if lock_bytes and not update_lock else None
+        existing = Lock.model_validate_json(lock_bytes) if lock_bytes else None
+        previous = existing if not update_lock else None
         lock = resolve_lock(config, work / "packages", previous)
+        if config.embedding.enabled:
+            lock.embedding = embeddings.pin_model(
+                work, config.embedding, existing.embedding if existing else None, update_lock
+            )
         identity = digest({"lock": lock.model_dump(), "schema": db.SCHEMA_VERSION})
         conn.execute(db.DDL)
         state = conn.execute("SELECT * FROM index_state").fetchone()
@@ -197,6 +228,10 @@ def sync(config_path: Path = Path("specfhir.toml"), *, update_lock: bool = False
             summary["lock_digest"] = digest(lock.model_dump())
             summary["roots"] = lock.roots
             summary["schema_version"] = db.SCHEMA_VERSION
+            summary["embedding"] = lock.embedding
+            if lock.embedding:
+                summary["counts"].update(embeddings.prepare(work, spool, lock.embedding))
+            summary["preparation_seconds"] = round(time.monotonic() - started, 3)
             if (
                 config_path.read_bytes() != config_bytes
                 or (lock_path.read_bytes() if lock_path.exists() else None) != lock_bytes

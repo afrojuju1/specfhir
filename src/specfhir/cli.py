@@ -1,47 +1,30 @@
 import json
-import tarfile
 from pathlib import Path
 from typing import Annotated
 
-import httpx
-import psycopg
 import typer
 
 from specfhir import index, search
-from specfhir.models import Result
+from specfhir.models import invoke
 
 app = typer.Typer(no_args_is_help=True, help="Local, source-backed FHIR package knowledge.")
 ConfigOption = Annotated[Path, typer.Option("--config", help="Project configuration file")]
 
 
 def emit(operation, as_json: bool):
-    try:
-        result = operation()
-        if isinstance(result, Result):
-            result = result.model_dump(exclude_none=True)
-        if as_json:
-            typer.echo(json.dumps(result, indent=2))
-        elif result.get("inventory"):
-            typer.echo(f"{result['status']}: {result['counts']}")
-            for item in result["inventory"]:
-                detail = item["excluded_reason"] or str(item["artifacts"]) + " artifacts"
-                typer.echo(f"  {item['key']}: {detail}")
-        else:
-            typer.echo(json.dumps(result, indent=2))
-        status = result["status"]
-        if status in {"not_found", "effective_definition_unavailable"}:
-            raise typer.Exit(2)
-        if status == "ambiguous":
-            raise typer.Exit(3)
-    except (ValueError, OSError, httpx.HTTPError, psycopg.Error, tarfile.TarError) as exc:
-        message = str(exc)
-        if isinstance(exc, psycopg.OperationalError):
-            message = "PostgreSQL unavailable. Run docker compose up -d --wait; check SPECFHIR_DSN."
-        if as_json:
-            typer.echo(json.dumps({"status": "error", "message": message}))
-        else:
-            typer.echo(f"Error: {message}", err=True)
-        raise typer.Exit(1) from exc
+    result = invoke(operation)
+    if as_json:
+        typer.echo(json.dumps(result, indent=2))
+    elif result.get("inventory"):
+        typer.echo(f"{result['status']}: {result['counts']}")
+        for item in result["inventory"]:
+            detail = item["excluded_reason"] or str(item["artifacts"]) + " artifacts"
+            typer.echo(f"  {item['key']}: {detail}")
+    else:
+        typer.echo(json.dumps(result, indent=2), err=result["status"] == "error")
+    code = {"error": 1, "not_found": 2, "effective_definition_unavailable": 2, "ambiguous": 3}
+    if result["status"] in code:
+        raise typer.Exit(code[result["status"]])
 
 
 @app.command()
@@ -98,3 +81,35 @@ def inspect(
         ),
         as_json,
     )
+
+
+@app.command("search")
+def search_command(
+    query: str,
+    package: str | None = None,
+    resource_type: str | None = None,
+    limit: int = 5,
+    mode: str = "auto",
+    config: ConfigOption = Path("specfhir.toml"),
+    as_json: Annotated[bool, typer.Option("--json")] = False,
+):
+    """Search package evidence using lexical, semantic, hybrid, or automatic mode."""
+    emit(
+        lambda: search.search(
+            query,
+            package=package,
+            resource_type=resource_type,
+            limit=limit,
+            mode=mode,
+            config_path=config,
+        ),
+        as_json,
+    )
+
+
+@app.command()
+def mcp(config: ConfigOption = Path("specfhir.toml")):
+    """Serve resolve, inspect, and search over local MCP stdio."""
+    from specfhir.mcp import create_server
+
+    create_server(config.resolve()).run(transport="stdio")

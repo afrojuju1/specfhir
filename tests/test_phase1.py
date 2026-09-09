@@ -4,14 +4,11 @@ import io
 import json
 import os
 import tarfile
-import uuid
 from pathlib import Path
 
 import httpx
 import psycopg
 import pytest
-from psycopg import sql
-from psycopg.conninfo import make_conninfo
 from typer.testing import CliRunner
 
 from specfhir import db, index, packages, search
@@ -92,21 +89,6 @@ def project(tmp_path):
     config = tmp_path / "specfhir.toml"
     config.write_text('packages = ["example.root#1.0.0"]\ndefault_package = "example.root#1.0.0"\n')
     return config
-
-
-@pytest.fixture
-def database(monkeypatch):
-    dsn = os.environ.get("SPECFHIR_TEST_DSN")
-    if not dsn:
-        pytest.skip("Set SPECFHIR_TEST_DSN to run PostgreSQL acceptance tests")
-    schema = "test_" + uuid.uuid4().hex
-    with psycopg.connect(dsn, autocommit=True) as conn:
-        conn.execute(sql.SQL("CREATE SCHEMA {}").format(sql.Identifier(schema)))
-        monkeypatch.setenv("SPECFHIR_DSN", make_conninfo(dsn, options=f"-c search_path={schema}"))
-        try:
-            yield
-        finally:
-            conn.execute(sql.SQL("DROP SCHEMA {} CASCADE").format(sql.Identifier(schema)))
 
 
 def test_exact_graph_lock_and_archive_boundaries(project, tmp_path):
@@ -216,7 +198,7 @@ def test_download_checksum_and_cleanup(tmp_path, monkeypatch):
 def test_real_r4_us_core_rebuild(tmp_path, database, monkeypatch):
     repo = Path(__file__).resolve().parents[1]
     config = tmp_path / "specfhir.toml"
-    config.write_bytes((repo / "specfhir.toml").read_bytes())
+    config.write_text((repo / "specfhir.toml").read_text().split("[embedding]")[0])
     (tmp_path / "specfhir.lock").write_bytes((repo / "specfhir.lock").read_bytes())
     (tmp_path / ".specfhir").mkdir()
     (tmp_path / ".specfhir/packages").symlink_to(
@@ -233,6 +215,31 @@ def test_real_r4_us_core_rebuild(tmp_path, database, monkeypatch):
     assert search.resolve("USCorePatient.id", config_path=config).status == "ok"
     assert search.resolve("USCorePatient.extension", config_path=config).status == "ambiguous"
     assert search.resolve("USCorePatient.extension:race", config_path=config).status == "ok"
+    for case in json.loads((repo / "tests/search_queries.json").read_text()):
+        matches = search.search(
+            case["query"],
+            package=case.get("package"),
+            resource_type=case.get("resource_type"),
+            config_path=config,
+        )
+        hit = next(
+            (
+                item
+                for item in matches.data["results"]
+                if item["source"]["resource_id"] == case["resource_id"]
+                and item["element_id"] == case["element_id"]
+            ),
+            None,
+        )
+        assert hit is not None, case
+        with db.connect() as conn:
+            source = conn.execute(
+                "SELECT resource FROM artifacts WHERE package_key=%s AND file_path=%s",
+                (hit["source"]["package"], hit["source"]["file"]),
+            ).fetchone()["resource"]
+        for part in hit["source"]["pointer"].strip("/").split("/"):
+            source = source[int(part)] if isinstance(source, list) else source[part]
+        assert source
     assert index.sync(config)["status"] == "unchanged"
     with db.connect() as conn:
         assert (

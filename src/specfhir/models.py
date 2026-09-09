@@ -22,6 +22,7 @@ class Lock(BaseModel):
     format: Literal[1] = 1
     roots: list[str]
     packages: list[PackagePin]
+    embedding: dict[str, Any] | None = None
 
 
 class Result(BaseModel):
@@ -30,3 +31,20 @@ class Result(BaseModel):
     data: dict[str, Any] | None = None
     candidates: list[dict[str, Any]] = Field(default_factory=list)
     message: str | None = None
+
+
+def invoke(operation) -> dict[str, Any]:
+    """One serialization/error boundary for the CLI and MCP adapters."""
+    import tarfile
+
+    import httpx
+    import psycopg
+
+    try:
+        result = operation()
+        return result.model_dump(exclude_none=True) if isinstance(result, Result) else result
+    except (ValueError, OSError, httpx.HTTPError, psycopg.Error, tarfile.TarError) as exc:
+        message = str(exc)
+        if isinstance(exc, psycopg.OperationalError):
+            message = "PostgreSQL unavailable. Run docker compose up -d --wait; check SPECFHIR_DSN."
+        return {"status": "error", "message": message}
