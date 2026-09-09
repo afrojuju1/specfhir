@@ -1,0 +1,22 @@
+{
+  "resourceType": "Questionnaire",
+  "id": "synthetic-dtr",
+  "url": "https://example.org/Questionnaire/synthetic-dtr",
+  "name": "SyntheticDTR",
+  "title": "Synthetic DTR Questionnaire",
+  "status": "draft",
+  "subjectType": [
+    "Patient"
+  ],
+  "text": {
+    "status": "generated",
+    "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">Synthetic questionnaire</div>"
+  },
+  "item": [
+    {
+      "linkId": "1",
+      "type": "string",
+      "text": "Supporting information"
+    }
+  ]
+}

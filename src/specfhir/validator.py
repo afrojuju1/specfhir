@@ -415,6 +415,15 @@ def refresh(config_path: Path) -> dict:
     return {**prepared, "ready": True}
 
 
+def read_instance(path: Path):
+    """Read a bounded JSON instance for build and acceptance cases."""
+    with path.open("rb") as stream:
+        raw = stream.read(MAX_INPUT + 1)
+    if len(raw) > MAX_INPUT:
+        raise Error("Instance exceeds 10 MiB limit")
+    return json.loads(raw)
+
+
 def validate_cases(manifest_path: Path, config_path: Path) -> dict:
     """Run an explicit build manifest through the shared validator; retain every result."""
     from pydantic import BaseModel, ConfigDict, Field
@@ -438,12 +447,11 @@ def validate_cases(manifest_path: Path, config_path: Path) -> dict:
     for case in cases:
         result: dict[str, Any]
         try:
-            with (manifest_path.parent / case.instance).open("rb") as stream:
-                raw = stream.read(MAX_INPUT + 1)
-            if len(raw) > MAX_INPUT:
-                raise Error("Instance exceeds 10 MiB limit")
             result = validate(
-                json.loads(raw), package=case.package, profile=case.profile, config_path=config_path
+                read_instance(manifest_path.parent / case.instance),
+                package=case.package,
+                profile=case.profile,
+                config_path=config_path,
             ).model_dump(exclude_none=True)
         except (ValueError, OSError) as exc:
             result = {"status": "error", "message": str(exc)}

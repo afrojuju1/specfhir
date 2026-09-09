@@ -20,3 +20,19 @@ def database(monkeypatch):
             yield
         finally:
             conn.execute(sql.SQL("DROP SCHEMA {} CASCADE").format(sql.Identifier(schema)))
+
+
+def pytest_addoption(parser):
+    parser.addoption(
+        "--live-acceptance",
+        action="store_true",
+        help="Run read-only acceptance against installed packages and validator",
+    )
+
+
+def pytest_collection_modifyitems(config, items):
+    if not config.getoption("--live-acceptance"):
+        skip = pytest.mark.skip(reason="Pass --live-acceptance for installed-system acceptance")
+        for item in items:
+            if "acceptance" in item.path.parts:
+                item.add_marker(skip)

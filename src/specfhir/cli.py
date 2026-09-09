@@ -19,6 +19,11 @@ def emit(operation, as_json: bool):
     result = invoke(operation)
     if as_json:
         typer.echo(json.dumps(result, indent=2))
+    elif "checks" in result:
+        typer.echo(f"{result['status']}: {result['counts']}")
+        for check in result["checks"]:
+            detail = "; ".join(check["details"])
+            typer.echo(f"  {check['status']}: {check['name']}" + (f" — {detail}" if detail else ""))
     elif result.get("inventory"):
         typer.echo(f"{result['status']}: {result['counts']}")
         for item in result["inventory"]:
@@ -162,12 +167,8 @@ def validate_command(
     """Validate a JSON instance with HL7; offline terminology is limited."""
 
     def operation():
-        with instance.open("rb") as stream:
-            content = stream.read(validator.MAX_INPUT + 1)
-        if len(content) > validator.MAX_INPUT:
-            raise ValueError("Instance exceeds 10 MiB limit")
         return validator.validate(
-            json.loads(content),
+            validator.read_instance(instance),
             package=package,
             profile=profile,
             terminology_mode=terminology_mode,
@@ -210,3 +211,16 @@ def package_pages(
 ):
     """Preview narrative page selection from the locked ImplementationGuide metadata."""
     emit(lambda: packages.pages(package, config), as_json)
+
+
+@app.command("check")
+def check_command(
+    config: ConfigOption = Path("specfhir.toml"),
+    package: str | None = None,
+    with_validator: bool = False,
+    as_json: Annotated[bool, typer.Option("--json")] = False,
+):
+    """Check installed readiness and publication coverage without rebuilding."""
+    from specfhir import checks
+
+    emit(lambda: checks.run(config, package, with_validator), as_json)

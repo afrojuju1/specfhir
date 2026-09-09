@@ -64,8 +64,8 @@ of consuming the JVM's memory budget. Instances and results are never cached by 
 
 ## Acceptance cases
 
-`scripts/check_pas.py` reads the locked archives and generates fixtures and detailed
-results in `.specfhir/pas-acceptance/`. It checks:
+The original PAS acceptance script read locked archives and generated fixtures and detailed
+results in `.specfhir/pas-acceptance/`. The historical run checked:
 
 1. Exact lookup of the shared Claim Inquiry canonical in each context, with rejection
    of the other release's artifact version.
@@ -98,7 +98,7 @@ Warnings and limited terminology coverage remain visible even in zero-error case
 uv run specfhir packages versions hl7.fhir.us.davinci-pas --json
 uv run specfhir sync --with-validator --json
 uv run specfhir packages list --json
-uv run python scripts/check_pas.py
+uv run pytest tests/acceptance/test_pas.py --live-acceptance
 uv run specfhir validate-cases .specfhir/pas-acceptance/cases.json --json
 ```
 
@@ -136,3 +136,6 @@ Final live checks confirmed an unchanged index and validator were both reused by
 `sync --with-validator`. The generated four-case build manifest completed with zero
 errors and 96 warnings. Both PAS contexts were resident and the service snapshot
 matched the published index at handoff.
+
+Current acceptance uses `uv run pytest tests/acceptance/test_pas.py --live-acceptance`. It uses frozen synthetic fixtures and does not repeat the
+historical cold/warm timing or engine-eviction measurements.

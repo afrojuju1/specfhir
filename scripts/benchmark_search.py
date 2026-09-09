@@ -61,8 +61,8 @@ if args.build:
         )
     )
     raise SystemExit
-cases = json.loads((root / "tests/search_queries.json").read_text())
-cases += json.loads((root / "tests/semantic_queries.json").read_text())
+cases = json.loads((root / "tests/fixtures/retrieval/search_queries.json").read_text())
+cases += json.loads((root / "tests/fixtures/retrieval/semantic_queries.json").read_text())
 rows = []
 for case in cases:
     for mode in ("lexical", "semantic", "hybrid"):
@@ -107,7 +107,7 @@ for case in cases:
             }
         )
 lookup_results = []
-for case in json.loads((root / "tests/lookup_queries.json").read_text()):
+for case in json.loads((root / "tests/fixtures/retrieval/lookup_queries.json").read_text()):
     result = search.resolve(
         case["selector"], package=case["package"], config_path=root / "specfhir.toml"
     )

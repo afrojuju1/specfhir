@@ -626,3 +626,24 @@ coverage limits are recorded in README.md. PAS 2.0.1/2.1.0, CRD 2.2.1, and all
 (including live index and validator smoke checks) passed; tests took 134.41 seconds.
 No resolver, extraction, schema, embedding model, or validator-policy changes were
 needed. Existing caches were reused and the expanded validator snapshot is ready.
+
+## Consolidate acceptance into pytest
+
+Pytest owns all IG
+assertions and API/CLI/MCP acceptance. Centralize reviewed fixtures and retrieval
+datasets under tests/fixtures; derive one-field negative variants with direct Python
+edits in tests. Move archive/profile builders out of test_phase1 into tests/helpers.
+Keep published examples in checksum-verified package archives. `specfhir check`
+only checks installed readiness and coverage; remove its cases and transport flags.
+Live acceptance is explicitly opt-in and never downloads or rebuilds the dataset.
+
+Verified: 68 pytest tests passed in 292.64 seconds with live acceptance and both
+existing real smoke flags enabled. This includes 46 opt-in IG/publication acceptance
+tests and their shared API/CLI/MCP comparisons. Without --live-acceptance, all 46
+are skipped before fixture setup. Readiness passed all six installed checks; Ruff,
+Pyright, formatting, and diff checks passed. Pytest JUnit output retains published
+example outcomes under .specfhir/pytest-acceptance.xml. Removed five one-field
+negative JSON copies and all three custom acceptance manifests/evaluator models.
+Eight distinct synthetic resources remain; retrieval datasets are shared with the
+benchmark and existing core retrieval tests. No runtime pytest dependency or new
+validation semantics were introduced.

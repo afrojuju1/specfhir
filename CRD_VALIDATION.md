@@ -22,9 +22,9 @@ now indexes 16 CRD pages; see README.md, “Discover and pin full-publication do
 
 ```sh
 uv run specfhir sync --with-validator --json
-uv run python scripts/check_crd.py
+uv run pytest tests/acceptance/test_crd.py --live-acceptance
 uv run specfhir validate-cases .specfhir/crd-acceptance/cases.json --json
-uv run python scripts/check_pas.py
+uv run pytest tests/acceptance/test_pas.py --live-acceptance
 ```
 
 The CRD check records published examples without changing them, validates separate

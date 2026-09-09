@@ -3,7 +3,7 @@ from pathlib import Path
 
 import httpx
 import pytest
-from test_phase1 import archive, profile
+from helpers import archive, profile
 
 from specfhir import db, embeddings, index, search
 from specfhir.files import checksum

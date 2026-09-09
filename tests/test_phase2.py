@@ -6,9 +6,9 @@ from pathlib import Path
 
 import httpx
 import pytest
+from helpers import archive, profile
 from mcp import Client
 from mcp.client.stdio import StdioServerParameters
-from test_phase1 import archive, profile
 from typer.testing import CliRunner
 
 from specfhir import db, documents, index, search

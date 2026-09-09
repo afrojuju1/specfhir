@@ -9,59 +9,13 @@ from pathlib import Path
 import httpx
 import psycopg
 import pytest
+from helpers import archive, profile
 from typer.testing import CliRunner
 
 from specfhir import db, index, packages, search
 from specfhir.cli import app
 from specfhir.config import Config
 from specfhir.models import Error, Lock
-
-
-def archive(cache, key, resources=(), deps=None, release="4.0.1"):
-    cache.mkdir(parents=True, exist_ok=True)
-    name, version = key.split("#")
-    values = {
-        "package/package.json": {
-            "name": name,
-            "version": version,
-            "fhirVersions": [release],
-            "dependencies": deps or {},
-        }
-    }
-    values.update({f"package/{r['id']}.json": r for r in resources})
-    with tarfile.open(cache / f"{key}.tgz", "w:gz") as output:
-        for path, value in values.items():
-            content = json.dumps(value).encode()
-            member = tarfile.TarInfo(path)
-            member.size = len(content)
-            output.addfile(member, io.BytesIO(content))
-
-
-def profile(name="PatientProfile", **extra):
-    return {
-        "resourceType": "StructureDefinition",
-        "id": name,
-        "name": name,
-        "url": f"https://example.org/{name}",
-        "version": "1.0.0",
-        "type": "Patient",
-        "snapshot": {
-            "element": [
-                {"id": "Patient", "path": "Patient", "min": 0, "max": "*"},
-                {"id": "Patient.id", "path": "Patient.id", "min": 0, "max": "1"},
-                {"id": "Patient.identifier", "path": "Patient.identifier", "min": 1, "max": "*"},
-                {
-                    "id": "Patient.identifier:mrn",
-                    "path": "Patient.identifier",
-                    "sliceName": "mrn",
-                    "min": 1,
-                    "max": "1",
-                },
-            ]
-        },
-        "differential": {"element": [{"id": "Patient", "path": "Patient"}]},
-        **extra,
-    }
 
 
 @pytest.fixture
@@ -247,7 +201,7 @@ def test_real_r4_us_core_rebuild(tmp_path, database, monkeypatch):
     assert search.resolve("USCorePatient.id", config_path=config).status == "ok"
     assert search.resolve("USCorePatient.extension", config_path=config).status == "ambiguous"
     assert search.resolve("USCorePatient.extension:race", config_path=config).status == "ok"
-    for case in json.loads((repo / "tests/search_queries.json").read_text()):
+    for case in json.loads((repo / "tests/fixtures/retrieval/search_queries.json").read_text()):
         matches = search.search(
             case["query"],
             package=case.get("package"),

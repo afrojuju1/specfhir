@@ -1,0 +1,66 @@
+[
+  {
+    "package": "hl7.fhir.us.davinci-pas#2.0.1",
+    "query": "submission of a prior authorization request"
+  },
+  {
+    "package": "hl7.fhir.us.davinci-pas#2.0.1",
+    "query": "authorization inquiry"
+  },
+  {
+    "package": "hl7.fhir.us.davinci-pas#2.0.1",
+    "query": "cancel authorization"
+  },
+  {
+    "package": "hl7.fhir.us.davinci-pas#2.0.1",
+    "query": "privacy security"
+  },
+  {
+    "package": "hl7.fhir.us.davinci-pas#2.1.0",
+    "query": "submission of a prior authorization request"
+  },
+  {
+    "package": "hl7.fhir.us.davinci-pas#2.1.0",
+    "query": "authorization inquiry"
+  },
+  {
+    "package": "hl7.fhir.us.davinci-pas#2.1.0",
+    "query": "cancel authorization"
+  },
+  {
+    "package": "hl7.fhir.us.davinci-pas#2.1.0",
+    "query": "privacy security"
+  },
+  {
+    "package": "hl7.fhir.us.davinci-crd#2.2.1",
+    "query": "order-sign"
+  },
+  {
+    "package": "hl7.fhir.us.davinci-crd#2.2.1",
+    "query": "coverage information system action"
+  },
+  {
+    "package": "hl7.fhir.us.davinci-crd#2.2.1",
+    "query": "prefetch"
+  },
+  {
+    "package": "hl7.fhir.us.davinci-crd#2.2.1",
+    "query": "privacy security"
+  },
+  {
+    "package": "hl7.fhir.us.davinci-dtr#2.2.0",
+    "query": "questionnaire package"
+  },
+  {
+    "package": "hl7.fhir.us.davinci-dtr#2.2.0",
+    "query": "CQL"
+  },
+  {
+    "package": "hl7.fhir.us.davinci-dtr#2.2.0",
+    "query": "adaptive questionnaire"
+  },
+  {
+    "package": "hl7.fhir.us.davinci-dtr#2.2.0",
+    "query": "privacy security"
+  }
+]

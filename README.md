@@ -190,7 +190,7 @@ search with an empty list; invalid filters/queries are explicit errors. Limits a
 1–50 and queries are capped at 500 characters. Use `resolve` for exact identifiers;
 search does not silently resolve ambiguity or provide generated answers.
 
-The reviewed cases in [tests/search_queries.json](tests/search_queries.json) cover
+The reviewed cases in [tests/fixtures/retrieval/search_queries.json](tests/fixtures/retrieval/search_queries.json) cover
 patient identifiers, language bindings, race slices, interpreter guidance, and
 administrative-gender terminology. The real-package smoke test requires each
 expected source within the top five and verifies its JSON pointer exists in the
@@ -305,7 +305,7 @@ uv run python scripts/benchmark_search.py
 ```
 
 It compares the five reviewed lexical cases plus three paraphrases in
-[tests/semantic_queries.json](tests/semantic_queries.json), reporting expected-source
+[tests/fixtures/retrieval/semantic_queries.json](tests/fixtures/retrieval/semantic_queries.json), reporting expected-source
 rank in the top five, median of three warm requests, preparation time, database
 size, and model/cache disk usage. These are a small acceptance set, not a general
 FHIR retrieval-quality benchmark. Initial indexing is CPU-bound; the tested local
@@ -517,8 +517,8 @@ never substituted, and the installed PAS releases retain separate validation con
 CRD `hl7.fhir.us.davinci-crd#2.2.1` is an explicit root alongside both PAS releases.
 Its release-specific narrative pages are selected from IG metadata and pinned
 from the full publication archive in the same lock as its packages. Select it with `--package`; the default remains
-US Core 9.0.0. `uv run python scripts/check_crd.py` runs the local acceptance check
-and writes synthetic build cases and full findings to `.specfhir/crd-acceptance/`.
+US Core 9.0.0. `uv run pytest tests/acceptance/test_crd.py --live-acceptance` runs the local acceptance check
+using shared fixtures under `tests/fixtures/fhir/`. See the acceptance instructions below for JUnit evidence.
 
 CRD FHIR profiles and logical-model definitions are searchable. The validator
 accepts FHIR resource instances; indexing CDS Hooks logical models and prose does
@@ -589,10 +589,11 @@ pages or another release. For a new IG, first install its exact JSON package, in
 its metadata with `packages pages`, then configure its verified publication URL.
 The package remains the source of FHIR definitions and validator inputs.
 
-Run `uv run python scripts/check_documentation.py` after sync to verify every
-selected page's indexed provenance, lexical/hybrid retrieval, sibling-release
-isolation, and config/index/validator agreement. Evidence is written to
-`.specfhir/documentation-acceptance.json`. This check does not change the index.
+Run `uv run specfhir check` after sync to verify every
+selected page's indexed provenance, sibling-release isolation, and config/index
+agreement. Add `--with-validator` to require validator readiness. Pytest acceptance exercises
+lexical/hybrid retrieval. `--json` emits readiness evidence to stdout.
+This check does not change the index.
 
 Verified archive coverage: PAS 2.0.1 has 10 selected pages (4 excluded), PAS 2.1.0
 has 11 (4 excluded), and CRD 2.2.1 has 16 (5 excluded). This expands the index from
@@ -715,11 +716,11 @@ can still be supplied to `validate`; DTR support does not execute CQL, render fo
 run adaptive questionnaire operations, or prove end-to-end workflow conformance.
 Offline terminology limitations and upstream validation findings remain visible.
 
-Run `uv run python scripts/check_dtr.py` after `specfhir sync --with-validator`.
+Run `uv run pytest tests/acceptance/test_dtr.py --live-acceptance` after `specfhir sync --with-validator`.
 It checks profile/operation retrieval, DTR-scoped workflow search, valid/invalid
 synthetic Questionnaire validation versus core R4, unmodified published examples,
-CLI/API/MCP parity, and inventory coherence. Evidence is written under
-`.specfhir/dtr-acceptance/` and stays out of Git.
+CLI/API/MCP parity, and inventory coherence. Pytest can retain published-example
+outcomes as JUnit properties; see the acceptance instructions below.
 
 DTR onboarding evidence (2026-09-09): 50 supported top-level artifacts plus 14
 publication pages; the complete graph has 56 packages. DTR reference checks report
@@ -740,3 +741,49 @@ The initial expansion reused 51 preparation/embedding entries and prepared five.
 Sync took 189.141 seconds (48.132 embedding; 117.643 publication), followed by
 156.526 seconds to refresh the validator. These are one local onboarding run,
 not a performance comparison or a steady-state latency guarantee.
+
+### Readiness and acceptance
+
+```sh
+# Installed-state readiness; no instance validation or rebuilding
+uv run specfhir check --with-validator
+uv run specfhir check --package 'hl7.fhir.us.davinci-dtr#2.2.0' --json
+
+# Real package, validator, CLI, and MCP acceptance
+uv run pytest tests/acceptance --live-acceptance
+uv run pytest tests/acceptance/test_dtr.py --live-acceptance
+
+# Retain unmodified published-example findings as JUnit properties
+uv run pytest tests/acceptance --live-acceptance -o junit_family=legacy \
+  --junitxml=.specfhir/acceptance.xml
+```
+
+`specfhir check` checks config/lock/index agreement, pinned page provenance,
+sibling-version isolation, and reports reference coverage. `--with-validator`
+requires a ready service matching the lock; otherwise that requirement is marked
+skipped. Text output is a compact checklist; `--json` retains readiness evidence.
+Exit 0 means no failed checks; exit 1 means a failed check or invalid input.
+Missing publication coverage is explicitly skipped. No downloads, rebuilds,
+validator restarts, instance validation, or cache changes are performed.
+
+Pytest owns acceptance assertions. The live suite uses shared synthetic fixtures
+under `tests/fixtures/fhir`, queries under `tests/fixtures/retrieval`, and one
+API/CLI/MCP comparison fixture under `tests/acceptance/conftest.py`. Negative
+variants are direct Python edits to fresh fixture copies. Published examples are
+read unchanged from checksum-verified archives. Pytest's native assertions,
+parametrization, selection, exit codes, and JUnit reporting replace custom case
+manifests and assertion schemas. Published findings are retained as evidence;
+service execution failures fail the test.
+
+Live acceptance is skipped unless `--live-acceptance` is supplied. It requires
+an already-synced index and ready validator and never provisions them. It targets
+the repository's specfhir.toml and installed database (SPECFHIR_DSN, or its normal
+local default); existing isolated tests continue to use SPECFHIR_TEST_DSN. Run
+these serially with sync/build work to avoid changing the live generation mid-test.
+Ordinary `uv run pytest` remains independent of installed IG/Java acceptance.
+
+`validate-cases` keeps its existing build-input manifest and validation-error exit
+code 4. It shares the bounded instance reader with `validate`; it does not become
+a test framework. Benchmark scripts remain explicit opt-in measurements, using
+the shared retrieval datasets where applicable. Fixture provenance is documented
+in `tests/fixtures/README.md`.

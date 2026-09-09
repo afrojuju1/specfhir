@@ -1,0 +1,60 @@
+{
+  "resourceType": "ServiceRequest",
+  "id": "synthetic",
+  "text": {
+    "status": "generated",
+    "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">Synthetic CRD order</div>"
+  },
+  "status": "draft",
+  "intent": "order",
+  "contained": [
+    {
+      "resourceType": "Patient",
+      "id": "patient",
+      "identifier": [
+        {
+          "system": "urn:uuid:ba51bc63-6b10-411c-a7df-d48005b91018",
+          "value": "patient"
+        }
+      ],
+      "name": [
+        {
+          "family": "Synthetic",
+          "given": [
+            "Example"
+          ]
+        }
+      ],
+      "gender": "unknown",
+      "birthDate": "1980-01-01"
+    },
+    {
+      "resourceType": "Practitioner",
+      "id": "practitioner",
+      "identifier": [
+        {
+          "system": "http://hl7.org/fhir/sid/us-npi",
+          "value": "1234567893"
+        }
+      ],
+      "name": [
+        {
+          "family": "Synthetic",
+          "given": [
+            "Example"
+          ]
+        }
+      ]
+    }
+  ],
+  "subject": {
+    "reference": "#patient"
+  },
+  "requester": {
+    "reference": "#practitioner"
+  },
+  "authoredOn": "2026-01-01",
+  "code": {
+    "text": "Synthetic order for validation"
+  }
+}
