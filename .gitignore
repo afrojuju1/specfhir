@@ -1,0 +1,9 @@
+.specfhir/
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+.env
+.DS_Store
