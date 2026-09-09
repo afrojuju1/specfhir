@@ -316,3 +316,152 @@ def test_prepared_package_reuse_and_timings(tmp_path, database, monkeypatch):
     with db.connect() as conn:
         conn.execute("DELETE FROM index_state")
     assert index.sync(config)["preparation_cache"] == {"hits": 0, "misses": 2}
+
+
+def test_publication_discovery_pinning_and_offline_rebuild(tmp_path, database, monkeypatch):
+    import hashlib
+    import io
+    import zipfile
+
+    from specfhir import db, documents
+    from specfhir.models import Lock
+
+    config = tmp_path / "specfhir.toml"
+    key = "example.guide#1.0.0"
+    config.write_text(
+        f'packages=["{key}"]\ndefault_package="{key}"\n'
+        f'[[publications]]\npackage="{key}"\n'
+        'url="https://example.org/1.0.0/full-ig.zip"\npage_prefix="en/"\n'
+    )
+    cache = tmp_path / ".specfhir/packages"
+    guide = {
+        "resourceType": "ImplementationGuide",
+        "id": "guide",
+        "packageId": "example.guide",
+        "version": "1.0.0",
+        "fhirVersion": ["4.0.1"],
+        "definition": {
+            "page": {
+                "nameUrl": "toc.html",
+                "title": "Contents",
+                "page": [
+                    {"nameUrl": "workflow.html", "title": "Workflow"},
+                    {"nameUrl": "https://external.example/page.html", "title": "External"},
+                    {"nameUrl": "ImplementationGuide-guide.html", "title": "Generated guide"},
+                ],
+            }
+        },
+    }
+    # Use publication-standard filenames; the fixture helper uses numeric filenames.
+    import tarfile
+
+    cache.mkdir(parents=True)
+    package_path = cache / f"{key}.tgz"
+    with tarfile.open(package_path, "w:gz") as tar:
+        for name, resource in {
+            "package/package.json": {
+                "name": "example.guide",
+                "version": "1.0.0",
+                "fhirVersions": ["4.0.1"],
+            },
+            "package/ImplementationGuide-guide.json": guide,
+        }.items():
+            raw = json.dumps(resource).encode()
+            info = tarfile.TarInfo(name)
+            info.size = len(raw)
+            tar.addfile(info, io.BytesIO(raw))
+    page = (
+        b'<div>Navigation</div><div id="segment-content">'
+        b"<p>Authorization workflow requirements</p></div>"
+    )
+
+    def bundle(extra=None, package=None, include_page=True):
+        stream = io.BytesIO()
+        with zipfile.ZipFile(stream, "w") as zip:
+            zip.writestr(
+                "site/package.tgz", package if package is not None else package_path.read_bytes()
+            )
+            if include_page:
+                zip.writestr("site/en/workflow.html", page)
+            if extra:
+                zip.writestr(extra, "unsafe")
+        return stream.getvalue()
+
+    payload = bundle()
+    calls = []
+
+    def fetch(*args, **kwargs):
+        calls.append(args[1])
+        return httpx.Client(
+            transport=httpx.MockTransport(lambda request: httpx.Response(200, content=payload))
+        ).stream(*args, **kwargs)
+
+    monkeypatch.setattr(httpx, "stream", fetch)
+    first = index.sync(config)
+    assert first["counts"]["publication_pages"] == 1
+    assert calls == ["https://example.org/1.0.0/full-ig.zip"]
+    lock = Lock.model_validate_json(config.with_suffix(".lock").read_bytes())
+    assert lock.publications[0].sha256 == hashlib.sha256(payload).hexdigest()
+    assert lock.documents[0].member == "site/en/workflow.html"
+    assert lock.documents[0].url == "https://example.org/1.0.0/en/workflow.html"
+    preview = packages.pages(key, config)
+    assert preview["selected"] == 1
+    assert all(p["excluded_reason"] for p in preview["pages"] if not p["selected"])
+    cli = CliRunner().invoke(app, ["packages", "pages", key, "--config", str(config), "--json"])
+    assert cli.exit_code == 0 and json.loads(cli.stdout) == preview
+    before = search.search(
+        "authorization",
+        package=key,
+        resource_type="Documentation",
+        mode="lexical",
+        config_path=config,
+    )
+    assert before.data and before.data["results"]
+    assert "Navigation" not in json.dumps(before.model_dump())
+    monkeypatch.setattr(httpx, "stream", lambda *a, **k: pytest.fail("Unexpected download"))
+    # Regenerate a missing page from the pinned ZIP without network access.
+    for path in (tmp_path / ".specfhir/documents").glob("*.html"):
+        path.unlink()
+    assert index.sync(config)["status"] == "unchanged"
+    with db.connect() as conn:
+        conn.execute("DELETE FROM index_state")
+    assert index.sync(config)["status"] == "synced"
+    assert (
+        search.search(
+            "authorization",
+            package=key,
+            resource_type="Documentation",
+            mode="lexical",
+            config_path=config,
+        )
+        == before
+    )
+    zip_path = next((tmp_path / ".specfhir/publications").glob("*.zip"))
+    zip_path.write_bytes(bundle(extra="../escape.html"))
+    with pytest.raises(ValueError, match="checksum changed"):
+        index.sync(config)
+    for bad, error in [
+        (bundle(extra="../escape.html"), "Unsafe publication archive"),
+        (bundle(package=b"different release"), "embedded package differs"),
+        (bundle(include_page=False), "Selected IG page missing"),
+    ]:
+        zip_path.write_bytes(bad)
+        with pytest.raises(ValueError, match=error):
+            index.sync(config, update_lock=True)
+        assert (
+            search.search(
+                "authorization",
+                package=key,
+                resource_type="Documentation",
+                mode="lexical",
+                config_path=config,
+            )
+            == before
+        )
+    zip_path.write_bytes(payload)
+    assert index.sync(config)["status"] == "unchanged"
+    # Cache tampering is never hidden by copying the original bytes back over it.
+    (tmp_path / ".specfhir/documents" / f"{lock.documents[0].sha256}.html").write_text("changed")
+    with pytest.raises(ValueError, match="Cached documentation checksum changed"):
+        index.sync(config)
+    assert documents.page_candidates(package_path, key)[1]["selected"]

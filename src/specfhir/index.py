@@ -159,6 +159,8 @@ def prepare_package(lock: Lock, cache: Path, spool: Path) -> dict[str, Any]:
                 "title": source.title,
                 "description": documents.page_text(raw.decode("utf-8")),
                 "source_sha256": source.sha256,
+                "publication": source.publication,
+                "publication_member": source.member,
             }
             counts["artifacts"] += 1
             counts["publication_pages"] += 1
@@ -355,8 +357,16 @@ def sync(config_path: Path = Path("specfhir.toml"), *, update_lock: bool = False
         stage = time.monotonic()
         lock = resolve_lock(config, work / "packages", previous)
         lock.documents = documents.pin_pages(
-            config.documents, previous.documents if previous else None, work / "documents"
+            config.documents,
+            [d for d in previous.documents if d.publication is None] if previous else None,
+            work / "documents",
         )
+        lock.publications, publication_pages = documents.pin_publications(
+            config.publications, previous, lock.packages, work
+        )
+        lock.documents.extend(publication_pages)
+        if len({d.url for d in lock.documents}) != len(lock.documents):
+            raise Error("Duplicate direct/publication documentation URL")
         if config.embedding.enabled:
             lock.embedding = embeddings.pin_model(
                 work, config.embedding, existing.embedding if existing else None, update_lock

@@ -193,3 +193,13 @@ def validate_cases_command(
 ):
     """Validate a JSON manifest of named instances, exact packages, and profiles."""
     emit(lambda: validator.validate_cases(manifest, config), as_json)
+
+
+@package_app.command("pages")
+def package_pages(
+    package: str,
+    config: ConfigOption = Path("specfhir.toml"),
+    as_json: Annotated[bool, typer.Option("--json")] = False,
+):
+    """Preview narrative page selection from the locked ImplementationGuide metadata."""
+    emit(lambda: packages.pages(package, config), as_json)

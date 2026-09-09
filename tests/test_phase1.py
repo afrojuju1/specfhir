@@ -212,6 +212,7 @@ def test_real_r4_us_core_rebuild(tmp_path, database, monkeypatch):
     lock.roots = sorted(roots)
     lock.packages = [p for p in lock.packages if p.key in selected]
     lock.documents = []
+    lock.publications = []
     (tmp_path / "specfhir.lock").write_text(lock.model_dump_json())
     (tmp_path / ".specfhir").mkdir()
     (tmp_path / ".specfhir/packages").symlink_to(

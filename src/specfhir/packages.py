@@ -250,8 +250,43 @@ def inventory(config_path: Path) -> dict:
         "index_matches_lock": metadata["lock_digest"] == digest(lock.model_dump()),
         "config_matches_lock": sorted(config.packages) == lock.roots
         and [d.model_dump() for d in config.documents]
-        == [d.model_dump(exclude={"sha256"}) for d in lock.documents],
+        == [
+            d.model_dump(exclude={"sha256", "publication", "member"})
+            for d in lock.documents
+            if d.publication is None
+        ]
+        and [p.model_dump() for p in config.publications]
+        == [p.model_dump(exclude={"sha256"}) for p in lock.publications],
         "validator": {**health, "matches_lock": health.get("snapshot_id") == expected},
         "inventory": metadata["inventory"],
+        "publications": [p.model_dump() for p in lock.publications],
         "counts": metadata["counts"],
+    }
+
+
+def pages(key: str, config_path: Path) -> dict:
+    """Preview metadata-selected publication pages without changing the lock or index."""
+    from specfhir import documents
+    from specfhir.config import load
+
+    split_key(key)
+    config_path = config_path.resolve()
+    config = load(config_path)
+    lock = Lock.model_validate_json(config_path.with_name("specfhir.lock").read_bytes())
+    pin = next((p for p in lock.packages if p.key == key), None)
+    if pin is None:
+        raise Error(f"Package is not locked: {key}; run sync first")
+    archive = config_path.parent / ".specfhir/packages" / f"{key}.tgz"
+    with archive.open("rb") as stream:
+        if hashlib.file_digest(stream, "sha256").hexdigest() != pin.sha256:
+            raise Error(f"Package checksum changed: {key}")
+    candidates = documents.page_candidates(archive, key)
+    source = next((p for p in config.publications if p.package == key), None)
+    return {
+        "status": "ok",
+        "package": key,
+        "package_sha256": pin.sha256,
+        "publication": source.model_dump() if source else None,
+        "selected": sum(p["selected"] for p in candidates),
+        "pages": candidates,
     }

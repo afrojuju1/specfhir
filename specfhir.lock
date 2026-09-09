@@ -586,33 +586,319 @@
   "documents": [
     {
       "package": "hl7.fhir.us.davinci-pas#2.0.1",
+      "url": "https://hl7.org/fhir/us/davinci-pas/STU2/index.html",
+      "title": "Prior Authorization Implementation Guide Home Page",
+      "sha256": "13cbae5468226afd8fdcffb6afcc3b5859ad6830e0865b0f09f5bb17eeb0f0f8",
+      "publication": "https://hl7.org/fhir/us/davinci-pas/STU2/full-ig.zip",
+      "member": "site/index.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-pas#2.0.1",
+      "url": "https://hl7.org/fhir/us/davinci-pas/STU2/usecases.html",
+      "title": "Use Cases and Overview",
+      "sha256": "e60218615fdb7f011d4a2295cd865ee0507a7451e5e0745db6931d1603c7a115",
+      "publication": "https://hl7.org/fhir/us/davinci-pas/STU2/full-ig.zip",
+      "member": "site/usecases.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-pas#2.0.1",
+      "url": "https://hl7.org/fhir/us/davinci-pas/STU2/additionalinfo.html",
+      "title": "Request for Additional Information",
+      "sha256": "a255491b32b487626b4ea0ead3392506514554d57d5f8aa7ec69520380d3de43",
+      "publication": "https://hl7.org/fhir/us/davinci-pas/STU2/full-ig.zip",
+      "member": "site/additionalinfo.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-pas#2.0.1",
+      "url": "https://hl7.org/fhir/us/davinci-pas/STU2/background.html",
+      "title": "Technical Background",
+      "sha256": "dd52e88d91759903f440358616252170d79f42175d3f8333917d6ba0e77f9b89",
+      "publication": "https://hl7.org/fhir/us/davinci-pas/STU2/full-ig.zip",
+      "member": "site/background.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-pas#2.0.1",
+      "url": "https://hl7.org/fhir/us/davinci-pas/STU2/regulations.html",
+      "title": "HIPAA Regulations",
+      "sha256": "4db32bc50ecc7f558195ac26ca12c1e4613711c0fa0e02f6c6782145bba610fc",
+      "publication": "https://hl7.org/fhir/us/davinci-pas/STU2/full-ig.zip",
+      "member": "site/regulations.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-pas#2.0.1",
       "url": "https://hl7.org/fhir/us/davinci-pas/STU2/specification.html",
-      "title": "PAS 2.0.1 Technical Specification",
-      "sha256": "6e8bedff023c651957537a03d7a1479518f94f560789319abab8605d2e42818f"
+      "title": "Formal Specification",
+      "sha256": "0cc9f58e5ed5d8001bc4aa41d3b753b35160c1bc185e975c9672fbb13e609d15",
+      "publication": "https://hl7.org/fhir/us/davinci-pas/STU2/full-ig.zip",
+      "member": "site/specification.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-pas#2.0.1",
+      "url": "https://hl7.org/fhir/us/davinci-pas/STU2/privacy.html",
+      "title": "Privacy & Security",
+      "sha256": "810c8240f61b63ee9ddb41eab4e2f45c7fee21f96d96ff150903773afbc9aea4",
+      "publication": "https://hl7.org/fhir/us/davinci-pas/STU2/full-ig.zip",
+      "member": "site/privacy.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-pas#2.0.1",
+      "url": "https://hl7.org/fhir/us/davinci-pas/STU2/epaWorkflow.html",
+      "title": "PAS ePA Coordinator Information",
+      "sha256": "84c0d9424bca4fdbe91dfe2eaf68c50710e50648a900543bf8f29dd755eb1189",
+      "publication": "https://hl7.org/fhir/us/davinci-pas/STU2/full-ig.zip",
+      "member": "site/epaWorkflow.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-pas#2.0.1",
+      "url": "https://hl7.org/fhir/us/davinci-pas/STU2/metrics.html",
+      "title": "PAS Metrics",
+      "sha256": "110b877a9c51f36b624c40d1d214144e571d52227430b582b8a61060bb91a05f",
+      "publication": "https://hl7.org/fhir/us/davinci-pas/STU2/full-ig.zip",
+      "member": "site/metrics.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-pas#2.0.1",
+      "url": "https://hl7.org/fhir/us/davinci-pas/STU2/fhirArtifacts.html",
+      "title": "Artifacts Overview",
+      "sha256": "eb372dd11cfcd349864ae620bae70114dfa4f7b86a651f6e488989b5c3a674cb",
+      "publication": "https://hl7.org/fhir/us/davinci-pas/STU2/full-ig.zip",
+      "member": "site/fhirArtifacts.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-pas#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-pas/STU2.1/index.html",
+      "title": "Prior Authorization Implementation Guide Home Page",
+      "sha256": "90fe02f77b23f0e9baa9c8393716d0036ede161d1c2338d9731929567b49c1ab",
+      "publication": "https://hl7.org/fhir/us/davinci-pas/STU2.1/full-ig.zip",
+      "member": "site/index.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-pas#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-pas/STU2.1/usecases.html",
+      "title": "Use Cases and Overview",
+      "sha256": "7f6a58dd1c69ba6633160c785752aed9caecb2a821ec4b5cdecdc353e6e1dda4",
+      "publication": "https://hl7.org/fhir/us/davinci-pas/STU2.1/full-ig.zip",
+      "member": "site/usecases.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-pas#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-pas/STU2.1/additionalinfo.html",
+      "title": "Request for Additional Information",
+      "sha256": "5a2cbb4ad9baef246acfb91a50b90f82399aeae9967074135f794ec806694bf2",
+      "publication": "https://hl7.org/fhir/us/davinci-pas/STU2.1/full-ig.zip",
+      "member": "site/additionalinfo.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-pas#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-pas/STU2.1/background.html",
+      "title": "Technical Background",
+      "sha256": "57ee7ceb7321bca7a97804ea64310b2845897ebbb282adb82d3e6d0fa77c8d58",
+      "publication": "https://hl7.org/fhir/us/davinci-pas/STU2.1/full-ig.zip",
+      "member": "site/background.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-pas#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-pas/STU2.1/regulations.html",
+      "title": "HIPAA Regulations",
+      "sha256": "c495c1fe9b0f340c6143e8e875d90306abee27bc963bc2f3b788626a44b22ccd",
+      "publication": "https://hl7.org/fhir/us/davinci-pas/STU2.1/full-ig.zip",
+      "member": "site/regulations.html"
     },
     {
       "package": "hl7.fhir.us.davinci-pas#2.1.0",
       "url": "https://hl7.org/fhir/us/davinci-pas/STU2.1/specification.html",
-      "title": "PAS 2.1.0 Technical Specification",
-      "sha256": "c44bf2a94f226a6020de979d84f1479612fea52726b989adb1665475cbbf50a7"
+      "title": "Formal Specification",
+      "sha256": "5789d1ac810c5726fde859ce5bd7844fc569e1d9b52569f618432ef4832fe38a",
+      "publication": "https://hl7.org/fhir/us/davinci-pas/STU2.1/full-ig.zip",
+      "member": "site/specification.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-pas#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-pas/STU2.1/privacy.html",
+      "title": "Privacy & Security",
+      "sha256": "10aab88d4cc26e9ee21f6db481cd22c3d59c671b50d1baed1b783e7371249543",
+      "publication": "https://hl7.org/fhir/us/davinci-pas/STU2.1/full-ig.zip",
+      "member": "site/privacy.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-pas#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-pas/STU2.1/epaWorkflow.html",
+      "title": "PAS ePA Coordinator Information",
+      "sha256": "6592bd4e27ae36e6cca9330c1d2a7400d851aef47ce4db4e674c6e8779a1d9b1",
+      "publication": "https://hl7.org/fhir/us/davinci-pas/STU2.1/full-ig.zip",
+      "member": "site/epaWorkflow.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-pas#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-pas/STU2.1/metrics.html",
+      "title": "PAS Metrics",
+      "sha256": "d67dd78521a7b33a3df1110ada647324f7be3438fc0403e638d92b330a95782a",
+      "publication": "https://hl7.org/fhir/us/davinci-pas/STU2.1/full-ig.zip",
+      "member": "site/metrics.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-pas#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-pas/STU2.1/fhirArtifacts.html",
+      "title": "Artifacts Overview",
+      "sha256": "c050e972e5c692588f604bcb75351419320cffbb5477b1f2a53a38c45d85c699",
+      "publication": "https://hl7.org/fhir/us/davinci-pas/STU2.1/full-ig.zip",
+      "member": "site/fhirArtifacts.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-pas#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-pas/STU2.1/conformance.html",
+      "title": "Conformance",
+      "sha256": "62e9ce119f5bfd0938d7eaccdeb391ab6b9bfe2054400c03cbfd41e24f9ea069",
+      "publication": "https://hl7.org/fhir/us/davinci-pas/STU2.1/full-ig.zip",
+      "member": "site/conformance.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-crd#2.2.1",
+      "url": "https://hl7.org/fhir/us/davinci-crd/2.2.1/en/index.html",
+      "title": "CRD IG Home Page",
+      "sha256": "dfe4300112f3a118acc8a897ee00856d30440d044415c0375b945a6abd0c22ac",
+      "publication": "https://hl7.org/fhir/us/davinci-crd/2.2.1/full-ig.zip",
+      "member": "site/en/index.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-crd#2.2.1",
+      "url": "https://hl7.org/fhir/us/davinci-crd/2.2.1/en/background.html",
+      "title": "Reading this IG",
+      "sha256": "d1608c73f419d51a7673a36be59fe0ff37f963f64a51b2db1d9fcbedf881487f",
+      "publication": "https://hl7.org/fhir/us/davinci-crd/2.2.1/full-ig.zip",
+      "member": "site/en/background.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-crd#2.2.1",
+      "url": "https://hl7.org/fhir/us/davinci-crd/2.2.1/en/usecases.html",
+      "title": "Use Cases",
+      "sha256": "1e0918563948e0ebdc961b4312ffb477ab713354a3159f2ac0ef7d03527a99b6",
+      "publication": "https://hl7.org/fhir/us/davinci-crd/2.2.1/full-ig.zip",
+      "member": "site/en/usecases.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-crd#2.2.1",
+      "url": "https://hl7.org/fhir/us/davinci-crd/2.2.1/en/burden.html",
+      "title": "Burden Reduction",
+      "sha256": "c53b0252aacff02c7a6b8a9f8268024d89a9c92e16b140ef3ea789a8334b9853",
+      "publication": "https://hl7.org/fhir/us/davinci-crd/2.2.1/full-ig.zip",
+      "member": "site/en/burden.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-crd#2.2.1",
+      "url": "https://hl7.org/fhir/us/davinci-crd/2.2.1/en/epa.html",
+      "title": "ePA Coordinators",
+      "sha256": "fe9cb6421be806cd7616ee7e24c43128673835490550a54698efe7a6f27725fd",
+      "publication": "https://hl7.org/fhir/us/davinci-crd/2.2.1/full-ig.zip",
+      "member": "site/en/epa.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-crd#2.2.1",
+      "url": "https://hl7.org/fhir/us/davinci-crd/2.2.1/en/operational.html",
+      "title": "Operational Considerations",
+      "sha256": "2e2553bcb2ac74879cbcd62de4d2fcaede66f998181c6b2189cfa4146f493b86",
+      "publication": "https://hl7.org/fhir/us/davinci-crd/2.2.1/full-ig.zip",
+      "member": "site/en/operational.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-crd#2.2.1",
+      "url": "https://hl7.org/fhir/us/davinci-crd/2.2.1/en/conformance.html",
+      "title": "Conformance Expectations",
+      "sha256": "fe84639a17199623c4575831f34d82e0e509b5f18754503ad7a090fa19c73ae9",
+      "publication": "https://hl7.org/fhir/us/davinci-crd/2.2.1/full-ig.zip",
+      "member": "site/en/conformance.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-crd#2.2.1",
+      "url": "https://hl7.org/fhir/us/davinci-crd/2.2.1/en/conformancedetails.html",
+      "title": "Conformance Details",
+      "sha256": "b74eb4b17a7a1346b7f301861a0dcc89d5fab76537373e8f0429284300e3942b",
+      "publication": "https://hl7.org/fhir/us/davinci-crd/2.2.1/full-ig.zip",
+      "member": "site/en/conformancedetails.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-crd#2.2.1",
+      "url": "https://hl7.org/fhir/us/davinci-crd/2.2.1/en/security.html",
+      "title": "Privacy, Safety, and Security",
+      "sha256": "4bde89685d9b85d9ce79d506cbaf27b2a5a7729d11b3ffbabf431d01266e5eca",
+      "publication": "https://hl7.org/fhir/us/davinci-crd/2.2.1/full-ig.zip",
+      "member": "site/en/security.html"
     },
     {
       "package": "hl7.fhir.us.davinci-crd#2.2.1",
       "url": "https://hl7.org/fhir/us/davinci-crd/2.2.1/en/foundation.html",
-      "title": "CRD 2.2.1 Foundational Requirements",
-      "sha256": "9a6c164e7ebfdf840c2526a17ea0474630a304c97482fde122a64d708e29f71b"
+      "title": "Foundational Requirements",
+      "sha256": "389c3805230412b08cee6cb9e3c231da54ccdeae64636c6f54be108de1e1329e",
+      "publication": "https://hl7.org/fhir/us/davinci-crd/2.2.1/full-ig.zip",
+      "member": "site/en/foundation.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-crd#2.2.1",
+      "url": "https://hl7.org/fhir/us/davinci-crd/2.2.1/en/deviations.html",
+      "title": "CDS Hooks Deviations and Enhancements",
+      "sha256": "9bbd3acf868864dc893486adf12799d534f9b9f17f041c5a204accc143bbd432",
+      "publication": "https://hl7.org/fhir/us/davinci-crd/2.2.1/full-ig.zip",
+      "member": "site/en/deviations.html"
     },
     {
       "package": "hl7.fhir.us.davinci-crd#2.2.1",
       "url": "https://hl7.org/fhir/us/davinci-crd/2.2.1/en/hooks.html",
-      "title": "CRD 2.2.1 Supported Hooks",
-      "sha256": "453247f6cac458abddca480b9da05aa673a7369844012ed8c0410f081c7e2667"
+      "title": "Supported Hooks",
+      "sha256": "42d1ce8de45fe9083902b23c9834f597165d27880a1aa1c637fbd6ea794fef32",
+      "publication": "https://hl7.org/fhir/us/davinci-crd/2.2.1/full-ig.zip",
+      "member": "site/en/hooks.html"
     },
     {
       "package": "hl7.fhir.us.davinci-crd#2.2.1",
       "url": "https://hl7.org/fhir/us/davinci-crd/2.2.1/en/cards.html",
-      "title": "CRD 2.2.1 Hook Response Profiles",
-      "sha256": "a8534e9d44b5a3402f33001e88fc4a11e6369e3b97d191442c20f4f8070c76a2"
+      "title": "CDS Hooks Response Profiles",
+      "sha256": "34ba385ff60d5086eb95c86c416d84e1c8b2efc1e1a225e0d942a0f065fd2814",
+      "publication": "https://hl7.org/fhir/us/davinci-crd/2.2.1/full-ig.zip",
+      "member": "site/en/cards.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-crd#2.2.1",
+      "url": "https://hl7.org/fhir/us/davinci-crd/2.2.1/en/implementation.html",
+      "title": "Implementation Considerations",
+      "sha256": "2f6440ee4395e0746fabae6491482f0ef42b361278cb1c8079a041adb51b146d",
+      "publication": "https://hl7.org/fhir/us/davinci-crd/2.2.1/full-ig.zip",
+      "member": "site/en/implementation.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-crd#2.2.1",
+      "url": "https://hl7.org/fhir/us/davinci-crd/2.2.1/en/metrics.html",
+      "title": "CRD Metrics",
+      "sha256": "e307c4789abb516cacfb573ac5cff2b99f5523a56e05cc9378c9705af9db6c39",
+      "publication": "https://hl7.org/fhir/us/davinci-crd/2.2.1/full-ig.zip",
+      "member": "site/en/metrics.html"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-crd#2.2.1",
+      "url": "https://hl7.org/fhir/us/davinci-crd/2.2.1/en/allartifacts.html",
+      "title": "FHIR Artifacts",
+      "sha256": "52cddda64220d261d87e5c6d4382a29b108e1da4331a78c6d78f02aae019b283",
+      "publication": "https://hl7.org/fhir/us/davinci-crd/2.2.1/full-ig.zip",
+      "member": "site/en/allartifacts.html"
+    }
+  ],
+  "publications": [
+    {
+      "package": "hl7.fhir.us.davinci-pas#2.0.1",
+      "url": "https://hl7.org/fhir/us/davinci-pas/STU2/full-ig.zip",
+      "page_prefix": "",
+      "sha256": "b32ba1c840e6dd3bc3ce1f921727125b102db60b7e25fdbdec98c7a8187d3831"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-pas#2.1.0",
+      "url": "https://hl7.org/fhir/us/davinci-pas/STU2.1/full-ig.zip",
+      "page_prefix": "",
+      "sha256": "a13e31b94e6a9cba78acff6a9884b575f62884eaf16f9e7da1c9f2bac058ef41"
+    },
+    {
+      "package": "hl7.fhir.us.davinci-crd#2.2.1",
+      "url": "https://hl7.org/fhir/us/davinci-crd/2.2.1/full-ig.zip",
+      "page_prefix": "en/",
+      "sha256": "8bae614c5f2cd5e9e2a922fd00488798142c892a90556fb9207aa61ecf06da4e"
     }
   ]
 }

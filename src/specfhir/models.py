@@ -27,6 +27,19 @@ class DocumentSource(BaseModel):
 
 class DocumentPin(DocumentSource):
     sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    publication: str | None = None
+    member: str | None = None
+
+
+class PublicationSource(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    package: str
+    url: str = Field(pattern=r"^https://[^\s]+$")
+    page_prefix: str = ""
+
+
+class PublicationPin(PublicationSource):
+    sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
 
 
 class Lock(BaseModel):
@@ -36,6 +49,7 @@ class Lock(BaseModel):
     packages: list[PackagePin]
     embedding: dict[str, Any] | None = None
     documents: list[DocumentPin] = Field(default_factory=list)
+    publications: list[PublicationPin] = Field(default_factory=list)
 
 
 class Result(BaseModel):

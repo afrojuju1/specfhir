@@ -515,8 +515,8 @@ never substituted, and the installed PAS releases retain separate validation con
 ### CRD and reusable preparation
 
 CRD `hl7.fhir.us.davinci-crd#2.2.1` is an explicit root alongside both PAS releases.
-Its release-specific foundational, supported-hooks, and response pages are pinned
-in the same lock as its packages. Select it with `--package`; the default remains
+Its release-specific narrative pages are selected from IG metadata and pinned
+from the full publication archive in the same lock as its packages. Select it with `--package`; the default remains
 US Core 9.0.0. `uv run python scripts/check_crd.py` runs the local acceptance check
 and writes synthetic build cases and full findings to `.specfhir/crd-acceptance/`.
 
@@ -538,3 +538,70 @@ publication. The separate element spool avoids parsing every large terminology
 resource twice during publication. Existing embedding caching remains in place.
 This trades local disk space for repeat extraction speed. The prepared directory
 is disposable: remove it only while no sync is running to reclaim its space.
+
+### Discover and pin full-publication documentation
+
+The installed PAS 2.0.1, PAS 2.1.0, and CRD 2.2.1 roots now use `[[publications]]`
+instead of individually configured page URLs. Preview the selection from a locked
+package before changing its documentation configuration:
+
+```sh
+uv run specfhir packages pages 'hl7.fhir.us.davinci-crd#2.2.1' --json
+```
+
+The command reads the package's `ImplementationGuide.definition.page` hierarchy
+and shows selected pages and exclusion reasons. It does not download a publication,
+change the lock, or crawl links. The current selection includes narrative overview,
+conformance, workflow, implementation, security, and artifact-overview pages.
+Generated resource renderings, external links, table of contents, downloads,
+credits, and release administration are excluded.
+
+```toml
+[[publications]]
+package = "hl7.fhir.us.davinci-crd#2.2.1"
+url = "https://hl7.org/fhir/us/davinci-crd/2.2.1/full-ig.zip"
+page_prefix = "en/"
+```
+
+Use the full-publication download linked by the exact release. `page_prefix`
+selects a directory within the publication (CRD uses English pages under `en/`;
+PAS uses the default empty prefix). Then run:
+
+```sh
+uv run specfhir sync --update-lock --with-validator --json
+```
+
+Sync verifies the publication's embedded `package.tgz` against the locked package
+checksum, pins the ZIP hash, and pins each selected page's public URL, content hash,
+and archive member. `packages list --json` includes publication pins and indexed
+page inventory. The original page URL remains the search citation; raw document
+inspection also records the publication URL and archive member.
+
+ZIPs remain in `.specfhir/publications/`. Only selected HTML members are read and
+cached, with archive size/path/type bounds; the ZIP is never unpacked onto disk.
+Missing pages or mismatched package versions fail before database publication.
+An unchanged sync verifies pins, and a missing page cache can be rebuilt from the
+pinned ZIP offline. Retain the ZIP to reproduce a rebuild without network access.
+
+Explicit `[[documents]]` entries remain supported when an IG has no suitable
+publication archive. A configured archive failure never silently switches to live
+pages or another release. For a new IG, first install its exact JSON package, inspect
+its metadata with `packages pages`, then configure its verified publication URL.
+The package remains the source of FHIR definitions and validator inputs.
+
+Run `uv run python scripts/check_documentation.py` after sync to verify every
+selected page's indexed provenance, lexical/hybrid retrieval, sibling-release
+isolation, and config/index/validator agreement. Evidence is written to
+`.specfhir/documentation-acceptance.json`. This check does not change the index.
+
+Verified archive coverage: PAS 2.0.1 has 10 selected pages (4 excluded), PAS 2.1.0
+has 11 (4 excluded), and CRD 2.2.1 has 16 (5 excluded). This expands the index from
+5 to 37 publication pages. The expansion reused 48 prepared packages and rebuilt
+only the three documentation-owning packages; extraction took 3.56 seconds in the
+observed run. All 37 page provenance checks and version-scoped retrieval checks
+passed. These counts describe the IG-declared narrative selection, not every file
+or page in the publication ZIP.
+
+The expansion passed 18 tests with real-package and Java/MCP smokes enabled, plus
+dedicated PAS and CRD acceptance. A subsequent locked sync with validator checking
+completed in 4.696 seconds with no rebuild or validator restart.

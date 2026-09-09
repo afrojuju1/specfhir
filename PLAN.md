@@ -486,3 +486,26 @@ Report FHIR validation separately from CDS Hooks protocol/workflow conformance.
 
 CRD and PAS acceptance passed with the expanded graph. Measured stage timings,
 coverage limits, and reproduction commands are recorded in CRD_VALIDATION.md.
+
+## Publication archive documentation coverage (implemented and verified)
+
+Discover candidate pages from each locked ImplementationGuide.definition.page tree.
+Expose selected pages and exclusion reasons through `packages pages`. Use configured,
+release-specific publication ZIP URLs for PAS 2.0.1, PAS 2.1.0, and CRD 2.2.1.
+Verify the embedded package.tgz against the locked JSON package before accepting
+any page. Lock archive SHA-256 plus selected page URLs, hashes, and archive members.
+Read selected pages in place; never unpack the publication or follow arbitrary links.
+
+Exclude generated resource renderings already supplied as JSON, table of contents,
+downloads, credits, and release administration. Include narrative overview,
+conformance, workflow, security, and implementation pages. Keep explicit single-page
+sources available for publications without a suitable archive; do not silently
+fall back to a different source when a configured archive fails verification.
+Continue using the existing document cache, extraction, embeddings, atomic index
+publication, and validator refresh. Missing pages, unsafe ZIP entries, and mismatched
+releases fail before publication. Test offline reconstruction and both PAS contexts.
+
+Verified: 37 selected pages across the three releases; all page provenance and
+version-isolation checks passed. The 18-test suite and dedicated PAS/CRD acceptance
+passed. An unchanged sync with validator verification took 4.696 seconds and reused
+the existing snapshot. See README.md for discovery/configuration commands.

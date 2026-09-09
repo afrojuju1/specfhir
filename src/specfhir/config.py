@@ -8,7 +8,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from specfhir.models import DocumentSource, Error
+from specfhir.models import DocumentSource, Error, PublicationSource
 
 PACKAGE = re.compile(r"[a-z0-9][a-z0-9.-]*#[0-9]+\.[0-9]+\.[0-9]+(?:-[a-zA-Z0-9.-]+)?")
 DEFAULT_DSN = "postgresql://specfhir@localhost:55432/specfhir"
@@ -48,6 +48,7 @@ class Config(BaseModel):
     packages: list[str] = Field(min_length=1)
     default_package: str
     documents: list[DocumentSource] = Field(default_factory=list)
+    publications: list[PublicationSource] = Field(default_factory=list)
     embedding: EmbeddingConfig = Field(default_factory=EmbeddingConfig)
     validator: ValidatorConfig = Field(default_factory=ValidatorConfig)
 
@@ -63,6 +64,14 @@ class Config(BaseModel):
             raise Error("Duplicate documentation URL")
         if any(d.package not in self.packages for d in self.documents):
             raise Error("Documentation must belong to a configured root package")
+        if len({p.package for p in self.publications}) != len(self.publications):
+            raise Error("Duplicate publication package")
+        for publication in self.publications:
+            if publication.package not in self.packages:
+                raise Error("Publication must belong to a configured root package")
+            prefix = publication.page_prefix
+            if prefix and not re.fullmatch(r"(?:[a-zA-Z0-9_-]+/)+", prefix):
+                raise Error("page_prefix must be a relative directory ending in /")
         return self
 
 

@@ -1,5 +1,9 @@
 # PAS 2.0.1 and 2.1.0 side-by-side acceptance
 
+Documentation coverage has since expanded to metadata-selected publication archives:
+10 pages for PAS 2.0.1 and 11 for PAS 2.1.0. The initial onboarding evidence below
+is retained; see README.md for the current acquisition and verification commands.
+
 Status: implemented and verified on 2026-09-09.
 Configuration includes both PAS roots alongside R4 4.0.1 and US Core 9.0.0.
 The existing default remains US Core 9.0.0; select PAS explicitly with `--package`.

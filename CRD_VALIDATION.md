@@ -11,7 +11,8 @@ HRex 1.2.0, CDS Hooks 3.0.0-ballot, CDS Hooks Library 1.0.1, and terminology
 6.2.0 and 7.0.1. The ballot dependency is declared by the published CRD package;
 it was not selected as an upgrade or substituted for another release.
 
-Three publication pages are explicitly pinned and searchable:
+The initial onboarding pinned three publication pages (the later archive expansion
+now indexes 16 CRD pages; see README.md, “Discover and pin full-publication documentation”):
 
 - [Foundational Requirements](https://hl7.org/fhir/us/davinci-crd/2.2.1/en/foundation.html)
 - [Supported Hooks](https://hl7.org/fhir/us/davinci-crd/2.2.1/en/hooks.html)
@@ -39,7 +40,7 @@ This is package knowledge and delegated FHIR validation. CDS Hooks logical model
 are indexed as supplied StructureDefinitions; SpecFHIR's instance validator still
 requires a FHIR resource object. Hook request/response envelopes, service discovery,
 card presentation, authentication, response deadlines, and end-to-end payer/EHR
-behavior are not certified by these checks. The three pinned pages are not a
+behavior are not certified by these checks. The selected narrative pages are not a
 crawl of the complete publication. Terminology validation remains offline and
 reports its limitations and warnings without suppressing findings.
 
