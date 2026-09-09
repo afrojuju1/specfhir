@@ -15,7 +15,7 @@ from mcp import Client, StdioServerParameters
 
 from specfhir import search, validator
 from specfhir.config import dsn, load
-from specfhir.embeddings import checksum
+from specfhir.files import checksum
 from specfhir.models import Lock
 from specfhir.packages import archive_files
 

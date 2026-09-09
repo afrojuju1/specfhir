@@ -4,6 +4,9 @@ import hashlib
 import re
 from html.parser import HTMLParser
 
+from specfhir.files import checksum as file_checksum
+from specfhir.files import download
+
 MAX_CHARS = 4000
 TEXT_FIELDS = ("short", "definition", "comment", "requirements")
 
@@ -163,7 +166,7 @@ def pin_pages(sources, previous, cache):
             temporary = path.with_suffix(".tmp")
             temporary.write_bytes(content)
             temporary.replace(path)
-        sha = hashlib.sha256(path.read_bytes()).hexdigest()
+        sha = file_checksum(path)
         if pin and pin.sha256 != sha:
             raise Error(f"Cached documentation checksum changed: {source.url}")
         pins.append(DocumentPin(**source.model_dump(), sha256=sha))
@@ -253,14 +256,10 @@ def page_candidates(archive, key):
 
 def pin_publications(sources, previous, packages, work):
     """Pin bounded publication ZIPs and selected pages, preserving their release provenance."""
-    import json
     import stat
-    import tempfile
     import zipfile
-    from pathlib import Path, PurePosixPath
+    from pathlib import PurePosixPath
     from urllib.parse import urljoin
-
-    import httpx
 
     from specfhir.models import DocumentPin, Error, PublicationPin
 
@@ -277,39 +276,11 @@ def pin_publications(sources, previous, packages, work):
     for source in sources:
         pin = old[source.package] if old is not None else None
         path = cache / (hashlib.sha256(source.url.encode()).hexdigest() + ".zip")
-        if not path.exists():
-            with tempfile.NamedTemporaryFile(dir=cache, delete=False) as stream:
-                temporary = Path(stream.name)
-                try:
-                    with httpx.stream(
-                        "GET", source.url, follow_redirects=True, timeout=90
-                    ) as response:
-                        response.raise_for_status()
-                        size = 0
-                        for chunk in response.iter_bytes():
-                            size += len(chunk)
-                            if size > 256 * 1024 * 1024:
-                                raise Error("Publication archive exceeds 256 MiB")
-                            stream.write(chunk)
-                    stream.flush()
-                    with temporary.open("rb") as file:
-                        actual = hashlib.file_digest(file, "sha256").hexdigest()
-                    if pin and actual != pin.sha256:
-                        raise Error(f"Publication checksum changed: {source.url}")
-                    temporary.replace(path)
-                finally:
-                    temporary.unlink(missing_ok=True)
-        if path.stat().st_size > 256 * 1024 * 1024:
-            raise Error("Publication archive exceeds 256 MiB")
-        with path.open("rb") as file:
-            sha = hashlib.file_digest(file, "sha256").hexdigest()
-        if pin and sha != pin.sha256:
-            raise Error(f"Cached publication checksum changed: {source.url}")
+        sha = download(path, source.url, pin.sha256 if pin else None, 256 * 1024 * 1024)
         package = next(p for p in packages if p.key == source.package)
         package_path = work / "packages" / f"{package.key}.tgz"
-        with package_path.open("rb") as file:
-            if hashlib.file_digest(file, "sha256").hexdigest() != package.sha256:
-                raise Error(f"Package checksum changed: {package.key}")
+        if file_checksum(package_path) != package.sha256:
+            raise Error(f"Package checksum changed: {package.key}")
         candidates = page_candidates(package_path, package.key)
         selected = []
         try:
@@ -364,10 +335,7 @@ def pin_publications(sources, previous, packages, work):
                         member=member,
                     )
                     target = page_cache / f"{page_sha}.html"
-                    if (
-                        target.exists()
-                        and hashlib.sha256(target.read_bytes()).hexdigest() != page_sha
-                    ):
+                    if target.exists() and file_checksum(target) != page_sha:
                         raise Error(f"Cached documentation checksum changed: {page.url}")
                     if not target.exists():
                         temporary = target.with_suffix(".tmp")
@@ -384,5 +352,4 @@ def pin_publications(sources, previous, packages, work):
             raise Error(f"No narrative pages selected for {source.package}")
         pins.append(PublicationPin(**source.model_dump(), sha256=sha))
         pages.extend(selected)
-        (cache / (sha + ".pages.json")).write_text(json.dumps(candidates, indent=2) + "\n")
     return pins, pages

@@ -4,6 +4,17 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+RESOURCE_TYPES = {
+    "StructureDefinition",
+    "SearchParameter",
+    "ValueSet",
+    "CodeSystem",
+    "ConceptMap",
+    "OperationDefinition",
+    "ImplementationGuide",
+    "CapabilityStatement",
+}
+
 
 class Error(ValueError):
     """An actionable configuration, package, or lookup error."""

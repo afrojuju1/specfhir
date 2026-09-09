@@ -1,6 +1,5 @@
 """Bounded exact-version package acquisition; no dependency version substitution."""
 
-import hashlib
 import json
 import tarfile
 import tempfile
@@ -11,6 +10,8 @@ from typing import Any
 import httpx
 
 from specfhir.config import Config, split_key
+from specfhir.files import checksum as file_checksum
+from specfhir.files import download
 from specfhir.models import Error, Lock, PackagePin
 
 REGISTRY = "https://packages.fhir.org"
@@ -79,35 +80,11 @@ def compatibility(value: dict[str, Any]) -> str | None:
 
 def obtain(cache: Path, key: str, url: str, checksum: str | None) -> tuple[Path, str]:
     split_key(key)
-    cache.mkdir(parents=True, exist_ok=True)
     path = cache / f"{key}.tgz"
-    if not path.exists():
-        if not url.startswith("https://"):
-            raise Error("Package downloads require HTTPS")
-        with tempfile.NamedTemporaryFile(dir=cache, delete=False) as stream:
-            temporary = Path(stream.name)
-            try:
-                with httpx.stream("GET", url, follow_redirects=True, timeout=90) as response:
-                    response.raise_for_status()
-                    size = 0
-                    for chunk in response.iter_bytes():
-                        size += len(chunk)
-                        if size > MAX_ARCHIVE:
-                            raise Error(f"Download too large: {key}")
-                        stream.write(chunk)
-                stream.flush()
-                actual = hashlib.sha256(temporary.read_bytes()).hexdigest()
-                if checksum and checksum != actual:
-                    raise Error(f"Checksum mismatch for {key}")
-                temporary.replace(path)
-                path.with_suffix(".source-url").write_text(url)
-            finally:
-                temporary.unlink(missing_ok=True)
-    if path.stat().st_size > MAX_ARCHIVE:
-        raise Error(f"Archive too large: {key}")
-    actual = hashlib.sha256(path.read_bytes()).hexdigest()
-    if checksum and checksum != actual:
-        raise Error(f"Checksum mismatch for {key}; cache was not modified")
+    existed = path.exists()
+    actual = download(path, url, checksum, MAX_ARCHIVE)
+    if not existed:
+        path.with_suffix(".source-url").write_text(url)
     return path, actual
 
 
@@ -233,15 +210,7 @@ def inventory(config_path: Path) -> dict:
         state = conn.execute("SELECT metadata FROM index_state").fetchone()
     if not state:
         raise Error("Index unavailable; run sync")
-    health = {"ready": False}
-    try:
-        response = httpx.get(f"{config.validator.service_url}/health", timeout=5, trust_env=False)
-        response.raise_for_status()
-        health = response.json()
-        if not isinstance(health, dict):
-            raise Error("Invalid validator health response")
-    except (httpx.HTTPError, ValueError):
-        health = {"ready": False}
+    health = validator.health(config.validator.service_url)
     metadata = state["metadata"]
     return {
         "status": "ok",
@@ -278,9 +247,8 @@ def pages(key: str, config_path: Path) -> dict:
     if pin is None:
         raise Error(f"Package is not locked: {key}; run sync first")
     archive = config_path.parent / ".specfhir/packages" / f"{key}.tgz"
-    with archive.open("rb") as stream:
-        if hashlib.file_digest(stream, "sha256").hexdigest() != pin.sha256:
-            raise Error(f"Package checksum changed: {key}")
+    if file_checksum(archive) != pin.sha256:
+        raise Error(f"Package checksum changed: {key}")
     candidates = documents.page_candidates(archive, key)
     source = next((p for p in config.publications if p.package == key), None)
     return {

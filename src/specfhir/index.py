@@ -13,7 +13,8 @@ from psycopg.types.json import Jsonb
 
 from specfhir import db, documents, embeddings, references
 from specfhir.config import digest, load
-from specfhir.models import Error, Lock
+from specfhir.files import checksum
+from specfhir.models import RESOURCE_TYPES, Error, Lock
 from specfhir.packages import (
     archive_files,
     compatibility,
@@ -22,17 +23,6 @@ from specfhir.packages import (
     resolve_lock,
     save_lock,
 )
-
-SUPPORTED = {
-    "StructureDefinition",
-    "SearchParameter",
-    "ValueSet",
-    "CodeSystem",
-    "ConceptMap",
-    "OperationDefinition",
-    "ImplementationGuide",
-    "CapabilityStatement",
-}
 
 
 def prepare_package(lock: Lock, cache: Path, spool: Path) -> dict[str, Any]:
@@ -64,7 +54,7 @@ def prepare_package(lock: Lock, cache: Path, spool: Path) -> dict[str, Any]:
                 if not isinstance(resource, dict):
                     raise Error(f"Expected a JSON object: {pin.key}/{path}")
                 kind = resource.get("resourceType")
-                if kind not in SUPPORTED:
+                if kind not in RESOURCE_TYPES:
                     skipped[str(kind or "non_resource")] += 1
                     continue
                 if not isinstance(resource.get("id"), str):
@@ -198,11 +188,6 @@ def prepare_package(lock: Lock, cache: Path, spool: Path) -> dict[str, Any]:
 PREPARATION_VERSION = 2
 
 
-def file_digest(path: Path) -> str:
-    with path.open("rb") as stream:
-        return hashlib.file_digest(stream, "sha256").hexdigest()
-
-
 def prepare(lock: Lock, cache: Path, spool: Path) -> dict[str, Any]:
     """Reuse verified package projections, remapping local artifact IDs while streaming."""
     root = cache.parent / "prepared"
@@ -214,11 +199,11 @@ def prepare(lock: Lock, cache: Path, spool: Path) -> dict[str, Any]:
     for suffix in suffixes:
         spool.with_suffix(suffix).write_text("")
     for pin in lock.packages:
-        if file_digest(cache / f"{pin.key}.tgz") != pin.sha256:
+        if checksum(cache / f"{pin.key}.tgz") != pin.sha256:
             raise Error(f"Checksum mismatch for {pin.key}")
         pages = [d for d in lock.documents if d.package == pin.key]
         for page in pages:
-            if file_digest(cache.parent / "documents" / f"{page.sha256}.html") != page.sha256:
+            if checksum(cache.parent / "documents" / f"{page.sha256}.html") != page.sha256:
                 raise Error(f"Documentation checksum differs: {page.url}")
         identity = digest(
             {
@@ -233,7 +218,7 @@ def prepare(lock: Lock, cache: Path, spool: Path) -> dict[str, Any]:
         try:
             candidate = json.loads((target / "metadata.json").read_text())
             if set(candidate["files"]) == {"artifacts" + s for s in suffixes} and all(
-                file_digest(target / name) == sha for name, sha in candidate["files"].items()
+                checksum(target / name) == sha for name, sha in candidate["files"].items()
             ):
                 metadata = candidate
         except (OSError, ValueError, KeyError, TypeError):
@@ -250,7 +235,7 @@ def prepare(lock: Lock, cache: Path, spool: Path) -> dict[str, Any]:
                 metadata = {
                     "summary": summary,
                     "files": {
-                        "artifacts" + suffix: file_digest(staging / ("artifacts" + suffix))
+                        "artifacts" + suffix: checksum(staging / ("artifacts" + suffix))
                         for suffix in suffixes
                     },
                 }

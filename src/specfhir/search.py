@@ -6,7 +6,7 @@ from typing import Any, Literal
 
 from specfhir import db, embeddings
 from specfhir.config import load
-from specfhir.models import Error, Result
+from specfhir.models import RESOURCE_TYPES, Error, Result
 
 ELEMENT_FIELDS = (
     "id",
@@ -77,28 +77,20 @@ def candidates(
     )
     rows = conn.execute(
         f"""
-        WITH RECURSIVE scope(key) AS (
-            SELECT key FROM packages WHERE key=%s
-            UNION
-            SELECT dependency_key FROM package_dependencies d
-            JOIN scope s ON d.package_key=s.key
-        )
+        {db.SCOPE}
         SELECT {columns} FROM artifacts a JOIN scope s ON a.package_key=s.key
-        WHERE (a.canonical=%s OR (%s AND (a.resource_id=%s OR a.name=%s OR a.name=%s)))
-          AND (%s::text IS NULL OR a.version=%s)
-        ORDER BY (a.package_key=%s) DESC, a.package_key, a.file_path LIMIT 101
-    """,
-        (
-            context,
-            selector,
-            not canonical_only,
-            selector,
-            selector,
-            selector + "Profile",
-            artifact_version,
-            artifact_version,
-            context,
-        ),
+        WHERE (a.canonical=%(selector)s OR (%(aliases)s AND
+               (a.resource_id=%(selector)s OR a.name=%(selector)s OR a.name=%(profile_name)s)))
+          AND (%(version)s::text IS NULL OR a.version=%(version)s)
+        ORDER BY (a.package_key=%(package)s) DESC, a.package_key, a.file_path LIMIT 101
+        """,
+        {
+            "package": context,
+            "selector": selector,
+            "aliases": not canonical_only,
+            "profile_name": selector + "Profile",
+            "version": artifact_version,
+        },
     ).fetchall()
     # An explicit package picks its own matching definition before its dependency closure.
     direct = [row for row in rows if row["package_key"] == context]
@@ -297,17 +289,7 @@ def search(
         raise Error("Query must contain 1–500 nonblank characters")
     if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 50:
         raise Error("limit must be an integer between 1 and 50")
-    if resource_type is not None and resource_type not in {
-        "StructureDefinition",
-        "SearchParameter",
-        "ValueSet",
-        "CodeSystem",
-        "ConceptMap",
-        "OperationDefinition",
-        "ImplementationGuide",
-        "CapabilityStatement",
-        "Documentation",
-    }:
+    if resource_type is not None and resource_type not in RESOURCE_TYPES | {"Documentation"}:
         raise Error("Unsupported resource_type filter")
     if mode not in {"auto", "lexical", "semantic", "hybrid"}:
         raise Error("mode must be auto, lexical, semantic, or hybrid")
@@ -336,13 +318,8 @@ def search(
             )
         candidate_limit = limit if mode == "lexical" else 100
         rows = conn.execute(
-            """
-            WITH RECURSIVE scope(key) AS (
-                SELECT key FROM packages WHERE key=%(package)s
-                UNION
-                SELECT dependency_key FROM package_dependencies d
-                JOIN scope s ON d.package_key=s.key
-            ), q AS (SELECT websearch_to_tsquery('english', %(query)s) AS terms),
+            f"""
+            {db.SCOPE}, q AS (SELECT websearch_to_tsquery('english', %(query)s) AS terms),
             candidates AS (
                 SELECT d.*, a.package_key,a.file_path,a.resource_type,a.resource_id,
                        a.canonical,a.version,
@@ -382,12 +359,8 @@ def search(
             values = embeddings.query_vector(config_path.resolve().parent / ".specfhir", pin, query)
             # ponytail: exact scoped scan; add ANN only if measured query latency requires it.
             semantic = conn.execute(
-                """
-                WITH RECURSIVE scope(key) AS (
-                    SELECT key FROM packages WHERE key=%(package)s UNION
-                    SELECT dependency_key FROM package_dependencies d
-                    JOIN scope s ON d.package_key=s.key
-                ), candidates AS (
+                f"""
+                {db.SCOPE}, candidates AS (
                     SELECT d.artifact_id,d.pointer,d.chunk,d.element_id,d.text_hash,
                            a.package_key,a.file_path,a.resource_type,a.resource_id,
                            a.canonical,a.version,
@@ -419,15 +392,11 @@ def search(
             ).fetchall()
             rows = semantic[:limit] if mode == "semantic" else fuse(rows, semantic)[:limit]
         excluded = conn.execute(
-            """
-            WITH RECURSIVE scope(key) AS (
-                SELECT key FROM packages WHERE key=%s UNION
-                SELECT dependency_key FROM package_dependencies d
-                JOIN scope s ON d.package_key=s.key
-            ) SELECT p.key,p.excluded_reason FROM packages p JOIN scope s USING(key)
+            f"""
+            {db.SCOPE} SELECT p.key,p.excluded_reason FROM packages p JOIN scope s USING(key)
               WHERE excluded_reason IS NOT NULL ORDER BY p.key
         """,
-            (context,),
+            {"package": context},
         ).fetchall()
         return Result(
             status="ok",

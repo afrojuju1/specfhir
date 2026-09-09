@@ -6,7 +6,7 @@ from urllib.parse import urlsplit
 
 from psycopg.types.json import Jsonb
 
-from specfhir import search
+from specfhir import db, search
 
 RELATIONSHIPS = (
     "baseDefinition",
@@ -136,15 +136,12 @@ def resolve(conn, package, target):
             "reason": "Exact canonical lookup in source package and its dependencies",
         }
     excluded = conn.execute(
-        """
-        WITH RECURSIVE scope(key) AS (
-            SELECT %s::text UNION
-            SELECT dependency_key FROM package_dependencies d JOIN scope s ON d.package_key=s.key
-        ) SELECT e.* FROM excluded_artifacts e JOIN scope s ON e.package_key=s.key
-        WHERE canonical=%s AND (%s::text IS NULL OR version=%s)
+        f"""
+        {db.SCOPE} SELECT e.* FROM excluded_artifacts e JOIN scope s ON e.package_key=s.key
+        WHERE canonical=%(canonical)s AND (%(version)s::text IS NULL OR version=%(version)s)
         ORDER BY package_key,file_path LIMIT 11
     """,
-        (package, canonical, version, version),
+        {"package": package, "canonical": canonical, "version": version},
     ).fetchall()
     if excluded:
         return {

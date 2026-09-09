@@ -12,7 +12,7 @@ import psycopg
 
 from specfhir import db, search
 from specfhir.config import digest, load
-from specfhir.embeddings import checksum
+from specfhir.files import checksum
 from specfhir.models import Error, Lock, Result
 from specfhir.packages import (
     archive_files,
@@ -176,12 +176,9 @@ def validate(
             if not state or state["metadata"].get("lock_digest") != digest(lock.model_dump()):
                 raise Error("Published index differs from lock; run sync")
             rows = conn.execute(
-                """WITH RECURSIVE scope(key) AS (
-                    SELECT key FROM packages WHERE key=%s UNION
-                    SELECT dependency_key FROM package_dependencies d JOIN scope s
-                    ON d.package_key=s.key
-                ) SELECT p.key,p.excluded_reason FROM packages p JOIN scope s USING(key)""",
-                (context,),
+                f"""{db.SCOPE}
+                SELECT p.key,p.excluded_reason FROM packages p JOIN scope s USING(key)""",
+                {"package": context},
             ).fetchall()
         rows.sort(key=lambda row: row["key"])
         selected = next((r for r in rows if r["key"] == context), None)
@@ -364,6 +361,19 @@ def validate(
         return Result(status="error", context=context, data=data, message=str(exc))
 
 
+def health(service_url: str) -> dict:
+    """Fetch service health; callers decide whether its identity is acceptable."""
+    try:
+        response = httpx.get(f"{service_url.rstrip('/')}/health", timeout=5, trust_env=False)
+        response.raise_for_status()
+        result = response.json()
+        if isinstance(result, dict):
+            return result
+    except (httpx.HTTPError, ValueError):
+        pass
+    return {"ready": False}
+
+
 def refresh(config_path: Path) -> dict:
     """Reuse a matching warm service; explicitly recreate it when its snapshot changes."""
     import subprocess
@@ -375,19 +385,13 @@ def refresh(config_path: Path) -> dict:
     config = load(config_path)
     lock = Lock.model_validate_json(config_path.with_name("specfhir.lock").read_bytes())
     expected = snapshot_identity(lock, config.default_package)
-    try:
-        response = httpx.get(f"{config.validator.service_url}/health", timeout=5, trust_env=False)
-        response.raise_for_status()
-        health = response.json()
-        if (
-            isinstance(health, dict)
-            and health.get("ready") is True
-            and health.get("snapshot_id") == expected
-            and health.get("mode") == "offline"
-        ):
-            return {"status": "unchanged", "snapshot_id": expected, "ready": True}
-    except (httpx.HTTPError, ValueError):
-        pass
+    status = health(config.validator.service_url)
+    if (
+        status.get("ready") is True
+        and status.get("snapshot_id") == expected
+        and status.get("mode") == "offline"
+    ):
+        return {"status": "unchanged", "snapshot_id": expected, "ready": True}
     prepared = setup(config_path)
     try:
         subprocess.run(
@@ -397,16 +401,11 @@ def refresh(config_path: Path) -> dict:
             timeout=600,
             stdout=subprocess.DEVNULL,
         )
-        response = httpx.get(
-            f"{load(config_path).validator.service_url}/health", timeout=5, trust_env=False
-        )
-        response.raise_for_status()
-        health = response.json()
+        status = health(config.validator.service_url)
         if (
-            not isinstance(health, dict)
-            or health.get("ready") is not True
-            or health.get("snapshot_id") != prepared["snapshot_id"]
-            or health.get("mode") != "offline"
+            status.get("ready") is not True
+            or status.get("snapshot_id") != prepared["snapshot_id"]
+            or status.get("mode") != "offline"
         ):
             raise Error("Validator readiness snapshot differs from the prepared snapshot")
     except (subprocess.SubprocessError, httpx.HTTPError, OSError, ValueError) as exc:

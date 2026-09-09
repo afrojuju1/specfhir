@@ -438,7 +438,7 @@ def test_publication_discovery_pinning_and_offline_rebuild(tmp_path, database, m
     )
     zip_path = next((tmp_path / ".specfhir/publications").glob("*.zip"))
     zip_path.write_bytes(bundle(extra="../escape.html"))
-    with pytest.raises(ValueError, match="checksum changed"):
+    with pytest.raises(ValueError, match="Checksum mismatch"):
         index.sync(config)
     for bad, error in [
         (bundle(extra="../escape.html"), "Unsafe publication archive"),

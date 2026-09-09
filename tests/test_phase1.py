@@ -181,6 +181,8 @@ def test_sync_lookup_failure_rebuild_and_removal(project, database, monkeypatch)
 
 
 def test_download_checksum_and_cleanup(tmp_path, monkeypatch):
+    from specfhir.files import checksum, download
+
     payload = b"package archive bytes"
 
     def stream(*args, **kwargs):
@@ -192,6 +194,22 @@ def test_download_checksum_and_cleanup(tmp_path, monkeypatch):
     with pytest.raises(Error, match="Checksum mismatch"):
         packages.obtain(tmp_path, "example.root#1.0.0", "https://example.org/package", "0" * 64)
     assert list(tmp_path.iterdir()) == []
+    target = tmp_path / "publication.zip"
+    with pytest.raises(Error, match="Download too large"):
+        download(target, "https://example.org/publication", None, len(payload) - 1)
+    assert list(tmp_path.iterdir()) == []
+    actual = download(target, "https://example.org/publication", None, len(payload))
+    assert target.read_bytes() == payload and actual == checksum(target)
+
+    def offline(*args, **kwargs):
+        raise AssertionError("Cached downloads must not access the network")
+
+    monkeypatch.setattr(httpx, "stream", offline)
+    assert download(target, "https://example.org/publication", actual, len(payload)) == actual
+    target.write_bytes(b"changed")
+    with pytest.raises(Error, match="Checksum mismatch"):
+        download(target, "https://example.org/publication", actual, len(payload))
+    assert target.read_bytes() == b"changed"
 
 
 @pytest.mark.skipif(not os.environ.get("SPECFHIR_REAL_SMOKE"), reason="Set SPECFHIR_REAL_SMOKE=1")

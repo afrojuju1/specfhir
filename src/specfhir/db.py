@@ -10,6 +10,13 @@ from specfhir.config import dsn
 SCHEMA_VERSION = 5
 SYNC_LOCK = 1936746086
 
+# Shared source-package closure; callers retain their query and transaction boundaries.
+SCOPE = """WITH RECURSIVE scope(key) AS (
+    SELECT key FROM packages WHERE key=%(package)s
+    UNION
+    SELECT dependency_key FROM package_dependencies d JOIN scope s ON d.package_key=s.key
+)"""
+
 DDL = """
 CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA public;
 CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA public;

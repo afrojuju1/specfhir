@@ -13,6 +13,7 @@ import numpy as np
 from huggingface_hub import snapshot_download
 from tokenizers import Tokenizer
 
+from specfhir.files import checksum
 from specfhir.models import Error
 
 MODEL = "BAAI/bge-small-en-v1.5"
@@ -27,11 +28,6 @@ FILES = (
     "vocab.txt",
 )
 DIMENSIONS = 384
-
-
-def checksum(path):
-    with path.open("rb") as stream:
-        return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
 def pin_model(work: Path, settings, previous: dict | None, update: bool) -> dict:

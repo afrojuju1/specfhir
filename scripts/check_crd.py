@@ -8,7 +8,7 @@ import time
 from pathlib import Path
 
 from specfhir import packages, search, validator
-from specfhir.embeddings import checksum
+from specfhir.files import checksum
 from specfhir.models import Lock
 
 ROOT = Path(__file__).resolve().parents[1]
