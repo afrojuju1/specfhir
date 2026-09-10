@@ -3,17 +3,19 @@
 import json
 import tarfile
 import tempfile
-from collections import Counter
+from collections import Counter, defaultdict
+from functools import partial
 from pathlib import Path
 from typing import Any
 
 import httpx
 import psycopg
+from pydantic import TypeAdapter
 
 from specfhir import db, search
-from specfhir.config import digest, load, lock_path
+from specfhir.config import digest, load, lock_path, split_key
 from specfhir.files import checksum
-from specfhir.models import Error, Lock, Result
+from specfhir.models import Error, Lock, Result, ValidationContexts, invoke
 from specfhir.packages import (
     archive_files,
     compatibility,
@@ -138,12 +140,44 @@ def validate(
     *,
     package: str | None = None,
     profile: str | None = None,
+    contexts: ValidationContexts | None = None,
     terminology_mode: str = "offline",
+    dataset_id: str | None = None,
+    config_path: Path = Path("specfhir.toml"),
+) -> Result:
+    """Single-context convenience and multi-context requests share one validation engine."""
+    if contexts is not None:
+        if package is not None or profile is not None:
+            raise Error("Use contexts or package/profile, not both")
+        selected = TypeAdapter(ValidationContexts).validate_python(contexts)
+        keys = [(c.package, c.profile) for c in selected]
+        if len(set(keys)) != len(keys):
+            raise Error("Validation contexts must be distinct package/profile selections")
+        for context in selected:
+            split_key(context.package)
+        return validate_contexts(instance, selected, terminology_mode, dataset_id, config_path)
+    return _validate_one(
+        instance,
+        package=package,
+        profile=profile,
+        terminology_mode=terminology_mode,
+        dataset_id=dataset_id,
+        config_path=config_path,
+    )
+
+
+def _validate_one(
+    instance: dict[str, Any],
+    *,
+    package: str | None = None,
+    profile: str | None = None,
+    terminology_mode: str = "offline",
+    dataset_id: str | None = None,
     config_path: Path = Path("specfhir.toml"),
 ) -> Result:
     config_path = config_path.resolve()
     config = load(config_path)
-    context = package or config.default_package
+    context = package if package is not None else config.default_package
     data: dict[str, Any] = {
         "execution": "failed",
         "coverage": "unknown",
@@ -152,6 +186,7 @@ def validate(
         "terminology_mode": terminology_mode,
         "findings": None,
     }
+    published_id = None
     try:
         if not isinstance(instance, dict) or not isinstance(instance.get("resourceType"), str):
             raise Error("Instance must be a FHIR JSON object with resourceType")
@@ -168,8 +203,10 @@ def validate(
             raise Error("Lock/config mismatch; run sync")
         with db.connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
-            state = conn.execute("SELECT metadata FROM index_state").fetchone()
-            if not state or state["metadata"].get("lock_digest") != digest(lock.model_dump()):
+            state = db.published(conn)
+            published_id = state["identity"]
+            db.page_bounds(0, 100, dataset_id, published_id)
+            if state["metadata"].get("lock_digest") != digest(lock.model_dump()):
                 raise Error("Published index differs from lock; run sync")
             rows = conn.execute(
                 f"""{db.SCOPE}
@@ -229,7 +266,9 @@ def validate(
         for selector in dict.fromkeys(
             ([profile] if profile is not None else []) + sorted(declared)
         ):
-            result = search.resolve(selector, package=context, config_path=config_path)
+            result = search.resolve(
+                selector, package=context, dataset_id=published_id, config_path=config_path
+            )
             if result.status != "ok" or not result.data:
                 data["unresolved_profile"] = selector
                 raise Error(f"Profile could not be resolved in package context: {selector}")
@@ -257,6 +296,7 @@ def validate(
             if not service_url:
                 raise Error("Online validator service is not configured")
         identity = snapshot_identity(lock, config.default_package)
+        data["validator_snapshot_id"] = identity
         payload = {
             "snapshot_id": identity,
             "package": context,
@@ -320,15 +360,6 @@ def validate(
                 raise Error("Validator returned an invalid issue")
         counts = Counter(i["severity"] for i in issues)
         errors = counts["error"] + counts["fatal"]
-        fields = {
-            "severity",
-            "code",
-            "details",
-            "diagnostics",
-            "location",
-            "expression",
-            "extension",
-        }
         data.update(
             execution="completed",
             coverage="limited",
@@ -341,20 +372,23 @@ def validate(
                 "HL7 also checks declared profiles; zero errors do not guarantee conformance.",
             ],
             findings={"errors": errors, "warnings": counts["warning"], "counts": dict(counts)},
-            issues=[{k: v for k, v in i.items() if k in fields} for i in issues[:500]],
+            issues=issues[:500],
             issues_truncated=len(issues) > 500,
             issue_count=len(issues),
         )
-        return Result(status="ok", context=context, data=data)
+        return Result(status="ok", context=context, dataset_id=published_id, data=data)
     except httpx.HTTPError:
         return Result(
             status="error",
             context=context,
+            dataset_id=published_id,
             data=data,
             message="Validator service unavailable or timed out; check docker compose ps/logs",
         )
     except (ValueError, OSError, KeyError, TypeError, psycopg.Error, tarfile.TarError) as exc:
-        return Result(status="error", context=context, data=data, message=str(exc))
+        return Result(
+            status="error", context=context, dataset_id=published_id, data=data, message=str(exc)
+        )
 
 
 def health(service_url: str) -> dict:
@@ -467,3 +501,188 @@ def validate_cases(manifest_path: Path, config_path: Path) -> dict:
             "cases": results,
         },
     }
+
+
+def issue_correspondence(outcomes):
+    """Align issues once across all available contexts; None means unavailable, not absent."""
+    groups = defaultdict(lambda: [[] if issues is not None else None for issues in outcomes])
+    uncertain = []
+    for context_index, issues in enumerate(outcomes):
+        for ordinal, issue in enumerate(issues or []):
+            extensions = issue.get("extension", [])
+            ids = (
+                [
+                    e.get("valueCode")
+                    for e in extensions
+                    if isinstance(e, dict)
+                    and e.get("url")
+                    == "http://hl7.org/fhir/StructureDefinition/operationoutcome-message-id"
+                ]
+                if isinstance(extensions, list)
+                else []
+            )
+            expression, location = issue.get("expression", []), issue.get("location", [])
+            if (
+                len(ids) != 1
+                or not isinstance(ids[0], str)
+                or not ids[0]
+                or not isinstance(expression, list)
+                or not isinstance(location, list)
+                or not (expression or location)
+                or any(not isinstance(v, str) or not v for v in expression + location)
+            ):
+                indices = [[] if outcome is not None else None for outcome in outcomes]
+                indices[context_index] = [ordinal]
+                uncertain.append(
+                    {
+                        "kind": "uncertain",
+                        "issue_indices": indices,
+                        "reason": "No unique HL7 identifier and usable location",
+                    }
+                )
+                continue
+            key = (ids[0], issue["code"], tuple(sorted(expression)), tuple(sorted(location)))
+            column = groups[key][context_index]
+            assert column is not None
+            column.append(ordinal)
+    items = []
+    for key, indices in sorted(groups.items()):
+        present = [(i, positions) for i, positions in enumerate(indices) if positions]
+        values = [outcomes[i][positions[0]] for i, positions in present]
+        duplicate = any(len(positions) > 1 for _, positions in present)
+        messages = {
+            digest({k: value.get(k) for k in ("details", "diagnostics")}) for value in values
+        }
+        kind = (
+            "uncertain"
+            if duplicate or len(messages) > 1
+            else "shared"
+            if len(present) > 1
+            else "context_only"
+        )
+        items.append(
+            {
+                "kind": kind,
+                "message_id": key[0],
+                "code": key[1],
+                "expression": list(key[2]),
+                "location": list(key[3]),
+                "issue_indices": indices,
+                "identical": len({digest(value) for value in values}) == 1
+                if kind == "shared"
+                else None,
+                "reason": "Multiple issues share the same identifier and location"
+                if duplicate
+                else "Identifier/location candidates have different details or diagnostics"
+                if len(messages) > 1
+                else "Exact identifier, code and reported locations",
+            }
+        )
+    items.extend(uncertain)
+    return {
+        "counts": dict(Counter(i["kind"] for i in items)),
+        "items": items,
+        "limitations": [
+            "issue_indices columns follow results order: [] means absent, null means unavailable",
+            "Shared/context-only classifications concern available contexts, not fixed or "
+            "new defects",
+            "Duplicate keys, changed messages and missing identifiers/locations remain "
+            "uncertain; prose alone never establishes a match",
+        ],
+    }
+
+
+def validate_contexts(instance, contexts, terminology_mode, dataset_id, config_path):
+    """One sequential execution per context and one issue matrix, not all-pairs execution."""
+    if not isinstance(instance, dict) or not isinstance(instance.get("resourceType"), str):
+        raise Error("Instance must be a FHIR JSON object with resourceType")
+    encoded = json.dumps(instance, allow_nan=False).encode()
+    if len(encoded) > MAX_INPUT:
+        raise Error("Instance exceeds 10 MiB limit")
+    results = []
+    for context in contexts:
+        result = invoke(
+            partial(
+                _validate_one,
+                json.loads(encoded),
+                package=context.package,
+                profile=context.profile,
+                terminology_mode=terminology_mode,
+                dataset_id=dataset_id,
+                config_path=config_path,
+            )
+        )
+        results.append({"context": context.model_dump(), "result": result})
+        if dataset_id is None:
+            dataset_id = result.get("dataset_id")
+    available = []
+    unavailable = []
+    issues = []
+    snapshot = None
+    completed = True
+    for i, entry in enumerate(results):
+        result = entry["result"]
+        data = result.get("data", {})
+        executed = result["status"] == "ok" and data.get("execution") == "completed"
+        completed = completed and executed
+        reason = None
+        if not executed:
+            reason = "Validation execution failed"
+        elif data.get("issues_truncated"):
+            reason = "Original issues exceed the output limit"
+        elif result.get("dataset_id") != dataset_id:
+            reason = "Published dataset differs"
+        elif snapshot is not None and data.get("validator_snapshot_id") != snapshot:
+            reason = "Validator snapshot differs"
+        if reason:
+            unavailable.append({"context_index": i, "reason": reason})
+            issues.append(None)
+        else:
+            snapshot = data["validator_snapshot_id"]
+            available.append(i)
+            issues.append(data["issues"])
+    correspondence = issue_correspondence(issues)
+    correspondence.update(
+        status="partial"
+        if unavailable and available
+        else "unavailable"
+        if unavailable
+        else "completed",
+        available_contexts=available,
+        unavailable_contexts=unavailable,
+    )
+    return Result(
+        status="error" if unavailable else "ok",
+        dataset_id=next(
+            (e["result"]["dataset_id"] for e in results if e["result"].get("dataset_id")), None
+        ),
+        message="Some contexts are unavailable for comparison; retained results show why"
+        if unavailable
+        else None,
+        data={
+            "execution": "completed" if completed else "failed",
+            "coverage": "per_context",
+            "instance_sha256": digest(json.loads(encoded)),
+            "results": results,
+            "findings": {
+                name: sum(e["result"]["data"]["findings"][name] for e in results)
+                for name in ("errors", "warnings")
+            }
+            if completed
+            else None,
+            "issues_identical": len({digest(value) for value in issues}) == 1
+            if not unavailable
+            else None,
+            "correspondence": correspondence,
+            "limitations": [
+                "Each distinct context receives identical JSON semantics exactly once, "
+                "sequentially",
+                "Original issues, profiles, loaded packages and coverage are retained per context",
+                "Requests allow 1–16 contexts and at most 500 issues per context; "
+                "unavailable results never imply absent findings",
+                "No automatic retries or input/result persistence; caller timeouts must "
+                "allow sequential calls",
+                "Equal issues do not imply equal coverage or conformance",
+            ],
+        },
+    )

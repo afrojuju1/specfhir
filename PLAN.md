@@ -188,6 +188,23 @@ traversal at one hop, mark self cycles, and state that longer cycles are not exp
 Package graph closure terminates cycles and labels them. Reuse existing compare
 API/CLI/MCP, transaction, evidence, pagination and acceptance fixture paths.
 
+Multi-context validation extends `validate` with an ordered, typed context list, each
+owning an exact package and optional profile. Single-context convenience and context
+lists use the same validation implementation. Execute once per context sequentially;
+match issues once across the result list, without pairwise execution or left/right
+response fields. Bound requests to 1–16 distinct selections for resource control.
+
+Guard published dataset and validator snapshot identity, retaining every context's
+execution, coverage and original bounded outcome. Failed/truncated/inconsistent
+contexts remain explicitly unavailable; healthy contexts can still form a partial
+matrix, with overall error status. Empty issue-index columns mean absence only for
+available contexts; null columns mean unknown. No failed execution implies validity.
+
+Match unique HL7 IDs, codes and exact reported locations with unchanged messages.
+Duplicate keys, changed messages and insufficient identity remain uncertain. Preserve
+original issue indices and input semantics. No fuzzy wording match, automatic retry,
+persisted input/result store, new service or multi-instance batch extension is introduced.
+
 ## Completed milestones and acceptance
 
 - Foundation: locked packages, exact lookup, effective/raw inspection, atomic sync.
@@ -197,6 +214,8 @@ API/CLI/MCP, transaction, evidence, pagination and acceptance fixture paths.
   publication prose, dependency-aware references, shared positive/negative fixtures.
 - Reuse: prepared and embedded spools, measured SQL tuning, explicit cache cleanup,
   pytest acceptance consolidation, retrieval-independent validator identity.
+- Multi-context validation (M3): typed selections, one execution per context, preserved
+  outcomes and a conservative issue matrix; verified with three real release contexts.
 - Package/dependency comparison (M2): owned inventories, exact dependency pins/edges,
   direct target evidence, bounded pages and reviewed PAS transport workflows.
 - Version comparison (M1): installed-context discovery, canonical/element-ID
@@ -214,8 +233,7 @@ published outcomes in JUnit. A changed error category/count requires review.
 
 ## Next work, when requested
 
-Beads epic `sf-oyi` owns the approved roadmap. Following profile comparison, the
-remaining milestones cover paired validation, connected
+Beads epic `sf-oyi` owns the approved roadmap. Remaining milestones cover connected
 guidance, broader evidenced relationships, and operational readiness.
 
 Expand through the existing package/publication configuration and pytest paths.

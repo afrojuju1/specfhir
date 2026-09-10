@@ -50,3 +50,10 @@ PAS 2.1.0 adds a direct HREX 1.1.0 pin, retaining transitive HREX 1.0.0. The unc
 Claim Inquiry base URL resolves to changed Claim Base JSON across PAS releases.
 The existing synthetic package helper supplies unchanged-source/changed-dependency,
 missing and ambiguous target cases; no additional copied resource fixtures are needed.
+
+Multi-context validation reuses `pas-inquiry-without-identifier.json` unchanged in
+both PAS releases. HL7 `Validation_VAL_Profile_Minimum` at `Claim` reports the required
+identifier only in PAS 2.1.0. A minimal base R4 Patient verifies unchanged findings
+across US Core 3.1.1, 6.1.0 and 7.0.0. JUnit retains the complete bounded matrix outcomes.
+Synthetic replies in `test_phase4.py` verify one execution per context and explicit
+unknown columns when a context fails; no copied package JSON fixtures are introduced.

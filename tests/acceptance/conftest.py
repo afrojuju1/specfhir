@@ -74,14 +74,14 @@ def call(tmp_path_factory):
     """Collect API outcomes; compare real CLI and one MCP session after each IG module."""
     responses = []
 
-    def execute(tool, **args):
+    def execute(tool, *, expect_error=False, **args):
         operation = {
             "validate": validator.validate,
             "contexts": packages.contexts,
             "compare": comparison.compare,
         }.get(tool) or getattr(search, tool)
         result = invoke(lambda: operation(**args, config_path=CONFIG))
-        assert result["status"] != "error", result
+        assert (result["status"] == "error") == expect_error, result
         responses.append((tool, args, result))
         return result
 
@@ -116,12 +116,21 @@ def call(tmp_path_factory):
                 ]
                 for name, value in options.items():
                     if value is not None:
-                        command.extend(["--" + name.replace("_", "-"), str(value)])
+                        command.extend(
+                            [
+                                "--" + name.replace("_", "-"),
+                                json.dumps(value)
+                                if isinstance(value, (list, dict))
+                                else str(value),
+                            ]
+                        )
                 output = await asyncio.to_thread(
                     subprocess.run, command, capture_output=True, text=True, timeout=240
                 )
                 expected_code = (
-                    2
+                    1
+                    if expected["status"] == "error"
+                    else 2
                     if expected["status"] in {"not_found", "effective_definition_unavailable"}
                     else (4 if expected.get("data", {}).get("findings", {}).get("errors") else 0)
                 )

@@ -1,12 +1,12 @@
 import json
 import time
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
 
 import typer
 
 from specfhir import comparison, index, packages, search, validator
-from specfhir.models import invoke
+from specfhir.models import Error, invoke
 
 app = typer.Typer(no_args_is_help=True, help="Local, source-backed FHIR package knowledge.")
 package_app = typer.Typer(help="Published releases and installed package coverage.")
@@ -162,20 +162,38 @@ def validator_setup(
 @app.command("validate")
 def validate_command(
     instance: Path,
-    package: str | None = None,
+    package: Annotated[
+        list[str] | None, typer.Option(help="Repeat for multiple exact packages")
+    ] = None,
     profile: str | None = None,
+    contexts: Annotated[
+        str | None, typer.Option(help="JSON array of package/profile selections")
+    ] = None,
+    dataset_id: str | None = None,
     terminology_mode: str = "offline",
     config: ConfigOption = Path("specfhir.toml"),
     as_json: Annotated[bool, typer.Option("--json")] = False,
 ):
-    """Validate a JSON instance with HL7; offline terminology is limited."""
+    """Validate once per selected context; compare findings across any selected releases."""
 
     def operation():
+        selection: dict[str, Any]
+        if contexts is not None:
+            if package or profile is not None:
+                raise Error("Use --contexts or --package/--profile, not both")
+            selections = json.loads(contexts)
+            if not isinstance(selections, list):
+                raise Error("--contexts must be a JSON array")
+            selection = {"contexts": selections}
+        elif package and len(package) > 1:
+            selection = {"contexts": [{"package": p, "profile": profile} for p in package]}
+        else:
+            selection = {"package": package[0] if package else None, "profile": profile}
         return validator.validate(
             validator.read_instance(instance),
-            package=package,
-            profile=profile,
+            **selection,
             terminology_mode=terminology_mode,
+            dataset_id=dataset_id,
             config_path=config,
         )
 

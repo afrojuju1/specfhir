@@ -131,8 +131,8 @@ is marked `present: false`; its pointer identifies the missing field or enclosin
 array, not an existing value. The element-order item identifies its values as IDs
 derived from the cited arrays.
 
-Discovery, comparison, `resolve` and `inspect` return a top-level `dataset_id`.
-`resolve` and `inspect` accept `--dataset-id` to reject
+Discovery, comparison, `resolve`, `inspect` and `validate` return a top-level `dataset_id`.
+`resolve`, `inspect` and `validate` accept `--dataset-id` to reject
 stale follow-up reads. For example, inspect `Claim.identifier` in the selected PAS
 profile using the identity returned by comparison. No extra database, reindex, or
 validator restart is required to use these operations on an existing published index.
@@ -285,6 +285,62 @@ uv run specfhir validate patient.json --profile USCorePatient --terminology-mode
 The endpoint must be explicitly configured and HTTPS. Recreate the online service
 separately after snapshot changes. Offline acceptance does not verify online
 terminology interoperability.
+
+Validate the same instance across multiple versions by repeating `--package`:
+
+```bash
+uv run specfhir validate patient.json \
+  --package 'hl7.fhir.us.core#3.1.1' \
+  --package 'hl7.fhir.us.core#6.1.0' \
+  --package 'hl7.fhir.us.core#7.0.0' \
+  --profile USCorePatient --json
+```
+
+For independent profile selections, use `--contexts` with a JSON array. The Python
+API and MCP accept the same structured `contexts` array:
+
+```json
+[
+  {"package": "hl7.fhir.us.davinci-pas#2.0.1", "profile": "PASClaimInquiry"},
+  {"package": "hl7.fhir.us.davinci-pas#2.1.0", "profile": "PASClaimInquiry"},
+  {"package": "hl7.fhir.r4.core#4.0.1"}
+]
+```
+
+Each context owns its package and optional profile. Omission selects base validation
+plus the instance's declared profiles; those declarations are never stripped to make
+a context succeed. Do not mix `contexts` with the single-context `package`/`profile`
+arguments. Single-context convenience calls retain their original response shape;
+an explicit context list always returns a matrix, including a one-entry list.
+
+The runner executes exactly once per context, sequentially under the existing service
+limits. It does not execute every possible pair. All calls receive identical JSON
+semantics, including declared profiles and references; whitespace is not preserved.
+No input/result persistence or automatic retries are introduced. Caller timeouts must
+allow the sequential validations; terminology mode is shared by the request.
+
+`results[]` preserves request order and contains each requested `context` and its full
+bounded `result`: execution, coverage, resolved profiles, original issues, actual loaded
+packages and validator snapshot identity. The first observed published dataset guards
+subsequent calls. Requests allow 1–16 distinct package/profile selections; the existing
+10 MiB input, 16 MiB service-response and 500-issue limits apply per context. The context
+limit is an operational bound; the runner and matrix do not assume a fixed arity.
+
+`correspondence.items[].issue_indices` uses the same column order as `results[]`.
+An array contains original issue indices; `[]` means no corresponding issue in a
+successfully evaluated context, while `null` means unavailable. Failures, truncation
+and inconsistent snapshots are listed in `unavailable_contexts`. Successful contexts
+remain comparable with status `partial`; the overall request returns an error so a
+partial result cannot masquerade as full success. No available contexts means
+`unavailable`. CLI execution/comparison errors take precedence over findings.
+
+A shared finding requires a unique HL7 message ID, code, exact reported locations and
+unchanged details/diagnostics. Duplicates, changed messages and missing identifiers or
+locations remain `uncertain`. `shared` and `context_only` refer to available contexts;
+neither implies a fixed or newly introduced defect. Group counts describe the matrix,
+while aggregate findings sum original outcomes. `issues_identical` compares complete
+issue arrays only when every context is available; coverage stays separate per context.
+Equal issues or zero errors do not establish conformance.
 
 For build batches, use `validate-cases cases.json --json` with a manifest such as:
 

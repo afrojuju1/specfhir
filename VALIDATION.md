@@ -150,6 +150,42 @@ Ruff, formatting, Pyright and diff checks passed.
 Evidence: `.specfhir/m2-focused.xml`, `.specfhir/m2-acceptance.xml`,
 `.specfhir/m2-final-focused.xml` and their logs.
 
+## M3 — Multi-context validation (2026-09-10)
+
+Validation uses an ordered `contexts` list and returns `results[]` plus an issue
+matrix. The two-context prototype was replaced before commit. Each selection owns
+its package and optional profile; no left/right fields or all-pairs service calls
+are needed. Single-context validation and matrix requests share one implementation.
+
+The live matrix workflow passed in 98.43 seconds through actual API/CLI/MCP replay.
+PAS 2.0.1/2.1.0 retains the reviewed identifier-minimum difference. A single base R4
+Patient was then validated across three actual US Core versions (3.1.1, 6.1.0, 7.0.0),
+with identical issue arrays and zero errors. A failed middle context preserved its
+unknown coverage and null issue column while the two successful contexts remained
+comparable. JUnit retains both complete bounded matrix outcomes.
+
+Synthetic tests exercise one, two and three contexts, assert exactly N service calls,
+verify independent profile versions and unchanged input semantics, and ensure every
+original issue index is represented. Failure, busy, wrong loaded packages, output
+overflow, unavailable profiles, stale dataset IDs and changed snapshots stay explicit.
+Duplicate selections, invalid/empty lists, extra fields, mixed input forms and context
+bounds are rejected. Both repeated CLI packages and structured context JSON are tested.
+
+Issue matching remains conservative: IDs, codes, locations and unchanged messages
+are required for shared findings. Duplicate keys, changed messages or insufficient
+identity are uncertain. No fixed/new-defect, coverage or conformance inference is made.
+The request bound is 16 contexts and existing per-context response limits are retained;
+there is no persistent input/result store or new validator service.
+
+The complete revised regression passed **137 tests in 709.31 seconds**, including
+real embedding and validator smoke tests and all existing IG transport workflows.
+Ruff, formatting, Pyright and diff checks passed. No schema, package or service
+configuration changes were required.
+
+Evidence: `.specfhir/m3-matrix-focused.xml`, `.specfhir/m3-matrix-acceptance.xml` and
+their logs. Earlier prototype measurements remain only in ignored local reports;
+the context-list contract supersedes them.
+
 ## Published examples versus synthetic fixtures
 
 Twenty original published examples across eight IG releases are loaded directly

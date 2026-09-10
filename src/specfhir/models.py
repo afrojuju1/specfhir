@@ -1,6 +1,6 @@
 """SpecFHIR boundaries; FHIR resources remain unmodified JSON objects."""
 
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -18,6 +18,15 @@ RESOURCE_TYPES = {
 
 class Error(ValueError):
     """An actionable configuration, package, or lookup error."""
+
+
+class ValidationContext(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    package: str = Field(strict=True, min_length=1, max_length=2048)
+    profile: str | None = Field(default=None, strict=True, min_length=1, max_length=2048)
+
+
+ValidationContexts = Annotated[list[ValidationContext], Field(min_length=1, max_length=16)]
 
 
 class PackagePin(BaseModel):

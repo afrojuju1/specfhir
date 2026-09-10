@@ -8,7 +8,7 @@ from mcp.types import ToolAnnotations
 
 from specfhir import comparison, packages, validator
 from specfhir import search as api
-from specfhir.models import invoke
+from specfhir.models import ValidationContexts, invoke
 
 
 def create_server(config_path: Path = Path("specfhir.toml")) -> MCPServer:
@@ -112,14 +112,19 @@ def create_server(config_path: Path = Path("specfhir.toml")) -> MCPServer:
         instance: dict[str, Any],
         package: str | None = None,
         profile: str | None = None,
+        contexts: ValidationContexts | None = None,
+        dataset_id: str | None = None,
         terminology_mode: Literal["offline", "online"] = "offline",
     ) -> dict[str, Any]:
-        """Validate JSON with HL7; online mode contacts the configured terminology server."""
+        """Validate JSON with HL7. Supply contexts for an ordered package/profile matrix,
+        or package/profile for a single result. Online mode contacts the terminology server."""
         return invoke(
             lambda: validator.validate(
                 instance,
                 package=package,
                 profile=profile,
+                contexts=contexts,
+                dataset_id=dataset_id,
                 terminology_mode=terminology_mode,
                 config_path=config_path,
             )

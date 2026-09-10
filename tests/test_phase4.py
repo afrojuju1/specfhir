@@ -230,3 +230,205 @@ def test_validator_identity_inputs(monkeypatch):
     support.packages.clear()
     monkeypatch.setattr(validator, "JAR_SHA256", "f" * 64)
     assert validator.snapshot_identity(locked, pin.key, support) != identity
+
+
+def test_validation_context_matrix(tmp_path, database, monkeypatch):
+    from specfhir.config import digest
+    from specfhir.models import Error
+
+    packages = ["example#1.0.0", "example#2.0.0", "example#3.0.0"]
+    contexts = [{"package": p, "profile": "PatientProfile"} for p in packages]
+    config = tmp_path / "specfhir.toml"
+    config.write_text(f'packages={json.dumps(packages)}\ndefault_package="{packages[0]}"\n')
+    for p in packages:
+        archive(tmp_path / ".specfhir/packages", p, [profile(version=p.split("#")[1])])
+    index.sync(config)
+    monkeypatch.setattr(validator, "support_lock", lambda: Lock(roots=[], packages=[]))
+    calls = []
+    scenario = "different"
+    message_id = "http://hl7.org/fhir/StructureDefinition/operationoutcome-message-id"
+
+    def issue(location, **extra):
+        return {
+            "severity": "error",
+            "code": "required",
+            "expression": [location],
+            "extension": [{"url": message_id, "valueCode": "REQUIRED"}],
+            "diagnostics": "Same wording across different locations",
+            "id": "original",
+            **extra,
+        }
+
+    a = [issue("Patient.name"), issue("Patient.identifier")]
+    b = [issue("Patient.name", severity="warning"), issue("Patient.gender")]
+
+    @contextmanager
+    def request(method, url, **kwargs):
+        payload = kwargs["json"]
+        calls.append(payload)
+        middle = payload["package"] == packages[1]
+        first = payload["package"] == packages[0]
+        if (middle and scenario == "timeout") or (first and scenario == "first_timeout"):
+            raise httpx.ReadTimeout("timeout")
+        if middle and scenario == "busy":
+            yield httpx.Response(429)
+            return
+        issues = b if middle and scenario == "different" else a
+        if middle and scenario == "overflow":
+            issues = [issue("Patient.name")] * 501
+        reply = {
+            "snapshot_id": payload["snapshot_id"],
+            "package": payload["package"],
+            "validator_sha256": validator.JAR_SHA256,
+            "terminology_mode": "offline",
+            "terminology_endpoint": "",
+            "loaded_packages": [payload["package"]],
+            "outcome": {"resourceType": "OperationOutcome", "issue": issues},
+        }
+        if middle and scenario == "substitution":
+            reply["loaded_packages"] = [packages[0]]
+        if first and scenario == "snapshot":
+            config.write_text(
+                config.read_text().replace(
+                    f'default_package="{packages[0]}"', f'default_package="{packages[2]}"'
+                )
+            )
+        if first and scenario == "publication":
+            with db.connect() as conn:
+                conn.execute("UPDATE index_state SET identity=%s", ("f" * 64,))
+        yield httpx.Response(200, json=reply)
+
+    monkeypatch.setattr(validator.httpx, "stream", request)
+    instance = {
+        "resourceType": "Patient",
+        "id": "synthetic",
+        "active": False,
+        "extension": [{"url": "urn:example", "valueDecimal": 1.25}],
+    }
+    original = json.dumps(instance)
+    args = dict(contexts=contexts, config_path=config)
+    matrix = validator.validate(instance, **args)
+    data = matrix.data
+    assert matrix.status == "ok" and data["execution"] == "completed"
+    assert not data["issues_identical"] and data["coverage"] == "per_context"
+    assert data["instance_sha256"] == digest(instance) and json.dumps(instance) == original
+    assert [c["package"] for c in calls] == packages  # N calls, never N*(N-1) pairs
+    assert len({c["instance"] for c in calls}) == 1 and json.loads(calls[0]["instance"]) == instance
+    assert [c["profile"].split("|")[1] for c in calls] == ["1.0.0", "2.0.0", "3.0.0"]
+    assert [r["result"]["data"]["issues"] for r in data["results"]] == [a, b, a]
+    correspondence = data["correspondence"]
+    assert correspondence["counts"] == {"shared": 2, "context_only": 1}
+    assert correspondence["available_contexts"] == [0, 1, 2]
+    assert correspondence["unavailable_contexts"] == []
+    for i in range(3):
+        assert sorted(n for g in correspondence["items"] for n in g["issue_indices"][i]) == [0, 1]
+    scenario = "same"
+    for count in (1, 2, 3):
+        before = len(calls)
+        result = validator.validate(instance, contexts=contexts[:count], config_path=config)
+        assert len(calls) == before + count and len(result.data["results"]) == count
+        assert result.data["issues_identical"]
+    for scenario in ("timeout", "busy", "substitution", "overflow", "first_timeout"):
+        before = len(calls)
+        result = validator.validate(instance, **args)
+        data = result.data
+        assert result.status == "error" and len(calls) == before + 3
+        assert data["results"][2]["result"]["data"]["execution"] == "completed"
+        missing = 0 if scenario == "first_timeout" else 1
+        assert data["correspondence"]["status"] == "partial"
+        assert data["correspondence"]["unavailable_contexts"][0]["context_index"] == missing
+        assert all(g["issue_indices"][missing] is None for g in data["correspondence"]["items"])
+        assert data["issues_identical"] is None
+        if scenario == "overflow":
+            assert (
+                data["execution"] == "completed"
+                and data["results"][1]["result"]["data"]["issue_count"] == 501
+            )
+        else:
+            assert data["execution"] == "failed" and data["findings"] is None
+            assert data["results"][missing]["result"]["data"]["coverage"] == "unknown"
+    scenario = "same"
+    selected = [contexts[0], {**contexts[1], "profile": "MissingProfile"}, contexts[2]]
+    failed = validator.validate(instance, contexts=selected, config_path=config)
+    assert failed.data["results"][1]["result"]["data"]["unresolved_profile"] == "MissingProfile"
+    assert failed.data["correspondence"]["available_contexts"] == [0, 2]
+    scenario = "different"
+    path = tmp_path / "instance.json"
+    path.write_text(original)
+    for options in (
+        ["--contexts", json.dumps(contexts)],
+        [arg for p in packages for arg in ("--package", p)] + ["--profile", "PatientProfile"],
+    ):
+        cli = CliRunner().invoke(
+            app, ["validate", str(path), *options, "--config", str(config), "--json"]
+        )
+        assert cli.exit_code == 4, cli.output
+        assert json.loads(cli.stdout) == matrix.model_dump(exclude_none=True)
+    before = len(calls)
+    for value in ("null", "{}", "[]"):
+        cli = CliRunner().invoke(
+            app, ["validate", str(path), "--contexts", value, "--config", str(config), "--json"]
+        )
+        assert cli.exit_code == 1 and len(calls) == before
+    assert validator.validate(instance, package="", config_path=config).status == "error"
+    for bad in (
+        [],
+        contexts * 6,
+        [contexts[0], contexts[0]],
+        [{"package": "unpinned"}],
+        [{"package": packages[0], "surprise": True}],
+    ):
+        with pytest.raises(ValueError):
+            validator.validate(instance, contexts=bad, config_path=config)
+    with pytest.raises(Error, match="not both"):
+        validator.validate(instance, **args, package=packages[0])
+    before = len(calls)
+    for supplied in ("stale", ""):
+        stale = validator.validate(instance, **args, dataset_id=supplied)
+        assert (
+            stale.status == "error"
+            and stale.dataset_id == matrix.dataset_id
+            and len(calls) == before
+        )
+        assert stale.data["correspondence"]["status"] == "unavailable"
+    scenario = "snapshot"
+    result = validator.validate(instance, **args)
+    assert result.status == "error" and result.data["execution"] == "completed"
+    assert result.data["correspondence"]["available_contexts"] == [0]
+    assert len(result.data["correspondence"]["unavailable_contexts"]) == 2
+    config.write_text(
+        config.read_text().replace(
+            f'default_package="{packages[2]}"', f'default_package="{packages[0]}"'
+        )
+    )
+    scenario = "publication"
+    before = len(calls)
+    result = validator.validate(instance, **args)
+    assert result.status == "error" and len(calls) == before + 1
+    assert result.data["correspondence"]["available_contexts"] == [0]
+    assert all(r["result"]["data"]["execution"] == "failed" for r in result.data["results"][1:])
+
+
+def test_issue_correspondence_is_conservative():
+    message_id = "http://hl7.org/fhir/StructureDefinition/operationoutcome-message-id"
+    located = {
+        "severity": "error",
+        "code": "required",
+        "location": ["Patient.name[0]"],
+        "extension": [{"url": message_id, "valueCode": "REQUIRED"}],
+        "diagnostics": "Missing value",
+    }
+    unlocated = {"severity": "error", "code": "required", "diagnostics": "Missing value"}
+    left = [located, located, unlocated, {**located, "location": ["Patient.name[1]"]}]
+    right = [located, unlocated, {**located, "location": ["Patient.name[2]"]}]
+    result = validator.issue_correspondence([left, right, None])
+    assert result["counts"] == {"uncertain": 3, "context_only": 2}
+    for i, issues in enumerate((left, right)):
+        assert sorted(n for g in result["items"] for n in g["issue_indices"][i]) == list(
+            range(len(issues))
+        )
+    assert all(g["issue_indices"][2] is None for g in result["items"])
+    changed = validator.issue_correspondence(
+        [[located], [{**located, "diagnostics": "Different constraint at same parent"}]]
+    )
+    assert changed["counts"] == {"uncertain": 1}
