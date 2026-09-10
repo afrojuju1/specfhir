@@ -8,3 +8,10 @@
   Tests use an isolated schema, never replace the application's dataset.
 - Package archives, database files, caches, and credentials stay out of Git.
 - No commits or pushes unless explicitly requested.
+
+## Issue tracking
+
+- Use Beads (`bd`) for project issues; IDs use the `sf` prefix.
+- Run `bd prime` for workflow context and `bd ready` for available work.
+- Keep issues under the relevant milestone/epic. Git commits and pushes still
+  require explicit user authorization.
