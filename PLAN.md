@@ -8,7 +8,8 @@ Implement only requested milestones. Do not introduce custom FHIR semantics.
 ## Purpose and boundaries
 
 Provide local, version-aware published FHIR evidence through shared Python, CLI,
-and MCP operations: `resolve`, `inspect`, `search`, and `validate`. Sync makes no
+and MCP operations: `contexts`, `compare`, `resolve`, `inspect`, `search`, and
+`validate`. Sync makes no
 LLM calls. Search returns attributable passages, not generated clinical answers.
 
 Index R4-compatible top-level `package/*.json` resources of these types:
@@ -145,6 +146,33 @@ Offline is the default HL7 network policy; optional online terminology runs in a
 separate process with an explicit HTTPS endpoint. Inputs and outcomes stay in memory;
 private writable caches hold package/terminology data only.
 
+## Version comparison foundation
+
+The shared `comparison.compare` operation supports published StructureDefinitions
+in two explicit package contexts, with independent artifact business versions.
+Resolve the left selector once, then automatically pair the right by canonical;
+explicit right selectors support deliberate renamed-artifact pairing. Do not
+silently switch between selected-package ownership and dependency ownership.
+Both actual sources and ownership classifications are returned.
+
+Read both contexts in one repeatable-read transaction. Reuse published index identity
+for stateless pagination and guarded follow-up inspection; reject stale identities.
+There are no comparison sessions or persisted historical snapshots. Discovery reuses
+published inventory and labels the configuration default separately from index facts.
+
+Compare like representations, retaining unavailable/malformed states. Match elements
+by published IDs; compare all fields and preserve array order. Report shared-ID
+reordering without treating every insertion as a reorder. Top-level metadata and
+selected-representation metadata are included. Flag changes in the other representation
+without claiming to compare it. Distinguish absence, explicit null and values.
+
+Bound change pages and large-value previews, retaining source pointers, hashes and
+explicit truncation. Complete raw values remain available through existing raw
+inspection. Missing-side pointers identify absent fields or their enclosing arrays.
+These differences do not infer compatibility, dependency impact or field authorship;
+those concerns remain separate. Acceptance combines synthetic edge cases with reviewed
+PAS cardinality/must-support changes and original archive evidence.
+
 ## Completed milestones and acceptance
 
 - Foundation: locked packages, exact lookup, effective/raw inspection, atomic sync.
@@ -154,6 +182,8 @@ private writable caches hold package/terminology data only.
   publication prose, dependency-aware references, shared positive/negative fixtures.
 - Reuse: prepared and embedded spools, measured SQL tuning, explicit cache cleanup,
   pytest acceptance consolidation, retrieval-independent validator identity.
+- Version comparison (M1): installed-context discovery, canonical/element-ID
+  comparison, dataset guards, bounded evidence, and reviewed PAS API/CLI/MCP workflows.
 - Current hardening: interleave CLI/MCP replay per case while retaining every API
   comparison; inspect one representative page from every sibling release with
   dependency-aware provenance; assert reviewed published-example error categories
@@ -166,6 +196,10 @@ separate. Store reviewed error expectations once in fixtures and retain complete
 published outcomes in JUnit. A changed error category/count requires review.
 
 ## Next work, when requested
+
+Beads epic `sf-oyi` owns the approved roadmap. Following profile comparison, the
+remaining milestones cover package/dependency impact, paired validation, connected
+guidance, broader evidenced relationships, and operational readiness.
 
 Expand through the existing package/publication configuration and pytest paths.
 For each release, verify exact dependencies, documentation provenance, representative

@@ -75,6 +75,41 @@ operations, PLAN owns the design/work contract, and fixture provenance remains
 beside the fixtures. Historical commands that depended on removed scripts were
 retired; exhaustive old reports remain available in Git.
 
+## M1 — Version comparison foundation (2026-09-10)
+
+Added shared `contexts` discovery and `compare` for published StructureDefinitions,
+with six MCP tools total. Reads use the existing index; no package expansion,
+reindex, embedding inference or validator restart was needed. The stored index
+identity guards paginated comparisons and follow-up resolve/inspect requests.
+
+Final focused acceptance passed seven tests in 26.73 seconds, including actual
+CLI and MCP replay. The complete regression run exercised 132 tests in 609.49
+seconds: 130 passed and two existing whole-result equality assertions required
+updating for the new dataset identity. Those assertions now require unchanged
+source evidence and a changed identity after publication, and passed in the
+focused rerun. All 132 distinct tests have passing final results, including 106
+live cases. Ruff, formatting, Pyright, diff/documentation checks and installed
+readiness with the validator passed. The PAS Claim Inquiry snapshot comparison produced 61 change entries;
+all pages were retrieved in groups of ten. Every direct before/after value was
+verified against its pointer in the checksum-verified original package JSON;
+preview-truncated values were verified by hash. Reviewed examples include identifier
+minimum 0→1 and patient must-support absent→true, plus the added authored identifier
+in the differential. Reverse and unchanged comparisons also passed.
+
+The focused run's first ten-change page took 37.3 ms through the Python API and
+serialized to 17,057 bytes of result data. This is one local observation, excludes
+CLI startup and MCP framing, and is not a general latency benchmark.
+Evidence: `.specfhir/m1-acceptance.xml`, `.specfhir/m1-final-focused.xml`, their
+logs, and `.specfhir/m1-readiness.json`.
+
+Synthetic checks cover ambiguous/missing artifacts, unavailable/malformed snapshots,
+explicit renamed-artifact pairing, ownership changes, array ordering, inserted
+versus reordered elements, absent/null/false values, unknown fields, large previews,
+JSON-pointer escaping, pagination and stale identity rejection. A pending lock and
+changed configuration default do not relabel published dataset identity. Existing
+pytest fixtures and transport paths are reused; no comparison-specific database or
+second acceptance framework was added.
+
 ## Published examples versus synthetic fixtures
 
 Twenty original published examples across eight IG releases are loaded directly

@@ -35,3 +35,11 @@ The lock owns archive checksums, so this file does not duplicate them or resourc
 Acceptance calls the shared API first, then compares CLI and MCP results for each
 recorded case in sequence. One MCP session serves each module. Interleaving those
 transport replays reuses resident validator engines without dropping comparisons.
+
+The release-comparison workflow reuses archived StructureDefinition JSON as well as
+published examples. Reviewed PAS Claim Inquiry expectations are: identifier minimum
+0→1, patient must-support absent→true, and an added authored identifier differential.
+Every direct reported value is checked against its source pointer in the original
+archive; large previews are checked by hash. Synthetic comparison edge cases live
+in `test_comparison.py` using the existing package/profile helpers, without duplicate
+FHIR fixture JSON or a second expectation format.

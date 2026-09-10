@@ -69,7 +69,10 @@ def test_real_model_atomicity_and_modes(tmp_path, database, monkeypatch):
     config.write_text(embedding_config + "max_tokens=256\n")
     report = index.sync(config)
     assert report["counts"]["embeddings"] > 0
-    assert search.resolve("Patient.id", config_path=config) == exact
+    embedded = search.resolve("Patient.id", config_path=config)
+    assert embedded.dataset_id != exact.dataset_id
+    assert embedded.model_copy(update={"dataset_id": exact.dataset_id}) == exact
+    exact = embedded
     assert index.sync(config)["status"] == "unchanged"
     locked = Lock.model_validate_json(config.with_suffix(".lock").read_bytes())
     spool = tmp_path / "prepared.jsonl"

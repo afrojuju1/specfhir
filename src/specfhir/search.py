@@ -108,6 +108,7 @@ def lookup(
     view: Literal["snapshot", "differential", "raw"] = "snapshot",
     config_path: Path = Path("specfhir.toml"),
     include_references: bool = False,
+    dataset_id: str | None = None,
 ) -> Result:
     if not selector or len(selector) > 2048:
         raise Error("Selector must contain 1–2048 characters")
@@ -130,24 +131,34 @@ def lookup(
     with db.connect() as conn, conn.transaction():
         # Artifact and element reads must belong to the same published generation.
         conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
-        relation = conn.execute("SELECT to_regclass('index_state') AS relation").fetchone()
-        if not relation or not relation["relation"]:
-            raise Error("No index; run specfhir sync first")
-        state = conn.execute("SELECT metadata FROM index_state").fetchone()
-        if not state:
-            raise Error("No successful sync; run specfhir sync first")
+        state = db.published(conn)
+        db.page_bounds(0, 100, dataset_id, state["identity"])
         package_row = conn.execute("SELECT * FROM packages WHERE key=%s", (context,)).fetchone()
         if not package_row:
-            return Result(status="not_found", context=context, message="Package is not indexed")
+            return Result(
+                dataset_id=state["identity"],
+                status="not_found",
+                context=context,
+                message="Package is not indexed",
+            )
         if package_row["excluded_reason"]:
             return Result(
-                status="not_found", context=context, message=package_row["excluded_reason"]
+                dataset_id=state["identity"],
+                status="not_found",
+                context=context,
+                message=package_row["excluded_reason"],
             )
         rows = candidates(conn, context, selector, artifact_version)
         if not rows:
-            return Result(status="not_found", context=context, message="Artifact not found")
+            return Result(
+                dataset_id=state["identity"],
+                status="not_found",
+                context=context,
+                message="Artifact not found",
+            )
         if len(rows) > 1:
             return Result(
+                dataset_id=state["identity"],
                 status="ambiguous",
                 context=context,
                 candidates=[provenance(row) for row in rows[:100]],
@@ -165,6 +176,7 @@ def lookup(
             }
         if view == "raw" and element is None:
             return Result(
+                dataset_id=state["identity"],
                 status="ok",
                 context=context,
                 data={"source": source, "resource": resource, **reference_data},
@@ -174,6 +186,7 @@ def lookup(
         if resource["resourceType"] == "StructureDefinition":
             if issue := row["projection_issues"].get(view):
                 return Result(
+                    dataset_id=state["identity"],
                     status="effective_definition_unavailable",
                     context=context,
                     data={"source": source, **reference_data},
@@ -182,6 +195,7 @@ def lookup(
             entries = resource.get(view, {}).get("element", [])
             if not entries and view == "snapshot":
                 return Result(
+                    dataset_id=state["identity"],
                     status="effective_definition_unavailable",
                     context=context,
                     data={"source": source, **reference_data},
@@ -203,6 +217,7 @@ def lookup(
                 ).fetchall()
                 if not matches:
                     return Result(
+                        dataset_id=state["identity"],
                         status="not_found",
                         context=context,
                         data={"source": source, **reference_data},
@@ -210,6 +225,7 @@ def lookup(
                     )
                 if len(matches) > 1:
                     return Result(
+                        dataset_id=state["identity"],
                         status="ambiguous",
                         context=context,
                         candidates=[
@@ -229,6 +245,7 @@ def lookup(
                     if key in ELEMENT_FIELDS or key.startswith(("fixed", "pattern"))
                 }
                 return Result(
+                    dataset_id=state["identity"],
                     status="ok",
                     context=context,
                     data={
@@ -240,7 +257,10 @@ def lookup(
                 )
         elif element:
             return Result(
-                status="not_found", context=context, message="Artifact has no profile elements"
+                dataset_id=state["identity"],
+                status="not_found",
+                context=context,
+                message="Artifact has no profile elements",
             )
         data: dict[str, Any] = {
             "source": source,
@@ -264,7 +284,7 @@ def lookup(
                     "truncated": len(entries) > 100,
                 }
             )
-        return Result(status="ok", context=context, data=data)
+        return Result(dataset_id=state["identity"], status="ok", context=context, data=data)
 
 
 def resolve(selector: str, **kwargs) -> Result:

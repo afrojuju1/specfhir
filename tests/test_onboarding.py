@@ -294,7 +294,10 @@ def test_prepared_package_reuse_and_timings(tmp_path, database, monkeypatch):
     rebuilt = index.sync(config, update_lock=True)
     assert calls == ["example.a#1.0.0"]
     assert rebuilt["preparation_cache"] == {"hits": 1, "misses": 1}
-    assert search.resolve("B", config_path=config) == before
+    after = search.resolve("B", config_path=config)
+    assert after.dataset_id != before.dataset_id
+    assert after.model_copy(update={"dataset_id": before.dataset_id}) == before
+    before = after
     with db.connect() as conn:
         assert (
             conn.execute(

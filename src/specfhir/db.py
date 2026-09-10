@@ -113,3 +113,28 @@ def connect():
     return psycopg.Connection[dict[str, Any]].connect(
         dsn(), autocommit=True, row_factory=dict_row, connect_timeout=5
     )
+
+
+def published(conn):
+    """Read the actual published identity inside the caller's read transaction."""
+    from specfhir.models import Error
+
+    relation = conn.execute("SELECT to_regclass('index_state') AS relation").fetchone()
+    if not relation or not relation["relation"]:
+        raise Error("No index; run specfhir sync first")
+    state = conn.execute("SELECT identity,metadata FROM index_state").fetchone()
+    if not state:
+        raise Error("No successful sync; run specfhir sync first")
+    return state
+
+
+def page_bounds(offset, limit, dataset_id, identity):
+    """Stateless continuation over a content-identified published dataset."""
+    from specfhir.models import Error
+
+    if type(offset) is not int or offset < 0 or type(limit) is not int or not 1 <= limit <= 100:
+        raise Error("offset must be nonnegative and limit must be between 1 and 100")
+    if offset and not dataset_id:
+        raise Error("dataset_id is required for continuation")
+    if dataset_id is not None and dataset_id != identity:
+        raise Error("Published dataset changed; restart from offset 0 without dataset_id")

@@ -80,8 +80,46 @@ def test_search_and_stdio_parity(tmp_path, database, monkeypatch):
         )
         async with Client(params, read_timeout_seconds=15) as client:
             tools = await client.list_tools()
-            assert {t.name for t in tools.tools} == {"resolve", "inspect", "search", "validate"}
+            assert {t.name for t in tools.tools} == {
+                "resolve",
+                "inspect",
+                "search",
+                "validate",
+                "contexts",
+                "compare",
+            }
             cases = [
+                ("contexts", {}, []),
+                (
+                    "compare",
+                    {
+                        "selector": "PatientProfile",
+                        "left_package": "example.patient#1.0.0",
+                        "right_package": "example.patient#1.0.0",
+                    },
+                    [
+                        "PatientProfile",
+                        "--left-package",
+                        "example.patient#1.0.0",
+                        "--right-package",
+                        "example.patient#1.0.0",
+                    ],
+                ),
+                (
+                    "compare",
+                    {
+                        "selector": "missing",
+                        "left_package": "example.patient#1.0.0",
+                        "right_package": "example.patient#1.0.0",
+                    },
+                    [
+                        "missing",
+                        "--left-package",
+                        "example.patient#1.0.0",
+                        "--right-package",
+                        "example.patient#1.0.0",
+                    ],
+                ),
                 ("resolve", {"selector": "Patient.id"}, ["Patient.id"]),
                 ("inspect", {"selector": "Patient"}, ["Patient"]),
                 (

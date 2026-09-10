@@ -10,7 +10,7 @@ import pytest
 from helpers import assert_published_errors
 from mcp import Client, StdioServerParameters
 
-from specfhir import checks, packages, search, validator
+from specfhir import checks, comparison, packages, search, validator
 from specfhir.config import dsn
 from specfhir.files import checksum
 from specfhir.models import Lock, invoke
@@ -62,7 +62,7 @@ def published():
             cache[package] = {
                 name: raw
                 for name, raw in packages.archive_files(archive)
-                if name.startswith("package/example/") and name.endswith(".json")
+                if name.startswith("package/") and name.endswith(".json")
             }
         return json.loads(cache[package][member])
 
@@ -75,7 +75,11 @@ def call(tmp_path_factory):
     responses = []
 
     def execute(tool, **args):
-        operation = validator.validate if tool == "validate" else getattr(search, tool)
+        operation = {
+            "validate": validator.validate,
+            "contexts": packages.contexts,
+            "compare": comparison.compare,
+        }.get(tool) or getattr(search, tool)
         result = invoke(lambda: operation(**args, config_path=CONFIG))
         assert result["status"] != "error", result
         responses.append((tool, args, result))
@@ -96,6 +100,8 @@ def call(tmp_path_factory):
                 if tool == "validate":
                     instance_path.write_text(json.dumps(options.pop("instance")))
                     positional = str(instance_path)
+                elif tool == "contexts":
+                    positional = None
                 else:
                     positional = options.pop("query" if tool == "search" else "selector")
                 command = [
@@ -103,7 +109,7 @@ def call(tmp_path_factory):
                     "-m",
                     "specfhir",
                     tool,
-                    positional,
+                    *([positional] if positional is not None else []),
                     "--config",
                     str(CONFIG),
                     "--json",
@@ -116,7 +122,7 @@ def call(tmp_path_factory):
                 )
                 expected_code = (
                     2
-                    if expected["status"] == "not_found"
+                    if expected["status"] in {"not_found", "effective_definition_unavailable"}
                     else (4 if expected.get("data", {}).get("findings", {}).get("errors") else 0)
                 )
                 assert output.returncode == expected_code, output.stderr

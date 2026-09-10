@@ -2,7 +2,7 @@
 
 Local, version-aware FHIR evidence for agents: exact lookup, profile inspection,
 source-backed search, and delegated HL7 validation through a shared Python API,
-CLI, and four MCP tools. Retrieval works offline after sync. SpecFHIR returns
+CLI, and six MCP tools. Retrieval works offline after sync. SpecFHIR returns
 published evidence, not generated clinical answers.
 
 [PLAN.md](PLAN.md) defines the current design and scope.
@@ -81,6 +81,61 @@ published model pin; an unavailable model is an explicit error, with lexical mod
 still usable. Generated narratives and copyright remain lexical-only.
 Search accepts up to 500 characters and returns 1–50 results with bounded excerpts,
 source locations, and explicit truncation. Use exact lookup for identifiers.
+
+## Compare profile releases
+
+```bash
+uv run specfhir contexts --limit 100 --json
+uv run specfhir compare PASClaimInquiry \
+  --left-package 'hl7.fhir.us.davinci-pas#2.0.1' \
+  --right-package 'hl7.fhir.us.davinci-pas#2.1.0' --limit 10 --json
+```
+
+`contexts` exposes the actual published dataset identity, installed releases,
+exclusions, coverage counts, and configuration/lock coherence without contacting
+the registry or validator. Its `default_package` is explicitly labeled as the
+current configuration default; it is not a historical property of the index.
+Use `--package` for one exact installed package. Excluded packages remain visible
+with their reason; an uninstalled package returns `not_found`.
+
+`compare` requires two exact package contexts. It resolves the left selector and
+pairs the right artifact by canonical identity, preserving each dependency closure.
+Use `--left-artifact-version` / `--right-artifact-version` to select artifact business
+versions separately from package versions. `--right-selector` explicitly pairs
+renamed artifacts; automatic pairing never guesses a rename. A pairing that switches
+between package-owned and dependency content fails and asks for the owning packages.
+The result identifies actual sources and whether each came from a dependency.
+
+Comparison currently supports StructureDefinition. It compares snapshot to snapshot
+(default), or differential to differential with `--view differential`. Missing or
+malformed representations return unavailable. Elements match by published IDs;
+renamed IDs appear as additions/removals. All fields in the selected representation
+and top-level metadata are compared, including fields outside compact inspection.
+Array ordering is preserved; shared-element reordering is reported separately from
+insertions. A flag indicates changes in the unselected representation, whose content
+is not included in the detailed comparison. These are published source differences,
+not compatibility conclusions or attribution of inherited fields.
+
+Results include counts, before/after presence and values, exact source pointers,
+`dataset_id`, and `next_offset`. Limits are 1–100 entries. For the next page, repeat
+the same selection/filter arguments with `--offset <next_offset>` and
+`--dataset-id <dataset_id>`. A changed dataset rejects continuation; restart at
+zero. Unchanged rebuilds retain the same content identity. This also applies to
+`contexts` pagination. Each comparison reads both sides in one consistent transaction.
+
+Use `--element Claim.identifier` to retrieve just that published element's changes.
+Values above 2,000 JSON characters have an explicit preview, hash and length instead
+of an unbounded payload. Retrieve complete values from the cited artifact with
+`inspect --view raw`; raw inspection returns the full artifact. An absent value
+is marked `present: false`; its pointer identifies the missing field or enclosing
+array, not an existing value. The element-order item identifies its values as IDs
+derived from the cited arrays.
+
+Discovery, comparison, `resolve` and `inspect` return a top-level `dataset_id`.
+`resolve` and `inspect` accept `--dataset-id` to reject
+stale follow-up reads. For example, inspect `Claim.identifier` in the selected PAS
+profile using the identity returned by comparison. No extra database, reindex, or
+validator restart is required to use these operations on an existing published index.
 
 ## Expand or rebuild
 
@@ -203,7 +258,8 @@ errors. Batch execution failures take precedence over error findings.
 
 ## MCP
 
-The official Python SDK serves `resolve`, `inspect`, `search`, and `validate`
+The official Python SDK serves `contexts`, `compare`, `resolve`, `inspect`,
+`search`, and `validate`
 over stdio with the same structured results as the CLI. Logs use stderr.
 Validation accepts JSON content, not a client filesystem path. Sync is an explicit
 CLI operation; MCP has no sync tool or implicit package downloads.
@@ -250,7 +306,9 @@ uv run pytest --live-acceptance -q -o junit_family=legacy \
 
 Do not run sync/build concurrently with this suite: database advisory locks span
 schemas. Acceptance reuses reviewed fixtures and compares API, CLI, and actual
-MCP results. Published archive examples retain full outcomes in JUnit and assert
+MCP results. The PAS comparison workflow checks every direct before/after value
+against the checksum-verified archive, alongside pagination, reverse comparison,
+and guarded targeted inspection. Published archive examples retain full outcomes in JUnit and assert
 reviewed error categories/counts. Updating those baselines requires reviewing the
 new outcome, not blindly accepting changed counts.
 

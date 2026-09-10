@@ -5,7 +5,7 @@ from typing import Annotated
 
 import typer
 
-from specfhir import index, packages, search, validator
+from specfhir import comparison, index, packages, search, validator
 from specfhir.models import invoke
 
 app = typer.Typer(no_args_is_help=True, help="Local, source-backed FHIR package knowledge.")
@@ -74,6 +74,7 @@ def resolve(
     package: str | None = None,
     artifact_version: str | None = None,
     element: str | None = None,
+    dataset_id: str | None = None,
     config: ConfigOption = Path("specfhir.toml"),
     as_json: Annotated[bool, typer.Option("--json")] = False,
 ):
@@ -84,6 +85,7 @@ def resolve(
             package=package,
             artifact_version=artifact_version,
             element=element,
+            dataset_id=dataset_id,
             config_path=config,
         ),
         as_json,
@@ -97,6 +99,7 @@ def inspect(
     artifact_version: str | None = None,
     element: str | None = None,
     view: str = "snapshot",
+    dataset_id: str | None = None,
     config: ConfigOption = Path("specfhir.toml"),
     as_json: Annotated[bool, typer.Option("--json")] = False,
 ):
@@ -108,6 +111,7 @@ def inspect(
             artifact_version=artifact_version,
             element=element,
             view=view,
+            dataset_id=dataset_id,
             config_path=config,
         ),
         as_json,
@@ -140,7 +144,7 @@ def search_command(
 
 @app.command()
 def mcp(config: ConfigOption = Path("specfhir.toml")):
-    """Serve resolve, inspect, search, and validate over local MCP stdio."""
+    """Serve knowledge discovery, comparison, retrieval and validation over MCP stdio."""
     from specfhir.mcp import create_server
 
     create_server(config.resolve()).run(transport="stdio")
@@ -224,3 +228,57 @@ def check_command(
     from specfhir import checks
 
     emit(lambda: checks.run(config, package, with_validator), as_json)
+
+
+@app.command("contexts")
+def contexts_command(
+    package: str | None = None,
+    offset: int = 0,
+    limit: int = 50,
+    dataset_id: str | None = None,
+    config: ConfigOption = Path("specfhir.toml"),
+    as_json: Annotated[bool, typer.Option("--json")] = False,
+):
+    """Discover installed package contexts and actual published dataset identity."""
+    emit(
+        lambda: packages.contexts(
+            config, package=package, offset=offset, limit=limit, dataset_id=dataset_id
+        ),
+        as_json,
+    )
+
+
+@app.command("compare")
+def compare_command(
+    selector: str,
+    left_package: Annotated[str, typer.Option()],
+    right_package: Annotated[str, typer.Option()],
+    right_selector: str | None = None,
+    left_artifact_version: str | None = None,
+    right_artifact_version: str | None = None,
+    view: str = "snapshot",
+    element: str | None = None,
+    offset: int = 0,
+    limit: int = 50,
+    dataset_id: str | None = None,
+    config: ConfigOption = Path("specfhir.toml"),
+    as_json: Annotated[bool, typer.Option("--json")] = False,
+):
+    """Compare published profiles in two explicit release contexts."""
+    emit(
+        lambda: comparison.compare(
+            selector,
+            left_package=left_package,
+            right_package=right_package,
+            right_selector=right_selector,
+            left_artifact_version=left_artifact_version,
+            right_artifact_version=right_artifact_version,
+            view=view,
+            element=element,
+            offset=offset,
+            limit=limit,
+            dataset_id=dataset_id,
+            config_path=config,
+        ),
+        as_json,
+    )

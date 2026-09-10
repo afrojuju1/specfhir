@@ -209,7 +209,7 @@ def versions(name: str) -> dict:
     }
 
 
-def inventory(config_path: Path) -> dict:
+def inventory(config_path: Path, *, with_validator=True) -> dict:
     """Report published coverage and whether the validator matches the current lock."""
     from specfhir import db, validator
     from specfhir.config import digest, load, lock_path
@@ -218,13 +218,14 @@ def inventory(config_path: Path) -> dict:
     lock = Lock.model_validate_json(lock_path(config_path).read_bytes())
     expected = validator.snapshot_identity(lock, config.default_package)
     with db.connect() as conn:
-        state = conn.execute("SELECT metadata FROM index_state").fetchone()
-    if not state:
-        raise Error("Index unavailable; run sync")
-    health = validator.health(config.validator.service_url)
+        state = db.published(conn)
+    health = validator.health(config.validator.service_url) if with_validator else {}
     metadata = state["metadata"]
     return {
         "status": "ok",
+        "dataset_id": state["identity"],
+        "default_package": config.default_package,
+        "default_package_source": "configuration",
         "configured_roots": config.packages,
         "published_roots": metadata["roots"],
         "index_matches_lock": metadata["lock_digest"] == digest(lock.model_dump()),
@@ -270,3 +271,68 @@ def pages(key: str, config_path: Path) -> dict:
         "selected": sum(p["selected"] for p in candidates),
         "pages": candidates,
     }
+
+
+def contexts(
+    config_path: Path = Path("specfhir.toml"),
+    *,
+    package: str | None = None,
+    offset: int = 0,
+    limit: int = 50,
+    dataset_id: str | None = None,
+):
+    """Discover published package coverage without querying a validator or registry."""
+    from specfhir import db
+    from specfhir.config import split_key
+    from specfhir.models import Result
+
+    report = inventory(config_path, with_validator=False)
+    db.page_bounds(offset, limit, dataset_id, report["dataset_id"])
+    if package is not None:
+        split_key(package)
+    entries = sorted(report["inventory"], key=lambda item: item["key"])
+    if package is not None:
+        entries = [item for item in entries if item["key"] == package]
+    rows = [
+        {
+            key: item[key]
+            for key in (
+                "key",
+                "fhir_versions",
+                "excluded_reason",
+                "artifacts",
+                "skipped",
+                "reference_counts",
+                "declared_dependencies",
+                "dependency_resolutions",
+            )
+            if key in item
+        }
+        for item in entries[offset : offset + limit]
+    ]
+    data = {
+        key: report[key]
+        for key in (
+            "default_package",
+            "default_package_source",
+            "published_roots",
+            "configured_roots",
+            "index_matches_lock",
+            "config_matches_lock",
+            "counts",
+        )
+    }
+    for row, item in zip(rows, entries[offset : offset + limit], strict=True):
+        row["fhir_versions"] = item["manifest"].get("fhirVersions", [])
+    data.update(
+        packages=rows,
+        total=len(entries),
+        offset=offset,
+        limit=limit,
+        next_offset=offset + len(rows) if offset + len(rows) < len(entries) else None,
+    )
+    return Result(
+        dataset_id=report["dataset_id"],
+        status="not_found" if package is not None and not entries else "ok",
+        data=data,
+    )

@@ -65,6 +65,7 @@ class Lock(BaseModel):
 
 class Result(BaseModel):
     status: Literal["ok", "not_found", "ambiguous", "effective_definition_unavailable", "error"]
+    dataset_id: str | None = None
     context: str | None = None
     data: dict[str, Any] | None = None
     candidates: list[dict[str, Any]] = Field(default_factory=list)
