@@ -103,7 +103,7 @@ def call(tmp_path_factory):
                 elif tool == "contexts":
                     positional = None
                 else:
-                    positional = options.pop("query" if tool == "search" else "selector")
+                    positional = options.pop("query" if tool == "search" else "selector", None)
                 command = [
                     sys.executable,
                     "-m",

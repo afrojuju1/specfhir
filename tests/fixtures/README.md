@@ -43,3 +43,10 @@ Every direct reported value is checked against its source pointer in the origina
 archive; large previews are checked by hash. Synthetic comparison edge cases live
 in `test_comparison.py` using the existing package/profile helpers, without duplicate
 FHIR fixture JSON or a second expectation format.
+
+Package comparison checks every non-documentation source hash against those same
+archives. Reviewed dependency expectations come from PAS and CRD package manifests:
+PAS 2.1.0 adds a direct HREX 1.1.0 pin, retaining transitive HREX 1.0.0. The unchanged
+Claim Inquiry base URL resolves to changed Claim Base JSON across PAS releases.
+The existing synthetic package helper supplies unchanged-source/changed-dependency,
+missing and ambiguous target cases; no additional copied resource fixtures are needed.

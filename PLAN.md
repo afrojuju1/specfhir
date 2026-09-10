@@ -169,9 +169,24 @@ without claiming to compare it. Distinguish absence, explicit null and values.
 Bound change pages and large-value previews, retaining source pointers, hashes and
 explicit truncation. Complete raw values remain available through existing raw
 inspection. Missing-side pointers identify absent fields or their enclosing arrays.
-These differences do not infer compatibility, dependency impact or field authorship;
+These differences do not infer compatibility, behavioral impact or field authorship;
 those concerns remain separate. Acceptance combines synthetic edge cases with reviewed
 PAS cardinality/must-support changes and original archive evidence.
+
+Package mode compares only selected-package artifacts, using exact type/canonical
+identities (ID/file fallback); dependencies cannot substitute removed owned content.
+Raw JSON hashes classify changes across indexed resource types; unavailable profile
+views remain explicit. Ambiguous and excluded identities are uncomparable. Dependency
+name groups preserve every exact closure pin, and edge differences retain declaring
+packages. Use the published database, never pending lock data, for both sides.
+
+Reference mode reuses stored reference findings in each artifact's owning closure.
+Compare direct targets by identity and content even when literals remain unchanged;
+group occurrences by element ID, relationship and literal, retaining include/exclude.
+Do not infer pairing for changed literals or authorship of inherited fields. Bound
+traversal at one hop, mark self cycles, and state that longer cycles are not explored.
+Package graph closure terminates cycles and labels them. Reuse existing compare
+API/CLI/MCP, transaction, evidence, pagination and acceptance fixture paths.
 
 ## Completed milestones and acceptance
 
@@ -182,6 +197,8 @@ PAS cardinality/must-support changes and original archive evidence.
   publication prose, dependency-aware references, shared positive/negative fixtures.
 - Reuse: prepared and embedded spools, measured SQL tuning, explicit cache cleanup,
   pytest acceptance consolidation, retrieval-independent validator identity.
+- Package/dependency comparison (M2): owned inventories, exact dependency pins/edges,
+  direct target evidence, bounded pages and reviewed PAS transport workflows.
 - Version comparison (M1): installed-context discovery, canonical/element-ID
   comparison, dataset guards, bounded evidence, and reviewed PAS API/CLI/MCP workflows.
 - Current hardening: interleave CLI/MCP replay per case while retaining every API
@@ -198,7 +215,7 @@ published outcomes in JUnit. A changed error category/count requires review.
 ## Next work, when requested
 
 Beads epic `sf-oyi` owns the approved roadmap. Following profile comparison, the
-remaining milestones cover package/dependency impact, paired validation, connected
+remaining milestones cover paired validation, connected
 guidance, broader evidenced relationships, and operational readiness.
 
 Expand through the existing package/publication configuration and pytest paths.

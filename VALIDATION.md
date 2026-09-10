@@ -110,6 +110,46 @@ changed configuration default do not relabel published dataset identity. Existin
 pytest fixtures and transport paths are reused; no comparison-specific database or
 second acceptance framework was added.
 
+## M2 — Package comparison and direct targets (2026-09-10)
+
+The existing `compare` API, CLI and MCP tool now support package inventories and
+reference targets. No schema, package pins, embeddings or validator configuration
+changed. Each comparison reads one consistent published dataset, including exact
+closure edges and sync's stored reference findings.
+
+Focused acceptance passed five tests in 15.16 seconds, including real API/CLI/MCP
+replay. PAS 2.0.1→2.1.0 has 124 owned identities (96 changed, 17 added, 11 removed),
+78 dependency edges and 21 dependency-name groups: 223 pageable items in total.
+All non-documentation artifact hashes were checked against checksum-verified
+archives. Claim Inquiry yields 120 reference groups; its unchanged base URL points
+to changed published target JSON, verified independently from both archives.
+The manifest review also checks PAS's new direct HREX 1.1.0 edge while preserving
+HREX 1.0.0 through CRD 2.0.0. The initial test incorrectly expected HREX to be newly
+introduced to the closure; source review corrected that expectation to a changed
+version set, without changing the implementation.
+
+Synthetic cases cover a byte-identical source with a changed dependency target,
+removed owned artifacts still present in dependencies, duplicate canonical identities,
+unavailable profile projections, missing/excluded/outside-scope/ambiguous targets,
+local self references, ValueSet imports, cycles, pagination, reverse comparison and
+stale dataset rejection. Direct traversal stops at depth one; longer reference
+cycles and behavioral impacts are explicitly outside the result's claims.
+
+The focused run observed 140.5 ms / 115,074 serialized bytes for the first 100-item
+package page, and 194.8 ms / 302,551 bytes for the first 100-item reference page.
+These are single local Python API observations, including the result envelope but
+excluding process startup and MCP framing. Smaller page limits reduce response size;
+there is no controlled before/after performance claim for these new operations.
+Full regression ran 134 tests in 617.84 seconds: 133 passed, and a new malformed
+projection assertion hit the ownership guard first because its right-hand artifact
+was dependency-owned. The test now separately verifies the ownership rejection and
+unavailable projection in its actual owning package. No production code changed for
+that correction. Final focused acceptance passed all five tests in 15.62 seconds,
+including API/CLI/MCP replay: all 134 distinct tests have passing final outcomes.
+Ruff, formatting, Pyright and diff checks passed.
+Evidence: `.specfhir/m2-focused.xml`, `.specfhir/m2-acceptance.xml`,
+`.specfhir/m2-final-focused.xml` and their logs.
+
 ## Published examples versus synthetic fixtures
 
 Twenty original published examples across eight IG releases are loaded directly

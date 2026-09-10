@@ -106,7 +106,7 @@ renamed artifacts; automatic pairing never guesses a rename. A pairing that swit
 between package-owned and dependency content fails and asks for the owning packages.
 The result identifies actual sources and whether each came from a dependency.
 
-Comparison currently supports StructureDefinition. It compares snapshot to snapshot
+The default `--mode profile` supports StructureDefinition. It compares snapshot to snapshot
 (default), or differential to differential with `--view differential`. Missing or
 malformed representations return unavailable. Elements match by published IDs;
 renamed IDs appear as additions/removals. All fields in the selected representation
@@ -136,6 +136,47 @@ Discovery, comparison, `resolve` and `inspect` return a top-level `dataset_id`.
 stale follow-up reads. For example, inspect `Claim.identifier` in the selected PAS
 profile using the identity returned by comparison. No extra database, reindex, or
 validator restart is required to use these operations on an existing published index.
+
+Use the same `compare` operation for package and direct-target comparisons:
+
+```bash
+uv run specfhir compare --mode package \
+  --left-package 'hl7.fhir.us.davinci-pas#2.0.1' \
+  --right-package 'hl7.fhir.us.davinci-pas#2.1.0' --json
+uv run specfhir compare PASClaimInquiry --mode references \
+  --left-package 'hl7.fhir.us.davinci-pas#2.0.1' \
+  --right-package 'hl7.fhir.us.davinci-pas#2.1.0' --json
+```
+
+Package mode omits the artifact selector. Its `items` page separates `artifact`,
+`dependency_pin`, and `dependency_edge` entries, with complete counts by category.
+Owned artifacts match by resource type plus canonical, falling back to exact resource
+ID or file when no canonical exists. Duplicate identities and inventoried exclusions
+are `uncomparable`; dependency content cannot replace a removed owned artifact.
+`changed` means the full source JSON differs. `profile_details_available` indicates
+whether profile mode can supply field differences in the selected view; use raw
+inspection for other resource types. Counts omit zero categories/statuses.
+
+Dependency pins include every exact version in each closure, with additions, removals,
+and changes grouped by package name. Edges retain the declaring package; only the
+selected root is normalized when matching edges. Both sides report dependency cycles.
+For example, PAS 2.1.0 adds HREX 1.1.0 directly while retaining HREX 1.0.0 through CRD.
+This is not a replacement of every HREX dependency.
+
+Reference mode supports StructureDefinition and ValueSet using sync's existing
+reference findings. It compares bases, type/target profiles, bindings, local content
+references, and ValueSet imports. Identical literals group by element ID and relationship
+(and ValueSet include/exclude), preserving counts and cited occurrences. Changed literals
+appear as additions/removals; array positions are not guessed across releases. Target
+identity changes and target content changes are distinct: a package/version change alone
+can mark a target changed while `target_content_changed` remains false. Missing,
+excluded, outside-scope, ambiguous, and unsupported targets retain their findings.
+
+Traversal is exactly one hop. Self cycles are marked; longer cycles and downstream
+impacts are explicitly not traversed. These are source facts, not behavioral impact or
+inherited-field authorship. Package/reference pages use the same dataset guards and
+1–100 limit as profile comparison; candidate and occurrence lists cap at 10 with
+complete counts and truncation flags. For more detail, inspect the cited exact source.
 
 ## Expand or rebuild
 

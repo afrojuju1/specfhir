@@ -54,6 +54,23 @@ def test_profile_comparison_and_contexts(tmp_path, database, monkeypatch):
     assert packages.contexts(config, package="absent#1.0.0").status == "not_found"
     assert packages.contexts(config, offset=1, dataset_id=identity).data["total"] == 3
     args = dict(left_package=left, right_package=right, config_path=config)
+    owned = comparison.compare(mode="package", **args, limit=100).data["items"]
+    assert (
+        next(i for i in owned if i.get("identity", [None])[-1] == "https://example.org/duplicate")[
+            "kind"
+        ]
+        == "uncomparable"
+    )
+    unavailable = next(i for i in owned if i.get("identity", [None])[-1] == malformed["url"])
+    assert not unavailable["before"][0]["profile_details_available"]
+    with pytest.raises(Error, match="ownership"):
+        comparison.compare("Malformed", mode="references", **args)
+    assert (
+        comparison.compare(
+            "Malformed", mode="references", left_package=left, right_package=left
+        ).status
+        == "effective_definition_unavailable"
+    )
     compared = comparison.compare("PatientProfile", limit=100, **args)
     result = compared.data
     assert compared.dataset_id == identity
@@ -213,3 +230,137 @@ def test_order_and_other_fields():
     assert next(c for c in changes if c["field"] == "unknown/~")["after"]["source"][
         "pointer"
     ].endswith("unknown~1~0")
+
+
+def test_package_and_reference_comparison(tmp_path, database):
+    left, right = "example#1.0.0", "example#2.0.0"
+    cache = tmp_path / ".specfhir/packages"
+    old = profile()
+    target = profile("Target")
+    changed_target = copy.deepcopy(target)
+    changed_target["snapshot"]["element"][0]["short"] = "Changed dependency guidance"
+    old["baseDefinition"] = target["url"]
+    elements = old["snapshot"]["element"]
+    elements[0]["contentReference"] = "#" + elements[0]["id"]
+    elements[1]["binding"] = {"valueSet": "https://example.org/excluded"}
+    elements[2]["type"] = [
+        {
+            "code": "Reference",
+            "profile": ["https://example.org/missing"],
+            "targetProfile": ["https://example.org/ambiguous", "https://example.org/outside"],
+        }
+    ]
+    removed = profile("Removed")
+    duplicate = profile("Duplicate", url="https://example.org/ambiguous")
+    duplicate2 = profile("Duplicate2", url=duplicate["url"])
+    excluded = {"resourceType": "ValueSet", "id": "excluded", "url": "https://example.org/excluded"}
+    vs = {
+        "resourceType": "ValueSet",
+        "id": "VS",
+        "url": "https://example.org/vs",
+        "compose": {"include": [{"valueSet": ["https://example.org/imported"]}]},
+    }
+    imported = {"resourceType": "ValueSet", "id": "imported", "url": "https://example.org/imported"}
+    archive(
+        cache, left, [old, removed, vs], deps={"dep": "1.0.0", "excluded": "5.0.0", "gone": "1.0.0"}
+    )
+    archive(
+        cache,
+        right,
+        [old, profile("Added"), vs],
+        deps={"dep": "2.0.0", "excluded": "5.0.0", "new": "1.0.0"},
+    )
+    archive(cache, "dep#1.0.0", [target, duplicate, duplicate2, imported])
+    archive(
+        cache,
+        "dep#2.0.0",
+        [changed_target, removed, duplicate, duplicate2, {**imported, "description": "New import"}],
+    )
+    archive(cache, "excluded#5.0.0", [excluded], release="5.0.0")
+    archive(cache, "gone#1.0.0", [])
+    archive(cache, "new#1.0.0", [])
+    archive(cache, "outside#1.0.0", [profile("Outside", url="https://example.org/outside")])
+    config = tmp_path / "specfhir.toml"
+    config.write_text(f'packages=["{left}","{right}","outside#1.0.0"]\ndefault_package="{left}"\n')
+    index.sync(config)
+    args = dict(left_package=left, right_package=right, config_path=config)
+    result = comparison.compare(mode="package", **args, limit=100)
+    items = result.data["items"]
+    artifacts = {item["identity"][2]: item for item in items if item["category"] == "artifact"}
+    assert artifacts[removed["url"]]["kind"] == "removed"  # dependency must not replace it
+    assert artifacts[old["url"]]["kind"] == "unchanged"
+    pins = {item["name"]: item for item in items if item["category"] == "dependency_pin"}
+    assert pins["dep"]["kind"] == "changed"
+    assert pins["gone"]["kind"] == "removed" and pins["new"]["kind"] == "added"
+    assert pins["excluded"]["before"][0]["excluded_reason"]
+    paged = []
+    offset = 0
+    while offset is not None:
+        page = comparison.compare(
+            mode="package", **args, offset=offset, limit=2, dataset_id=result.dataset_id
+        ).data
+        paged.extend(page["items"])
+        offset = page["next_offset"]
+    assert paged == items
+    refs = comparison.compare("PatientProfile", mode="references", **args, limit=100).data
+    assert not refs["resource_changed"] and refs["max_depth"] == 1
+    by_literal = {r["literal"]: r for r in refs["items"]}
+    base = by_literal[target["url"]]
+    assert (
+        base["literal_unchanged"] and base["kind"] == "changed" and base["target_content_changed"]
+    )
+    assert base["before"]["target"]["content_sha256"] == digest(target)
+    assert base["after"]["target"]["content_sha256"] == digest(changed_target)
+    assert by_literal["#Patient"]["before"]["target"]["traversal"] == "cycle"
+    for literal, status in [
+        ("excluded", "excluded"),
+        ("missing", "not_found_in_scope"),
+        ("ambiguous", "ambiguous"),
+        ("outside", "outside_scope"),
+    ]:
+        item = by_literal["https://example.org/" + literal]
+        assert item["kind"] == "uncomparable" and item["before"]["target"]["status"] == status
+    imported_result = comparison.compare("VS", mode="references", **args).data["items"][0]
+    assert (
+        imported_result["relationship"] == "compose.valueSet"
+        and imported_result["target_content_changed"]
+    )
+    reverse = comparison.compare(
+        "PatientProfile", mode="references", left_package=right, right_package=left, limit=100
+    ).data
+    for a, b in zip(refs["items"], reverse["items"], strict=True):
+        assert a["before"] == b["after"] and a["after"] == b["before"]
+    for mode, selector in (("package", None), ("references", "PatientProfile")):
+        kwargs = dict(mode=mode, selector=selector, **args)
+        cli = CliRunner().invoke(
+            app,
+            [
+                "compare",
+                *([selector] if selector else []),
+                "--mode",
+                mode,
+                "--left-package",
+                left,
+                "--right-package",
+                right,
+                "--config",
+                str(config),
+                "--json",
+            ],
+        )
+        assert cli.exit_code == 0, cli.output
+        assert json.loads(cli.output) == comparison.compare(**kwargs).model_dump(exclude_none=True)
+        with pytest.raises(Error, match="changed"):
+            comparison.compare(**kwargs, dataset_id="stale")
+    # Closure set semantics terminate cycles and expose their exact edges.
+    with db.connect() as conn:
+        conn.execute("INSERT INTO package_dependencies VALUES (%s,%s)", ("dep#2.0.0", right))
+    cyclic = comparison.compare(mode="package", **args).data
+    assert not cyclic["left"]["dependency_cycle"] and cyclic["right"]["dependency_cycle"]
+    assert any(
+        i["category"] == "dependency_edge"
+        and i["after"] == {"package_key": "dep#2.0.0", "dependency_key": right}
+        for i in cyclic["items"]
+    )
+    with pytest.raises(Error, match="does not accept"):
+        comparison.compare("PatientProfile", mode="package", **args)

@@ -87,3 +87,107 @@ def test_pas_comparison_workflow(call, published, record_property):
     authored = call("compare", **args, view="differential", limit=100)["data"]
     added = next(c for c in authored["changes"] if c["element_id"] == "Claim.identifier")
     assert added["kind"] == "added" and added["after"]["value"]["min"] == 1
+
+
+def test_pas_package_and_target_workflow(call, published, record_property):
+    args = dict(left_package=LEFT, right_package=RIGHT)
+    started = time.monotonic()
+    first = call("compare", mode="package", **args, limit=100)
+    record_property("package_comparison_seconds", round(time.monotonic() - started, 4))
+    record_property("package_comparison_response_bytes", len(json.dumps(first).encode()))
+    identity = first["dataset_id"]
+    items = first["data"]["items"][:]
+    offset = first["data"]["next_offset"]
+    while offset is not None:
+        page = call(
+            "compare", mode="package", **args, limit=100, offset=offset, dataset_id=identity
+        )["data"]
+        assert page["counts"] == first["data"]["counts"]
+        items.extend(page["items"])
+        offset = page["next_offset"]
+    assert len(items) == first["data"]["total"] == 223
+    assert first["data"]["counts"]["artifact"] == {"added": 17, "changed": 96, "removed": 11}
+    # Every package JSON hash is independently checked against its locked archive.
+    for item in items:
+        if item["category"] != "artifact":
+            continue
+        for side in ("before", "after"):
+            for evidence in item[side]:
+                source = evidence["source"]
+                if source["resource_type"] != "Documentation":
+                    assert (
+                        digest(published(source["package"], source["file"]))
+                        == evidence["resource_sha256"]
+                    )
+    # Reviewed manifests: terminology changes and a direct HREX 1.1.0 pin is added.
+    for package, version in ((LEFT, "5.3.0"), (RIGHT, "6.1.0")):
+        assert (
+            published(package, "package/package.json")["dependencies"]["hl7.terminology.r4"]
+            == version
+        )
+    pins = {i["name"]: i for i in items if i["category"] == "dependency_pin"}
+    assert pins["hl7.terminology.r4"]["kind"] == "changed"
+    assert pins["hl7.fhir.us.davinci-hrex"]["kind"] == "changed"
+    assert {r["key"] for r in pins["hl7.fhir.us.davinci-hrex"]["before"]} == {
+        "hl7.fhir.us.davinci-hrex#1.0.0"
+    }
+    assert {r["key"] for r in pins["hl7.fhir.us.davinci-hrex"]["after"]} == {
+        "hl7.fhir.us.davinci-hrex#1.0.0",
+        "hl7.fhir.us.davinci-hrex#1.1.0",
+    }
+    assert (
+        published("hl7.fhir.us.davinci-crd#2.0.0", "package/package.json")["dependencies"][
+            "hl7.fhir.us.davinci-hrex"
+        ]
+        == "1.0.0"
+    )
+    assert any(
+        i["category"] == "dependency_edge"
+        and i["kind"] == "added"
+        and i["after"] == {"package_key": RIGHT, "dependency_key": "hl7.fhir.us.davinci-hrex#1.1.0"}
+        for i in items
+    )
+    # Claim Inquiry retains this literal base URL; the published target JSON differs.
+    base_literal = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/profile-claim-base"
+    for package in (LEFT, RIGHT):
+        assert published(package, MEMBER)["baseDefinition"] == base_literal
+    started = time.monotonic()
+    targets = call(
+        "compare",
+        selector="PASClaimInquiry",
+        mode="references",
+        **args,
+        dataset_id=identity,
+        limit=100,
+    )
+    record_property("reference_comparison_seconds", round(time.monotonic() - started, 4))
+    record_property("reference_comparison_response_bytes", len(json.dumps(targets).encode()))
+    target_items = targets["data"]["items"][:]
+    page = call(
+        "compare",
+        selector="PASClaimInquiry",
+        mode="references",
+        **args,
+        dataset_id=identity,
+        limit=100,
+        offset=targets["data"]["next_offset"],
+    )["data"]
+    target_items.extend(page["items"])
+    assert len(target_items) == targets["data"]["total"] == 120 and page["next_offset"] is None
+    base = next(i for i in target_items if i["relationship"] == "baseDefinition")
+    assert (
+        base["literal"] == base_literal
+        and base["literal_unchanged"]
+        and base["target_content_changed"]
+    )
+    assert base["kind"] == "changed"
+    for side, package in (("before", LEFT), ("after", RIGHT)):
+        evidence = base[side]["target"]
+        assert evidence["source"]["package"] == package
+        assert evidence["content_sha256"] == digest(
+            published(package, "package/StructureDefinition-profile-claim-base.json")
+        )
+    same = call(
+        "compare", mode="package", left_package=LEFT, right_package=LEFT, dataset_id=identity
+    )["data"]
+    assert all(set(counts) == {"unchanged"} for counts in same["counts"].values())

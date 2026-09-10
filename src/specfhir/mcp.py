@@ -148,9 +148,10 @@ def create_server(config_path: Path = Path("specfhir.toml")) -> MCPServer:
         ),
     )
     def compare(
-        selector: str,
         left_package: str,
         right_package: str,
+        selector: str | None = None,
+        mode: Literal["profile", "package", "references"] = "profile",
         right_selector: str | None = None,
         left_artifact_version: str | None = None,
         right_artifact_version: str | None = None,
@@ -160,7 +161,9 @@ def create_server(config_path: Path = Path("specfhir.toml")) -> MCPServer:
         limit: int = 50,
         dataset_id: str | None = None,
     ) -> dict[str, Any]:
-        """Compare exact published profiles, not compatibility. Continue with dataset_id;
+        """Compare profiles, owned package inventories, or direct reference targets.
+        Package mode omits selector; other modes require it. No compatibility inference.
+        Continue with dataset_id;
         inspect cited raw artifacts for preview-truncated values. No inferred rename matching.
         """
         return invoke(
@@ -168,6 +171,7 @@ def create_server(config_path: Path = Path("specfhir.toml")) -> MCPServer:
                 selector,
                 left_package=left_package,
                 right_package=right_package,
+                mode=mode,
                 right_selector=right_selector,
                 left_artifact_version=left_artifact_version,
                 right_artifact_version=right_artifact_version,

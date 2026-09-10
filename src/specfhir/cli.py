@@ -250,9 +250,10 @@ def contexts_command(
 
 @app.command("compare")
 def compare_command(
-    selector: str,
     left_package: Annotated[str, typer.Option()],
     right_package: Annotated[str, typer.Option()],
+    selector: Annotated[str | None, typer.Argument()] = None,
+    mode: str = "profile",
     right_selector: str | None = None,
     left_artifact_version: str | None = None,
     right_artifact_version: str | None = None,
@@ -264,12 +265,13 @@ def compare_command(
     config: ConfigOption = Path("specfhir.toml"),
     as_json: Annotated[bool, typer.Option("--json")] = False,
 ):
-    """Compare published profiles in two explicit release contexts."""
+    """Compare profiles, package inventories or direct reference targets in exact contexts."""
     emit(
         lambda: comparison.compare(
             selector,
             left_package=left_package,
             right_package=right_package,
+            mode=mode,
             right_selector=right_selector,
             left_artifact_version=left_artifact_version,
             right_artifact_version=right_artifact_version,
