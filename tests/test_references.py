@@ -3,7 +3,7 @@
 import json
 
 import pytest
-from helpers import archive, profile
+from helpers import archive, profile, project_config
 from typer.testing import CliRunner
 
 from specfhir import db, index, references, search
@@ -11,10 +11,7 @@ from specfhir.cli import app
 
 
 def test_reference_findings_and_atomicity(tmp_path, database, monkeypatch):
-    config = tmp_path / "specfhir.toml"
-    config.write_text(
-        'packages=["example.root#1.0.0","example.other#1.0.0"]\ndefault_package="example.root#1.0.0"\n'
-    )
+    config = project_config(tmp_path, ["example.root#1.0.0", "example.other#1.0.0"])
     cache = tmp_path / ".specfhir/packages"
     common = "https://example.org/Common"
     first = profile("Common", version="1.0.0")
@@ -179,8 +176,7 @@ def test_reference_findings_and_atomicity(tmp_path, database, monkeypatch):
 
 
 def test_local_reference_without_snapshot_and_bounded_inspection(tmp_path, database):
-    config = tmp_path / "specfhir.toml"
-    config.write_text('packages=["example#1.0.0"]\ndefault_package="example#1.0.0"\n')
+    config = project_config(tmp_path, ["example#1.0.0"])
     partial = profile(
         "Partial",
         snapshot={},
@@ -209,8 +205,7 @@ def test_local_reference_without_snapshot_and_bounded_inspection(tmp_path, datab
 
 
 def test_capability_and_operation_relationships(tmp_path, database):
-    config = tmp_path / "specfhir.toml"
-    config.write_text('packages=["example#1.0.0"]\ndefault_package="example#1.0.0"\n')
+    config = project_config(tmp_path, ["example#1.0.0"])
     input_profile = profile("Input")
     output_profile = profile("Output")
     value_set = {"resourceType": "ValueSet", "id": "Codes", "url": "https://example.org/Codes"}

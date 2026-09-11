@@ -463,6 +463,19 @@ uv run pyright
 uv run pytest
 ```
 
+The default remains serial. For a bounded parallel run, pytest-xdist uses at most
+four workers and keeps database-writing tests and validator-backed tests in their
+own serial resource groups:
+
+```bash
+SPECFHIR_TEST_DSN=postgresql://specfhir@localhost:55432/specfhir \
+uv run pytest -n 4
+```
+
+Use `-n 0` for an explicit serial baseline. Do not use unrestricted worker counts:
+the database advisory lock spans isolated schemas, and the validator intentionally
+serializes its shared engines.
+
 Database integration tests use isolated schemas with `SPECFHIR_TEST_DSN`; they
 never replace the application dataset. Real smokes and installed acceptance are
 explicit opt-ins:
@@ -473,6 +486,9 @@ SPECFHIR_REAL_SMOKE=1 SPECFHIR_VALIDATOR_SMOKE=1 \
 uv run pytest --live-acceptance -q -o junit_family=legacy \
   --junitxml=.specfhir/acceptance.xml
 ```
+
+Add `-n 4` to that command for the grouped parallel variant. Installed validation
+modules stay on one worker; read-only acceptance and isolated work may overlap.
 
 Do not run sync/build concurrently with this suite: database advisory locks span
 schemas. Acceptance reuses reviewed fixtures and compares API, CLI, and actual

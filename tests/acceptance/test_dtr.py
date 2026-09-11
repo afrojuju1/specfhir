@@ -2,6 +2,7 @@ import copy
 import json
 
 import pytest
+from helpers import pointer_value
 
 PROFILE = "DTRStdQuestionnaire"
 
@@ -36,10 +37,7 @@ def test_definitions(call, published, package):
     assert {item["relationship"] for item in references["items"]} == expected
     operation = published(package, "package/OperationDefinition-questionnaire-package.json")
     for item in references["items"]:
-        value = operation
-        for part in item["pointer"].split("/")[1:]:
-            value = value[int(part)] if isinstance(value, list) else value[part]
-        assert value == item["target"]
+        assert pointer_value(operation, item["pointer"]) == item["target"]
     result = call("inspect", selector=PROFILE, package=package)
     assert result["data"]["references"]["status"] == "completed"
 

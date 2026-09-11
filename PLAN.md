@@ -246,7 +246,8 @@ Readiness checks cover both direct and archive sources with the same provenance 
 - Current hardening: interleave CLI/MCP replay per case while retaining every API
   comparison; inspect one representative page from every sibling release with
   dependency-aware provenance; assert reviewed published-example error categories
-  and counts; consolidate operating/design/evidence documentation.
+  and counts; consolidate operating/design/evidence documentation; allow bounded
+  pytest-xdist runs while preserving the database and validator serialization bounds.
 
 Acceptance must preserve isolation, atomic-failure behavior, exact provenance,
 positive/negative validator findings, and identical API/CLI/MCP results. Published

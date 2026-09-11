@@ -70,6 +70,38 @@ CRD and PAS were slightly slower. No model, validator runtime, index, or accepta
 case was removed or weakened. The new checks tighten the error and release-scope
 requirements. Evidence: `.specfhir/acceptance-consolidated.xml` and its `.log`.
 
+## Test organization and bounded parallelism
+
+The test tree now uses domain names instead of historical phase buckets. Shared test
+helpers own minimal project configuration and RFC 6901 pointer traversal; package,
+publication/cache, retrieval, embedding and validator tests keep their existing
+behavior and expensive setup boundaries. Exhaustive installed API, CLI and MCP replay
+is unchanged.
+
+pytest-xdist is an opt-in development dependency. `--dist=loadgroup` keeps every test
+using the isolated database fixture on one worker because the advisory sync lock spans
+schemas. Installed CDEX, CRD, DTR and PAS validation plus the real validator smoke use
+one separate validator group because the service serializes engine access and retains
+only two warm contexts. Other pure and read-only acceptance work may run normally;
+worker count is capped at four.
+
+One sequential local comparison on 2026-09-11 used identical full-suite flags and
+retained all 157 normalized case identities, 20 published outcomes and 28 JUnit
+properties:
+
+| Run | Result | Seconds | Change |
+| --- | --- | ---: | ---: |
+| Serial, `-n 0` | 157 passed | 750.44 | baseline |
+| Grouped, `-n 4` | 157 passed | 550.08 | 26.7% less time |
+
+The isolated-only comparison was effectively flat: 30 passed and two opt-in smokes
+skipped in 62.77 seconds serial versus 61.73 seconds grouped. The full-suite gain came
+from overlapping read-only work with the serial validator group, not from bypassing
+either shared-state guard. These are single local observations; the grouped run
+followed the serial run against a resident validator, so they are not a controlled
+capacity benchmark. Ignored evidence: `.specfhir/test-cleanup-*-serial.xml` and
+`.specfhir/test-cleanup-*-parallel.xml`.
+
 Four obsolete Markdown reports were merged into this file. README now owns current
 operations, PLAN owns the design/work contract, and fixture provenance remains
 beside the fixtures. Historical commands that depended on removed scripts were

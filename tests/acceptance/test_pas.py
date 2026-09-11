@@ -2,6 +2,7 @@ import copy
 import json
 
 import pytest
+from helpers import pointer_value
 
 
 @pytest.mark.parametrize("version", ["2.0.1", "2.1.0"])
@@ -164,7 +165,4 @@ def test_capability_and_operation_relationships(call, published):
     ):
         source = published(package, file)
         for item in items:
-            value = source
-            for part in item["pointer"].split("/")[1:]:
-                value = value[int(part)] if isinstance(value, list) else value[part]
-            assert value == item["target"]
+            assert pointer_value(source, item["pointer"]) == item["target"]

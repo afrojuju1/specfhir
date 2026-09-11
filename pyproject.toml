@@ -24,6 +24,7 @@ build-backend = "uv_build"
 dev = [
     "pyright>=1.1.411",
     "pytest>=9.1.1",
+    "pytest-xdist>=3.8.0",
     "ruff>=0.16.6",
 ]
 
@@ -39,3 +40,6 @@ select = ["E", "F", "I", "UP", "B"]
 [tool.pyright]
 include = ["src"]
 typeCheckingMode = "standard"
+
+[tool.pytest.ini_options]
+addopts = ["--dist=loadgroup", "--maxprocesses=4"]

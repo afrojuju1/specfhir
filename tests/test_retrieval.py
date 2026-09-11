@@ -6,7 +6,7 @@ from pathlib import Path
 
 import httpx
 import pytest
-from helpers import archive, profile
+from helpers import archive, profile, project_config
 from mcp import Client
 from mcp.client.stdio import StdioServerParameters
 from typer.testing import CliRunner
@@ -49,10 +49,7 @@ def test_search_and_stdio_parity(tmp_path, database, monkeypatch):
     archive(
         cache, "example.other#1.0.0", [profile("Other", description="Secret unrelated evidence")]
     )
-    config = tmp_path / "specfhir.toml"
-    config.write_text(
-        'packages=["example.patient#1.0.0","example.other#1.0.0"]\ndefault_package="example.patient#1.0.0"\n'
-    )
+    config = project_config(tmp_path, ["example.patient#1.0.0", "example.other#1.0.0"])
     monkeypatch.setattr(httpx, "stream", lambda *a, **k: pytest.fail("Unexpected HTTP"))
     index.sync(config)
     result = search.search("patient identifier requirements", config_path=config)

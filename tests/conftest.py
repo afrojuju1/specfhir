@@ -30,9 +30,19 @@ def pytest_addoption(parser):
     )
 
 
+@pytest.hookimpl(tryfirst=True)
 def pytest_collection_modifyitems(config, items):
+    validator_modules = {"test_cdex.py", "test_crd.py", "test_dtr.py", "test_pas.py"}
     if not config.getoption("--live-acceptance"):
         skip = pytest.mark.skip(reason="Pass --live-acceptance for installed-system acceptance")
         for item in items:
             if "acceptance" in item.path.parts:
                 item.add_marker(skip)
+    for item in items:
+        validator_backed = (
+            "acceptance" in item.path.parts and item.path.name in validator_modules
+        ) or item.name.startswith("test_real_validator_and_mcp")
+        if validator_backed:
+            item.add_marker(pytest.mark.xdist_group(name="validator"))
+        elif "database" in item.fixturenames:
+            item.add_marker(pytest.mark.xdist_group(name="database"))

@@ -2,7 +2,7 @@ import copy
 import json
 
 import pytest
-from helpers import archive, profile
+from helpers import archive, pointer_value, profile, project_config
 from typer.testing import CliRunner
 
 from specfhir import comparison, db, index, packages, search, validator
@@ -36,8 +36,7 @@ def test_profile_comparison_and_contexts(tmp_path, database, monkeypatch):
     archive(cache, left, [old, malformed, missing, dup1, dup2, vs])
     archive(cache, right, [new, renamed, vs], deps={"example": "1.0.0", "excluded": "5.0.0"})
     archive(cache, "excluded#5.0.0", [], release="5.0.0")
-    config = tmp_path / "custom.toml"
-    config.write_text(f'packages=["{left}","{right}"]\ndefault_package="{left}"\n')
+    config = project_config(tmp_path, [left, right])
     index.sync(config)
     monkeypatch.setattr(
         validator, "health", lambda *a: pytest.fail("Discovery must not call service")
@@ -90,10 +89,7 @@ def test_profile_comparison_and_contexts(tmp_path, database, monkeypatch):
             evidence = change[side]
             if not evidence["present"]:
                 continue
-            value = resource
-            for part in evidence["source"]["pointer"].split("/")[1:]:
-                part = part.replace("~1", "/").replace("~0", "~")
-                value = value[int(part)] if isinstance(value, list) else value[part]
+            value = pointer_value(resource, evidence["source"]["pointer"])
             if evidence.get("value_truncated"):
                 assert evidence["value_sha256"] == digest(value)
             else:
@@ -230,6 +226,13 @@ def test_order_and_other_fields():
     assert next(c for c in changes if c["field"] == "unknown/~")["after"]["source"][
         "pointer"
     ].endswith("unknown~1~0")
+    assert (
+        pointer_value(
+            after,
+            next(c for c in changes if c["field"] == "unknown/~")["after"]["source"]["pointer"],
+        )
+        is False
+    )
 
 
 def test_package_and_reference_comparison(tmp_path, database):
@@ -280,8 +283,7 @@ def test_package_and_reference_comparison(tmp_path, database):
     archive(cache, "gone#1.0.0", [])
     archive(cache, "new#1.0.0", [])
     archive(cache, "outside#1.0.0", [profile("Outside", url="https://example.org/outside")])
-    config = tmp_path / "specfhir.toml"
-    config.write_text(f'packages=["{left}","{right}","outside#1.0.0"]\ndefault_package="{left}"\n')
+    config = project_config(tmp_path, [left, right, "outside#1.0.0"])
     index.sync(config)
     args = dict(left_package=left, right_package=right, config_path=config)
     result = comparison.compare(mode="package", **args, limit=100)

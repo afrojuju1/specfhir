@@ -55,7 +55,7 @@ Multi-context validation reuses `pas-inquiry-without-identifier.json` unchanged 
 both PAS releases. HL7 `Validation_VAL_Profile_Minimum` at `Claim` reports the required
 identifier only in PAS 2.1.0. A minimal base R4 Patient verifies unchanged findings
 across US Core 3.1.1, 6.1.0 and 7.0.0. JUnit retains the complete bounded matrix outcomes.
-Synthetic replies in `test_phase4.py` verify one execution per context and explicit
+Synthetic replies in `test_validator.py` verify one execution per context and explicit
 unknown columns when a context fails; no copied package JSON fixtures are introduced.
 
 M4 extends the shared retrieval query list with reviewed core R4 topics. Live publication

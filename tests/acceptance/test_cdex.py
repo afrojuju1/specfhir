@@ -2,6 +2,7 @@ import copy
 import json
 
 import pytest
+from helpers import pointer_value
 
 VERSIONS = ["2.0.0", "2.1.0"]
 PROFILE = "CDexTaskDataRequest"
@@ -39,10 +40,7 @@ def test_task(call, fhir, validate_published, published, version):
     assert external["status"] == "not_found_in_scope"
     operation = published(package, "package/OperationDefinition-submit-attachment.json")
     for item in references["items"]:
-        value = operation
-        for part in item["pointer"].split("/")[1:]:
-            value = value[int(part)] if isinstance(value, list) else value[part]
-        assert value == item["target"]
+        assert pointer_value(operation, item["pointer"]) == item["target"]
     result = call("inspect", selector=PROFILE, package=package)
     assert result["data"]["references"]["status"] == "completed"
     good = fhir("cdex-task")

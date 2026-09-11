@@ -9,7 +9,7 @@ from pathlib import Path
 import httpx
 import psycopg
 import pytest
-from helpers import archive, profile
+from helpers import archive, pointer_value, profile, project_config
 from typer.testing import CliRunner
 
 from specfhir import db, index, packages, search
@@ -40,9 +40,7 @@ def project(tmp_path):
         [profile(), profile("Differential", snapshot={}), broken],
         deps={"example.dep": "1.0.0", "example.branch": "1.0.0", "example.r5": "1.0.0"},
     )
-    config = tmp_path / "specfhir.toml"
-    config.write_text('packages = ["example.root#1.0.0"]\ndefault_package = "example.root#1.0.0"\n')
-    return config
+    return project_config(tmp_path, ["example.root#1.0.0"])
 
 
 def test_exact_graph_lock_and_archive_boundaries(project, tmp_path):
@@ -169,9 +167,8 @@ def test_download_checksum_and_cleanup(tmp_path, monkeypatch):
 @pytest.mark.skipif(not os.environ.get("SPECFHIR_REAL_SMOKE"), reason="Set SPECFHIR_REAL_SMOKE=1")
 def test_real_r4_us_core_rebuild(tmp_path, database, monkeypatch):
     repo = Path(__file__).resolve().parents[1]
-    config = tmp_path / "specfhir.toml"
     roots = ["hl7.fhir.r4.core#4.0.1", "hl7.fhir.us.core#9.0.0"]
-    config.write_text(f'packages={json.dumps(roots)}\ndefault_package="{roots[1]}"\n')
+    config = project_config(tmp_path, roots, roots[1])
     lock = Lock.model_validate_json((repo / "specfhir.lock").read_bytes())
     pins = {p.key: p for p in lock.packages}
     selected = set()
@@ -223,9 +220,7 @@ def test_real_r4_us_core_rebuild(tmp_path, database, monkeypatch):
                 "SELECT resource FROM artifacts WHERE package_key=%s AND file_path=%s",
                 (hit["source"]["package"], hit["source"]["file"]),
             ).fetchone()["resource"]
-        for part in hit["source"]["pointer"].strip("/").split("/"):
-            source = source[int(part)] if isinstance(source, list) else source[part]
-        assert source
+        assert pointer_value(source, hit["source"]["pointer"])
     assert index.sync(config)["status"] == "unchanged"
     with db.connect() as conn:
         assert (
@@ -239,3 +234,76 @@ def test_real_r4_us_core_rebuild(tmp_path, database, monkeypatch):
         conn.execute("DELETE FROM index_state")
     assert index.sync(config)["counts"] == report["counts"]
     assert search.resolve("USCorePatient.identifier", config_path=config) == result
+
+
+def test_package_inventory_and_versioned_capabilities(tmp_path, database, monkeypatch):
+    roots = ["example.guide#1.0.0", "example.guide#2.0.0"]
+    config = project_config(tmp_path, roots)
+    for key in roots:
+        archive(
+            tmp_path / ".specfhir/packages",
+            key,
+            [
+                {
+                    "resourceType": "CapabilityStatement",
+                    "id": "payer",
+                    "name": "Payer",
+                    "url": "https://example.org/payer",
+                    "version": key.split("#")[1],
+                    "description": f"Payer authorization behavior in {key}",
+                }
+            ],
+        )
+    index.sync(config)
+    for key in roots:
+        result = search.inspect("Payer", package=key, view="raw", config_path=config)
+        assert result.status == "ok"
+        assert key in json.dumps(result.model_dump())
+        result = search.search(
+            "authorization",
+            package=key,
+            resource_type="CapabilityStatement",
+            mode="lexical",
+            config_path=config,
+        )
+        assert result.status == "ok"
+        assert roots[1 - roots.index(key)] not in json.dumps(result.model_dump())
+    monkeypatch.setattr(
+        packages.httpx,
+        "get",
+        lambda *a, **k: httpx.Response(
+            200, request=httpx.Request("GET", a[0]), json={"ready": True, "snapshot_id": "stale"}
+        ),
+    )
+    report = packages.inventory(config)
+    assert report["index_matches_lock"] and report["config_matches_lock"]
+    assert report["validator"]["matches_lock"] is False
+    assert report["counts"]["artifacts"] == 2
+
+
+def test_secondary_registry_origin_survives_cache_reuse(tmp_path, monkeypatch):
+    from specfhir.config import Config
+
+    archive(tmp_path / "source", "example.guide#1.0.0")
+    payload = (tmp_path / "source/example.guide#1.0.0.tgz").read_bytes()
+    calls = []
+
+    def respond(request):
+        calls.append(str(request.url))
+        return httpx.Response(
+            404 if request.url.host == "packages.fhir.org" else 200, content=payload
+        )
+
+    def stream(*args, **kwargs):
+        return httpx.Client(transport=httpx.MockTransport(respond)).stream(*args, **kwargs)
+
+    monkeypatch.setattr(httpx, "stream", stream)
+    config = Config(packages=["example.guide#1.0.0"], default_package="example.guide#1.0.0")
+    cache = tmp_path / "cache"
+    first = packages.resolve_lock(config, cache, None)
+    assert first.packages[0].url == "https://packages2.fhir.org/packages/example.guide/1.0.0"
+    assert packages.resolve_lock(config, cache, None) == first
+    assert len(calls) == 2
+    (cache / "example.guide#1.0.0.tgz").unlink()
+    assert packages.resolve_lock(config, cache, first) == first
+    assert len(calls) == 3 and "packages2.fhir.org" in calls[-1]

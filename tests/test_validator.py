@@ -7,20 +7,17 @@ from pathlib import Path
 
 import httpx
 import pytest
-from helpers import archive, profile
+from helpers import archive, profile, project_config
 from mcp import Client, StdioServerParameters
 from typer.testing import CliRunner
 
 from specfhir import db, index, validator
 from specfhir.cli import app
-from specfhir.models import DocumentPin, Lock, PackagePin, PublicationPin
+from specfhir.models import DocumentPin, Lock, PackagePin, PublicationPin, Result
 
 
 def test_validator_lifecycle(tmp_path, database, monkeypatch):
-    config = tmp_path / "custom.toml"
-    config.write_text(
-        'packages=["example.patient#1.0.0"]\ndefault_package="example.patient#1.0.0"\n'
-    )
+    config = project_config(tmp_path, ["example.patient#1.0.0"])
     cache = tmp_path / ".specfhir/packages"
     archive(cache, "example.patient#1.0.0", [profile()])
     index.sync(config)
@@ -238,8 +235,7 @@ def test_validation_context_matrix(tmp_path, database, monkeypatch):
 
     packages = ["example#1.0.0", "example#2.0.0", "example#3.0.0"]
     contexts = [{"package": p, "profile": "PatientProfile"} for p in packages]
-    config = tmp_path / "specfhir.toml"
-    config.write_text(f'packages={json.dumps(packages)}\ndefault_package="{packages[0]}"\n')
+    config = project_config(tmp_path, packages)
     for p in packages:
         archive(tmp_path / ".specfhir/packages", p, [profile(version=p.split("#")[1])])
     index.sync(config)
@@ -432,3 +428,83 @@ def test_issue_correspondence_is_conservative():
         [[located], [{**located, "diagnostics": "Different constraint at same parent"}]]
     )
     assert changed["counts"] == {"uncertain": 1}
+
+
+def test_build_manifest_results(tmp_path, monkeypatch):
+    path = tmp_path / "cases.json"
+    (tmp_path / "instance.json").write_text('{"resourceType":"Patient"}')
+    cases = [
+        {
+            "name": "first",
+            "instance": "instance.json",
+            "package": "example#1.0.0",
+            "profile": "Patient",
+        }
+    ]
+    path.write_text(json.dumps({"cases": cases}))
+    calls = []
+
+    def validate(instance, **kwargs):
+        calls.append(kwargs)
+        return Result(
+            status="ok", data={"execution": "completed", "findings": {"errors": 2, "warnings": 1}}
+        )
+
+    monkeypatch.setattr(validator, "validate", validate)
+    runner = CliRunner()
+    result = runner.invoke(app, ["validate-cases", str(path), "--json"])
+    assert result.exit_code == 4, result.stdout
+    assert calls[0]["package"] == "example#1.0.0"
+    cases.append({**cases[0], "name": "missing", "instance": "missing.json"})
+    path.write_text(json.dumps({"cases": cases}))
+    result = runner.invoke(app, ["validate-cases", str(path), "--json"])
+    assert result.exit_code == 1
+    assert json.loads(result.stdout)["data"]["execution_failures"] == 1
+    cases.append(cases[0])
+    path.write_text(json.dumps({"cases": cases}))
+    with pytest.raises(ValueError, match="unique"):
+        validator.validate_cases(path, tmp_path / "specfhir.toml")
+
+
+def test_refresh_failure_is_explicit(tmp_path, monkeypatch):
+    import subprocess
+
+    config = project_config(tmp_path, ["example.guide#1.0.0"])
+    (tmp_path / "compose.yaml").write_text("services: {}\n")
+    config.with_name("specfhir.lock").write_text('{"roots":["example.guide#1.0.0"],"packages":[]}')
+    monkeypatch.setattr(validator, "setup", lambda path: {"snapshot_id": "expected"})
+    calls = []
+
+    def run(args, **kwargs):
+        calls.append(args)
+        assert kwargs["cwd"] == tmp_path
+
+    monkeypatch.setattr(subprocess, "run", run)
+    monkeypatch.setattr(
+        validator.httpx,
+        "get",
+        lambda *a, **k: httpx.Response(
+            200, request=httpx.Request("GET", a[0]), json={"ready": True, "snapshot_id": "stale"}
+        ),
+    )
+    with pytest.raises(ValueError, match="Index sync completed but validator refresh failed"):
+        validator.refresh(config)
+    assert calls[0][-1] == "validator"
+    from specfhir.config import load
+    from specfhir.models import Lock
+
+    expected = validator.snapshot_identity(
+        Lock.model_validate_json(config.with_name("specfhir.lock").read_bytes()),
+        load(config).default_package,
+    )
+    monkeypatch.setattr(
+        validator.httpx,
+        "get",
+        lambda *a, **k: httpx.Response(
+            200,
+            request=httpx.Request("GET", a[0]),
+            json={"ready": True, "snapshot_id": expected, "mode": "offline"},
+        ),
+    )
+    assert validator.refresh(config)["status"] == "unchanged"
+    assert len(calls) == 1

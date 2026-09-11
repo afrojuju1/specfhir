@@ -1,6 +1,8 @@
 import json
 import time
 
+from helpers import pointer_value
+
 from specfhir.config import digest
 
 LEFT = "hl7.fhir.us.davinci-pas#2.0.1"
@@ -47,10 +49,7 @@ def test_pas_comparison_workflow(call, published, record_property):
             assert evidence["source"]["file"] == MEMBER
             if not evidence["present"]:
                 continue
-            value = source_json[package]
-            for part in evidence["source"]["pointer"].split("/")[1:]:
-                part = part.replace("~1", "/").replace("~0", "~")
-                value = value[int(part)] if isinstance(value, list) else value[part]
+            value = pointer_value(source_json[package], evidence["source"]["pointer"])
             assert digest(value) == (
                 evidence["value_sha256"]
                 if evidence.get("value_truncated")
@@ -238,13 +237,11 @@ def test_pas_incoming_reference_workflow(call, published):
     for package, items in ((LEFT, left_items), (RIGHT, right["incoming_references"]["items"])):
         for item in items:
             assert item["source"]["package"] == package
-            value = published(package, item["source"]["file"])
-            for part in item["source"]["pointer"].split("/")[1:]:
-                value = value[int(part)] if isinstance(value, list) else value[part]
+            value = pointer_value(
+                published(package, item["source"]["file"]), item["source"]["pointer"]
+            )
             assert value == item["target"] == base
     for item in incoming["items"]:
         assert item["source"]["package"] == RIGHT
-        value = published(RIGHT, item["source"]["file"])
-        for part in item["source"]["pointer"].split("/")[1:]:
-            value = value[int(part)] if isinstance(value, list) else value[part]
+        value = pointer_value(published(RIGHT, item["source"]["file"]), item["source"]["pointer"])
         assert value == item["target"] == value_set

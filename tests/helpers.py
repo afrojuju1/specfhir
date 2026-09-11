@@ -4,6 +4,7 @@ import io
 import json
 import tarfile
 from collections import Counter
+from pathlib import Path
 
 
 def assert_published_errors(data, expected):
@@ -23,6 +24,27 @@ def assert_published_errors(data, expected):
             actual[identifiers[0]] += 1
     assert dict(actual) == expected
     assert data["findings"]["errors"] == sum(expected.values())
+
+
+def pointer_value(value, pointer):
+    """Read an RFC 6901 pointer from fixture JSON."""
+    if not pointer:
+        return value
+    if not pointer.startswith("/"):
+        raise ValueError("JSON pointer must be empty or start with '/'")
+    for part in pointer[1:].split("/"):
+        part = part.replace("~1", "/").replace("~0", "~")
+        value = value[int(part)] if isinstance(value, list) else value[part]
+    return value
+
+
+def project_config(root: Path, packages, default=None):
+    """Write the common minimal test project configuration."""
+    path = root / "specfhir.toml"
+    path.write_text(
+        f"packages={json.dumps(packages)}\ndefault_package={json.dumps(default or packages[0])}\n"
+    )
+    return path
 
 
 def archive(cache, key, resources=(), deps=None, release="4.0.1"):
