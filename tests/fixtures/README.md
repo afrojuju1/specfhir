@@ -32,9 +32,11 @@ frozen baseline. On an intentional package or validator update, review the compl
 new outcomes before editing expectations; never regenerate them merely to pass.
 The lock owns archive checksums, so this file does not duplicate them or resource JSON.
 
-Acceptance calls the shared API first, then compares CLI and MCP results for each
-recorded case in sequence. One MCP session serves each module. Interleaving those
-transport replays reuses resident validator engines without dropping comparisons.
+Acceptance runs every reviewed case through the shared API. In each pytest worker
+session, the first result for each tool, status and CLI exit class is also compared
+with the real CLI and MCP transports. This retains each observable transport contract
+without rerunning every domain assertion three times. Focused custom-config transport
+smokes remain separate.
 
 The release-comparison workflow reuses archived StructureDefinition JSON as well as
 published examples. Reviewed PAS Claim Inquiry expectations are: identifier minimum

@@ -243,17 +243,20 @@ Readiness checks cover both direct and archive sources with the same provenance 
   direct target evidence, bounded pages and reviewed PAS transport workflows.
 - Version comparison (M1): installed-context discovery, canonical/element-ID
   comparison, dataset guards, bounded evidence, and reviewed PAS API/CLI/MCP workflows.
-- Current hardening: interleave CLI/MCP replay per case while retaining every API
-  comparison; inspect one representative page from every sibling release with
-  dependency-aware provenance; assert reviewed published-example error categories
-  and counts; consolidate operating/design/evidence documentation; allow bounded
-  pytest-xdist runs while preserving the database and validator serialization bounds.
+- Current hardening: retain every API assertion and replay one CLI/MCP contract per
+  worker session for each exercised tool, status and CLI exit class; inspect one
+  representative page from every sibling release with dependency-aware provenance;
+  assert reviewed published-example error categories and counts; consolidate
+  operating/design/evidence documentation; allow bounded pytest-xdist runs while
+  preserving the database and validator serialization bounds.
 
 Acceptance must preserve isolation, atomic-failure behavior, exact provenance,
-positive/negative validator findings, and identical API/CLI/MCP results. Published
-examples are original checksum-verified archive bytes; synthetic fixtures are
-separate. Store reviewed error expectations once in fixtures and retain complete
-published outcomes in JUnit. A changed error category/count requires review.
+positive/negative validator findings, exhaustive API behavior, and identical
+representative API/CLI/MCP contracts per worker session for every exercised tool,
+status and CLI exit class. Published examples are original checksum-verified archive
+bytes; synthetic fixtures are separate. Store reviewed error expectations once in
+fixtures and retain complete published outcomes in JUnit. A changed error
+category/count requires review.
 
 ## Next work, when requested
 

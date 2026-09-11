@@ -74,10 +74,17 @@ def published(locked):
     return read
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def call(tmp_path_factory):
-    """Collect API outcomes; compare real CLI and one MCP session after each IG module."""
-    responses = []
+    """Run every API case; replay one contract per worker-session result class."""
+    responses = {}
+
+    def exit_code(result):
+        if result["status"] == "error":
+            return 1
+        if result["status"] in {"not_found", "effective_definition_unavailable"}:
+            return 2
+        return 4 if result.get("data", {}).get("findings", {}).get("errors") else 0
 
     def execute(tool, *, expect_error=False, **args):
         operation = {
@@ -87,7 +94,7 @@ def call(tmp_path_factory):
         }.get(tool) or getattr(search, tool)
         result = invoke(lambda: operation(**args, config_path=CONFIG))
         assert (result["status"] == "error") == expect_error, result
-        responses.append((tool, args, result))
+        responses.setdefault((tool, result["status"], exit_code(result)), (tool, args, result))
         return result
 
     yield execute
@@ -100,7 +107,7 @@ def call(tmp_path_factory):
             env={"SPECFHIR_DSN": dsn()},
         )
         async with Client(params, read_timeout_seconds=240) as client:
-            for tool, args, expected in responses:
+            for tool, args, expected in responses.values():
                 options = dict(args)
                 if tool == "validate":
                     instance_path.write_text(json.dumps(options.pop("instance")))
@@ -132,14 +139,7 @@ def call(tmp_path_factory):
                 output = await asyncio.to_thread(
                     subprocess.run, command, capture_output=True, text=True, timeout=240
                 )
-                expected_code = (
-                    1
-                    if expected["status"] == "error"
-                    else 2
-                    if expected["status"] in {"not_found", "effective_definition_unavailable"}
-                    else (4 if expected.get("data", {}).get("findings", {}).get("errors") else 0)
-                )
-                assert output.returncode == expected_code, output.stderr
+                assert output.returncode == exit_code(expected), output.stderr
                 assert json.loads(output.stdout) == expected
                 result = await client.call_tool(tool, args)
                 assert result.structured_content == expected

@@ -477,8 +477,14 @@ the database advisory lock spans isolated schemas, and the validator intentional
 serializes its shared engines.
 
 Database integration tests use isolated schemas with `SPECFHIR_TEST_DSN`; they
-never replace the application dataset. Real smokes and installed acceptance are
-explicit opt-ins:
+never replace the application dataset. Installed acceptance is a separate opt-in:
+
+```bash
+SPECFHIR_TEST_DSN=postgresql://specfhir@localhost:55432/specfhir \
+uv run pytest --live-acceptance -q
+```
+
+Add the two real smokes for the release-grade gate:
 
 ```bash
 SPECFHIR_TEST_DSN=postgresql://specfhir@localhost:55432/specfhir \
@@ -491,12 +497,14 @@ Add `-n 4` to that command for the grouped parallel variant. Installed validatio
 modules stay on one worker; read-only acceptance and isolated work may overlap.
 
 Do not run sync/build concurrently with this suite: database advisory locks span
-schemas. Acceptance reuses reviewed fixtures and compares API, CLI, and actual
-MCP results. The PAS comparison workflow checks every direct before/after value
-against the checksum-verified archive, alongside pagination, reverse comparison,
-and guarded targeted inspection. Published archive examples retain full outcomes in JUnit and assert
-reviewed error categories/counts. Updating those baselines requires reviewing the
-new outcome, not blindly accepting changed counts.
+schemas. Acceptance reuses reviewed fixtures and runs every behavioral assertion
+through the API. In each pytest worker session, one result per exercised tool, status
+and CLI exit class is also compared through the real CLI and MCP transports. The PAS
+comparison workflow checks every direct before/after value against the
+checksum-verified archive, alongside pagination, reverse comparison, and guarded
+targeted inspection. Published archive examples retain full outcomes in JUnit and
+assert reviewed error categories/counts. Updating those baselines requires reviewing
+the new outcome, not blindly accepting changed counts.
 
 `specfhir check` is read-only readiness, provenance, and release-scope coverage;
 `--with-validator` adds service readiness, not instance validation. Pytest owns

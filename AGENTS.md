@@ -9,6 +9,9 @@
 - The default test run is serial. Bounded parallel runs use `uv run pytest -n 4`;
   preserve the configured database and validator xdist groups and four-worker cap.
   Installed acceptance and real smokes remain explicit opt-ins documented in README.
+  Acceptance keeps exhaustive API behavior and one real CLI/MCP replay per worker
+  session for each exercised tool, status, and CLI exit class; do not restore per-case
+  transport replay.
 - Never run sync/build concurrently with tests.
 - Package archives, database files, caches, and credentials stay out of Git.
 - No commits or pushes unless explicitly requested.

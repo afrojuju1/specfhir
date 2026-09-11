@@ -75,8 +75,10 @@ requirements. Evidence: `.specfhir/acceptance-consolidated.xml` and its `.log`.
 The test tree now uses domain names instead of historical phase buckets. Shared test
 helpers own minimal project configuration and RFC 6901 pointer traversal; package,
 publication/cache, retrieval, embedding and validator tests keep their existing
-behavior and expensive setup boundaries. Exhaustive installed API, CLI and MCP replay
-is unchanged.
+behavior and expensive setup boundaries. Installed acceptance runs every reviewed
+behavior through the API, then replays the first result in each pytest worker session
+for every exercised tool, status and CLI exit class through the real CLI and MCP
+transports.
 
 pytest-xdist is an opt-in development dependency. `--dist=loadgroup` keeps every test
 using the isolated database fixture on one worker because the advisory sync lock spans
@@ -101,6 +103,24 @@ either shared-state guard. These are single local observations; the grouped run
 followed the serial run against a resident validator, so they are not a controlled
 capacity benchmark. Ignored evidence: `.specfhir/test-cleanup-*-serial.xml` and
 `.specfhir/test-cleanup-*-parallel.xml`.
+
+A bounded transport follow-up on 2026-09-11 kept every API assertion while replacing
+per-case CLI/MCP replay with the representative worker-session matrix above. The
+release-grade grouped command retained all 157 case identities, 20 published outcomes
+and 28 JUnit properties. All 25 non-timing property values were identical; the three
+comparison-duration properties were newly measured.
+
+| Run | Result | Seconds | Change |
+| --- | --- | ---: | ---: |
+| Prior grouped per-case replay | 157 passed | 550.02 | baseline |
+| Grouped representative replay | 157 passed | 298.52 | 45.7% less time |
+
+The focused DTR, publication and release-comparison modules passed 110 cases in
+144.31 seconds. The isolated serial suite passed 30 tests with 127 live/opt-in skips
+in 68.41 seconds. These remain single local observations against a resident validator,
+not controlled capacity benchmarks. Ignored evidence:
+`.specfhir/transport-bounded-isolated.xml` and
+`.specfhir/transport-bounded-full-parallel.xml`.
 
 Four obsolete Markdown reports were merged into this file. README now owns current
 operations, PLAN owns the design/work contract, and fixture provenance remains
