@@ -52,7 +52,25 @@ def chunks(text: str):
 def extract(resource: dict, issues: dict):
     heading = " ".join(str(resource.get(k, "")) for k in ("name", "title", "id"))
     sections = []
+    if resource.get("resourceType") == "Documentation" and "sections" in resource:
+        for i, section in enumerate(resource["sections"]):
+            sections.append(
+                (
+                    "section",
+                    f"/sections/{i}/text",
+                    None,
+                    None,
+                    heading + " " + section["heading"],
+                    section["text"],
+                )
+            )
     for key in ("description", "purpose", "copyright"):
+        if (
+            key == "description"
+            and resource.get("resourceType") == "Documentation"
+            and "sections" in resource
+        ):
+            continue
         if isinstance(value := resource.get(key), str) and value.strip():
             sections.append((key, f"/{key}", None, None, heading, value))
     narrative = resource.get("text", {}).get("div")
@@ -99,39 +117,95 @@ def extract(resource: dict, issues: dict):
             yield [kind, pointer, element_id, view, ordinal, title, passage, checksum]
 
 
-def page_text(html: str) -> str:
-    """Extract the published IG content region, excluding shared navigation/footer."""
+def page_sections(html: str, anchors=()) -> list[dict]:
+    """Preserve authored heading boundaries, anchors and links inside the content region."""
 
     class Page(Narrative):
-        depth = 0
-        found = False
+        def __init__(self):
+            super().__init__()
+            self.depth = 0
+            self.found = False
+            self.sections = []
+            self.heading = ""
+            self.anchor = None
+            self.pending_anchor = None
+            self.in_heading = False
+            self.links = []
+
+        def flush(self):
+            text = "".join(self.parts).strip()
+            if text:
+                self.sections.append(
+                    dict(
+                        heading=self.heading,
+                        anchor=self.anchor,
+                        text=text,
+                        links=list(dict.fromkeys(self.links)),
+                    )
+                )
+            self.parts = []
+            self.links = []
 
         def handle_starttag(self, tag, attrs):
-            if tag == "div" and dict(attrs).get("id") == "segment-content":
+            attrs = dict(attrs)
+            if tag == "div" and attrs.get("id") == "segment-content":
                 self.depth = 1
                 self.found = True
                 return
-            if self.depth:
-                if tag == "div":
-                    self.depth += 1
-                super().handle_starttag(tag, attrs)
+            if not self.depth:
+                return
+            if tag == "div":
+                self.depth += 1
+            if tag in {"h1", "h2", "h3", "h4", "h5", "h6"}:
+                self.flush()
+                self.heading = ""
+                self.anchor = attrs.get("id") or self.pending_anchor
+                self.pending_anchor = None
+                self.in_heading = True
+            elif attrs.get("id") or (tag == "a" and attrs.get("name")):
+                anchor = attrs.get("id") or attrs.get("name")
+                if self.in_heading:
+                    self.anchor = self.anchor or anchor
+                elif tag == "a":
+                    self.pending_anchor = anchor
+            if tag == "a" and attrs.get("href"):
+                self.links.append(attrs["href"])
+            super().handle_starttag(tag, list(attrs.items()))
 
         def handle_endtag(self, tag):
-            if self.depth:
-                super().handle_endtag(tag)
-                if tag == "div":
-                    self.depth -= 1
+            if not self.depth:
+                return
+            if tag in {"h1", "h2", "h3", "h4", "h5", "h6"}:
+                self.heading = " ".join("".join(self.parts).split())
+                self.parts.append("\n")
+                self.in_heading = False
+            super().handle_endtag(tag)
+            if tag == "div":
+                self.depth -= 1
 
         def handle_data(self, data):
             if self.depth:
                 super().handle_data(data)
+                if data.strip() and not self.in_heading:
+                    self.pending_anchor = None
 
     parser = Page()
     parser.feed(html)
-    text = "".join(parser.parts).strip()
-    if not parser.found or not text:
+    parser.flush()
+    if not parser.found or not parser.sections:
         raise ValueError("Published page has no IG segment-content region")
-    return text
+    if anchors:
+        selected = [s for s in parser.sections if s["anchor"] in anchors]
+        if sorted(s["anchor"] for s in selected) != sorted(anchors) or len(set(anchors)) != len(
+            anchors
+        ):
+            raise ValueError("Selected publication anchors are missing, ambiguous, or duplicated")
+        return selected
+    return parser.sections
+
+
+def page_text(html: str) -> str:
+    return "\n\n".join(section["text"] for section in page_sections(html))
 
 
 def pin_pages(sources, previous, cache):
@@ -161,7 +235,7 @@ def pin_pages(sources, previous, cache):
             sha = hashlib.sha256(content).hexdigest()
             if pin and pin.sha256 != sha:
                 raise Error(f"Published documentation checksum changed: {source.url}")
-            page_text(content.decode("utf-8"))
+            page_sections(content.decode("utf-8"), source.anchors)
             path = cache / f"{sha}.html"
             temporary = path.with_suffix(".tmp")
             temporary.write_bytes(content)

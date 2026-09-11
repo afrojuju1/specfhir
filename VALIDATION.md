@@ -186,6 +186,64 @@ Evidence: `.specfhir/m3-matrix-focused.xml`, `.specfhir/m3-matrix-acceptance.xml
 their logs. Earlier prototype measurements remain only in ignored local reports;
 the context-list contract supersedes them.
 
+## M4 — Connected guidance (2026-09-10)
+
+Six checksum-pinned permanent R4 pages cover profiling/slicing, extensibility,
+references, terminology bindings, bundles and conformance. The core whole-spec
+ZIP was inspected: 35,698 entries, 1,795,754,302 expanded bytes, backslash member
+paths and no embedded package archive. It does not meet the verified IG archive
+contract. Existing direct-page acquisition is used without weakening archive guards.
+Bundle selection retains 14 authored anchors and excludes generated definition tables.
+
+Publication extraction preserves sections, headings, anchors and outgoing source
+links for all 115 pinned pages. Search labels relevance candidates and carries a
+dataset guard. The existing inspect operation reads complete bounded passages by
+pointer or heading anchor, with stable continuation and explicit missing targets.
+Readiness checks now use the same provenance/isolation checks for direct and archive
+pages. No new service, dependency, FHIR interpretation or persisted query state.
+
+Focused acceptance passed **98 tests in 88.91 seconds**, covering all existing IG
+retrieval queries, seven reviewed R4 topics in lexical/hybrid modes, a PAS comparison
+through release-specific guidance and bounded passage reading, API/CLI/MCP parity,
+and synthetic source selection, offline reuse and stale-continuation failures.
+Additional full-regression checks follow an explicit published link into another
+indexed page and verify excluded generated Bundle sections remain unavailable.
+
+The real sync completed in **263.322 seconds**: acquisition 7.820, extraction 8.175,
+embedding preparation 116.736, database publication 126.384 (including 16.176 for
+reference computation), and analyze 3.933. It reused 51 of 60 package preparations
+and 235,057 of 242,301 embeddings. Publication-only preparation identities preserve
+reuse for structured-only packages; the published index format is now 6.
+A locked repeat with HTTP disabled returned unchanged in **5.810 seconds**, with
+zero extraction, embedding, publication or reference work. Package/validator pins
+are unchanged; no validator restart was needed. Full database publication remains
+a measured existing cost, not an incremental-publication implementation in M4.
+
+The complete regression passed **154 tests in 736.36 seconds**. Final review then
+added exact-canonical-before-fragment lookup, nested heading IDs, and shared runtime
+identity checks. Publication identity now includes resource, page and embedding
+transformation versions; ordinary sync detects them and readiness exposes
+`index_matches_runtime`. A synthetic regression verifies stale readiness before
+sync and rejected continuation after it.
+
+The final ordinary locked refresh took **197.218 seconds** and reused all **242,301
+embeddings**; embedding preparation took 26.356 seconds, database publication
+154.118 seconds (including 18.247 for references). These runs differ in newly
+embedded content and are not a controlled throughput benchmark. The final locked
+repeat with HTTP disabled returned unchanged in **4.579 seconds**.
+
+Final verification on the completed code passed **126 tests in 206.90 seconds**:
+all isolated tests (including real embedding/validator smoke tests) and the entire
+publication acceptance set with API/CLI/MCP replay. This covers the final identity,
+exact canonical, nested heading, malformed link and direct-source readiness changes.
+All **11 installed checks** passed, including `index_matches_runtime` and validator
+readiness. Ruff, formatting, Pyright and diff checks passed.
+
+Evidence: `.specfhir/m4-final-sync.json`, `.specfhir/m4-final-offline-sync.json`,
+`.specfhir/m4-final-check.json`, `.specfhir/m4-acceptance.xml`,
+`.specfhir/m4-final-acceptance.xml`, `.specfhir/m4-sync.json`, `.specfhir/m4-offline-sync.json`,
+`.specfhir/m4-focused.xml`, `.specfhir/m4-check.json`, and their logs.
+
 ## Published examples versus synthetic fixtures
 
 Twenty original published examples across eight IG releases are loaded directly

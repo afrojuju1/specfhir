@@ -7,7 +7,7 @@ from psycopg.rows import dict_row
 
 from specfhir.config import dsn
 
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 SYNC_LOCK = 1936746086
 
 # Shared source-package closure; callers retain their query and transaction boundaries.

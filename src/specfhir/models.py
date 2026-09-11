@@ -43,6 +43,7 @@ class DocumentSource(BaseModel):
     package: str
     url: str = Field(pattern=r"^https://[^\s]+$")
     title: str = Field(min_length=1)
+    anchors: list[str] = Field(default_factory=list, max_length=100)
 
 
 class DocumentPin(DocumentSource):

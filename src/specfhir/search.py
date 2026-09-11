@@ -3,6 +3,7 @@
 import json
 from pathlib import Path
 from typing import Any, Literal
+from urllib.parse import quote, unquote, urldefrag, urljoin, urlsplit
 
 from specfhir import db, embeddings
 from specfhir.config import load
@@ -67,6 +68,39 @@ def provenance(row: dict[str, Any], pointer: str = "") -> dict[str, Any]:
     }
 
 
+def passage_context(resource, pointer):
+    """Source links are evidence of a link, never proof of a change's explanation."""
+    if resource.get("resourceType") != "Documentation":
+        return {}
+    fields = pointer.split("/")
+    if len(fields) != 4 or fields[1] != "sections" or not fields[2].isdigit():
+        return {}
+    sections = resource.get("sections", [])
+    i = int(fields[2])
+    if i >= len(sections):
+        return {}
+    section = sections[i]
+    url = resource["url"]
+    links = []
+    for href in section["links"]:
+        try:
+            target = urljoin(url, href)
+            if urlsplit(target).scheme in {"http", "https"}:
+                links.append(target)
+        except ValueError:
+            continue  # Original malformed href remains available in raw inspection.
+    return {
+        "heading": section["heading"],
+        "anchor": section["anchor"],
+        "citation_url": url + ("#" + quote(section["anchor"]) if section["anchor"] else ""),
+        "source_sha256": resource["source_sha256"],
+        "links": [{"url": link, "relationship": "published_link"} for link in links[:20]],
+        "links_total": len(links),
+        "links_unusable": len(section["links"]) - len(links),
+        "links_truncated": len(links) > 20,
+    }
+
+
 def candidates(
     conn, context, selector, artifact_version=None, *, canonical_only=False, metadata_only=False
 ):
@@ -105,7 +139,10 @@ def lookup(
     package: str | None = None,
     artifact_version: str | None = None,
     element: str | None = None,
-    view: Literal["snapshot", "differential", "raw"] = "snapshot",
+    view: Literal["snapshot", "differential", "raw", "passages"] = "snapshot",
+    pointer: str | None = None,
+    offset: int = 0,
+    limit: int = 5,
     config_path: Path = Path("specfhir.toml"),
     include_references: bool = False,
     dataset_id: str | None = None,
@@ -126,13 +163,23 @@ def lookup(
         and element is None
     ):
         selector, element = selector.split(".", 1)
-    if view not in {"snapshot", "differential", "raw"}:
-        raise Error("view must be snapshot, differential, or raw")
+    if view not in {"snapshot", "differential", "raw", "passages"}:
+        raise Error("view must be snapshot, differential, raw, or passages")
+    if view != "passages" and (pointer is not None or offset or limit != 5):
+        raise Error("pointer, offset and limit require view=passages")
+    if pointer is not None and (
+        not isinstance(pointer, str) or not pointer.startswith("/") or len(pointer) > 2048
+    ):
+        raise Error("pointer must be a JSON pointer of at most 2048 characters")
+    fragment = ""
+    if view == "passages":
+        if element is not None:
+            raise Error("Use pointer, not element, with view=passages")
     with db.connect() as conn, conn.transaction():
         # Artifact and element reads must belong to the same published generation.
         conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
         state = db.published(conn)
-        db.page_bounds(0, 100, dataset_id, state["identity"])
+        db.page_bounds(offset, limit, dataset_id, state["identity"])
         package_row = conn.execute("SELECT * FROM packages WHERE key=%s", (context,)).fetchone()
         if not package_row:
             return Result(
@@ -149,6 +196,15 @@ def lookup(
                 message=package_row["excluded_reason"],
             )
         rows = candidates(conn, context, selector, artifact_version)
+        if not rows and view == "passages":
+            page, fragment = urldefrag(selector)
+            fragment = unquote(fragment)
+            if fragment:
+                rows = [
+                    row
+                    for row in candidates(conn, context, page, artifact_version)
+                    if row["resource_type"] == "Documentation"
+                ]
         if not rows:
             return Result(
                 dataset_id=state["identity"],
@@ -167,6 +223,62 @@ def lookup(
         row = rows[0]
         resource = row["resource"]
         source = provenance(row)
+        if view == "passages":
+            if fragment:
+                matched = [
+                    i
+                    for i, section in enumerate(resource.get("sections", []))
+                    if section.get("anchor") == fragment
+                ]
+                if len(matched) != 1:
+                    return Result(
+                        status="ambiguous" if matched else "not_found",
+                        dataset_id=state["identity"],
+                        context=context,
+                        message="Publication anchor is missing or ambiguous",
+                    )
+                selected_pointer = f"/sections/{matched[0]}/text"
+                if pointer is not None and pointer != selected_pointer:
+                    raise Error("Conflicting pointer and publication anchor")
+                pointer = selected_pointer
+            count = conn.execute(
+                "SELECT count(*) AS n FROM documents WHERE artifact_id=%s "
+                "AND (%s::text IS NULL OR pointer=%s)",
+                (row["id"], pointer, pointer),
+            ).fetchone()
+            assert count is not None
+            total = count["n"]
+            passages = conn.execute(
+                "SELECT pointer,chunk,text FROM documents WHERE artifact_id=%s "
+                "AND (%s::text IS NULL OR pointer=%s) "
+                "ORDER BY CASE WHEN pointer LIKE '/sections/%%/text' "
+                "THEN split_part(pointer,'/',3)::integer END, pointer,chunk LIMIT %s OFFSET %s",
+                (row["id"], pointer, pointer, limit, offset),
+            ).fetchall()
+            return Result(
+                status="ok" if total else "not_found",
+                context=context,
+                dataset_id=state["identity"],
+                data={
+                    "source": source,
+                    "pointer": pointer,
+                    "offset": offset,
+                    "limit": limit,
+                    "total": total,
+                    "next_offset": offset + len(passages)
+                    if offset + len(passages) < total
+                    else None,
+                    "passages": [
+                        {
+                            "source": provenance(row, d["pointer"]),
+                            "chunk": d["chunk"],
+                            "text": d["text"],
+                            **passage_context(resource, d["pointer"]),
+                        }
+                        for d in passages
+                    ],
+                },
+            )
         reference_data = {}
         if include_references:
             from specfhir.references import inspection
@@ -302,6 +414,7 @@ def search(
     resource_type: str | None = None,
     limit: int = 5,
     mode: str = "auto",
+    dataset_id: str | None = None,
     config_path: Path = Path("specfhir.toml"),
 ) -> Result:
     """Retrieve evidence in one locked package context; never generate an answer."""
@@ -316,16 +429,13 @@ def search(
     context = package or load(config_path).default_package
     with db.connect() as conn, conn.transaction():
         conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
-        relation = conn.execute("SELECT to_regclass('index_state') AS relation").fetchone()
-        if not relation or not relation["relation"]:
-            raise Error("No index; run specfhir sync first")
-        state = conn.execute("SELECT metadata FROM index_state").fetchone()
-        if not state or state["metadata"].get("schema_version", 0) < 2:
-            raise Error("Text index unavailable; run specfhir sync first")
+        state = db.published(conn)
+        db.page_bounds(0, limit, dataset_id, state["identity"])
         selected = conn.execute("SELECT * FROM packages WHERE key=%s", (context,)).fetchone()
         if not selected or selected["excluded_reason"]:
             return Result(
                 status="not_found",
+                dataset_id=state["identity"],
                 context=context,
                 message=selected["excluded_reason"] if selected else "Package is not indexed",
             )
@@ -429,8 +539,17 @@ def search(
         """,
             {"package": context},
         ).fetchall()
+        resources = {
+            r["id"]: r["resource"]
+            for r in conn.execute(
+                "SELECT id,resource FROM artifacts WHERE id=ANY(%s) "
+                "AND resource_type='Documentation'",
+                ([r["artifact_id"] for r in rows],),
+            ).fetchall()
+        }
         return Result(
             status="ok",
+            dataset_id=state["identity"],
             context=context,
             data={
                 "query": query,
@@ -447,6 +566,8 @@ def search(
                         "chunk": row["chunk"],
                         "text": row["excerpt"],
                         "truncated": row["truncated"],
+                        "relationship": "relevance_candidate",
+                        **passage_context(resources.get(row["artifact_id"], {}), row["pointer"]),
                         "method": row["method"],
                         "score": float(row["score"]),
                     }

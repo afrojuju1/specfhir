@@ -100,10 +100,13 @@ def inspect(
     element: str | None = None,
     view: str = "snapshot",
     dataset_id: str | None = None,
+    pointer: str | None = None,
+    offset: int = 0,
+    limit: int = 5,
     config: ConfigOption = Path("specfhir.toml"),
     as_json: Annotated[bool, typer.Option("--json")] = False,
 ):
-    """Inspect compact metadata, supplied snapshot/differential elements, or raw JSON."""
+    """Inspect metadata, snapshot/differential elements, raw JSON, or bounded passages."""
     emit(
         lambda: search.inspect(
             selector,
@@ -112,6 +115,9 @@ def inspect(
             element=element,
             view=view,
             dataset_id=dataset_id,
+            pointer=pointer,
+            offset=offset,
+            limit=limit,
             config_path=config,
         ),
         as_json,
@@ -124,6 +130,7 @@ def search_command(
     package: str | None = None,
     resource_type: str | None = None,
     limit: int = 5,
+    dataset_id: str | None = None,
     mode: str = "auto",
     config: ConfigOption = Path("specfhir.toml"),
     as_json: Annotated[bool, typer.Option("--json")] = False,
@@ -136,6 +143,7 @@ def search_command(
             resource_type=resource_type,
             limit=limit,
             mode=mode,
+            dataset_id=dataset_id,
             config_path=config,
         ),
         as_json,

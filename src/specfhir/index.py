@@ -159,13 +159,16 @@ def prepare_package(lock: Lock, cache: Path, spool: Path) -> dict[str, Any]:
             raw = path.read_bytes()
             if hashlib.sha256(raw).hexdigest() != source.sha256:
                 raise Error(f"Documentation checksum differs: {source.url}")
+            sections = documents.page_sections(raw.decode("utf-8"), source.anchors)
             resource = {
                 "resourceType": "Documentation",
                 "id": source.url.rsplit("/", 1)[-1],
                 "url": source.url,
                 "version": source.package.split("#")[1],
                 "title": source.title,
-                "description": documents.page_text(raw.decode("utf-8")),
+                "description": "\n\n".join(s["text"] for s in sections),
+                "sections": sections,
+                "selected_anchors": source.anchors,
                 "source_sha256": source.sha256,
                 "publication": source.publication,
                 "publication_member": source.member,
@@ -186,6 +189,22 @@ def prepare_package(lock: Lock, cache: Path, spool: Path) -> dict[str, Any]:
 
 # Bump when extraction or spool semantics change (including documents.extract).
 PREPARATION_VERSION = 2
+PAGE_PREPARATION_VERSION = 2
+
+
+def publication_identity(lock: Lock) -> str:
+    """One identity for sync, readiness and guarded follow-up reads."""
+    return digest(
+        {
+            "lock": lock.model_dump(),
+            "schema": db.SCHEMA_VERSION,
+            "preparation": {
+                "resources": PREPARATION_VERSION,
+                "pages": PAGE_PREPARATION_VERSION if lock.documents else None,
+                "embeddings": embeddings.PREPARATION_VERSION if lock.embedding else None,
+            },
+        }
+    )
 
 
 def preparation_key(pin, pages):
@@ -195,6 +214,8 @@ def preparation_key(pin, pages):
             "archive": pin.sha256,
             "documents": [d.model_dump() for d in pages],
             "version": PREPARATION_VERSION,
+            # Page-only extraction changes preserve structured-only package caches.
+            **({"page_extraction_version": PAGE_PREPARATION_VERSION} if pages else {}),
         }
     )
 
@@ -461,7 +482,7 @@ def sync(
                 work, config.embedding, existing.embedding if existing else None, update_lock
             )
         timings["acquisition_seconds"] = round(time.monotonic() - stage, 3)
-        identity = digest({"lock": lock.model_dump(), "schema": db.SCHEMA_VERSION})
+        identity = publication_identity(lock)
         conn.execute(db.DDL)
         state = conn.execute("SELECT * FROM index_state").fetchone()
         if state and state["identity"] == identity and not rebuild:

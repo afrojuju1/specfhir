@@ -82,6 +82,50 @@ still usable. Generated narratives and copyright remain lexical-only.
 Search accepts up to 500 characters and returns 1–50 results with bounded excerpts,
 source locations, and explicit truncation. Use exact lookup for identifiers.
 
+## Read surrounding guidance
+
+Search results are `relevance_candidate` evidence, not proven explanations of a
+computed change. Search now returns `dataset_id` and accepts it on follow-up calls.
+Use the result's exact canonical, owning package and pointer to read full passages:
+
+```bash
+uv run specfhir inspect 'https://hl7.org/fhir/R4/profiling.html#cardinality' \
+  --package 'hl7.fhir.us.davinci-pas#2.1.0' --view passages --limit 5 --json
+```
+
+`inspect --view passages` works for indexed resource text and publication prose.
+It accepts `--pointer` to select the section/field cited by search, and `--offset`
+and `--limit` (1–100, default 5). Continue using `next_offset` and the returned
+`--dataset-id`; stale continuation is rejected. Without a pointer or URL fragment,
+it traverses the document in section order. Each passage retains its original
+pointer and chunk; chunks are bounded by extraction and the published token budget.
+A section can span multiple passages. A fragment selects that exact published
+heading anchor; missing or duplicate anchors remain not found or ambiguous.
+
+Publication passages include headings, citation URLs, page checksums and up to 20
+outgoing `published_link` URLs per section. These are literal publisher links,
+resolved relative to the pinned page URL; they are not automatically rewritten to
+another release, fetched, or claimed to explain a change. `links_total` and
+`links_truncated` expose the bound; `links_unusable` counts malformed/non-HTTP links; raw inspection retains every extracted link.
+Follow a link through the same scoped inspect operation. An unindexed page or
+anchor stays unavailable. Search ranking and explicit hyperlinks are separate
+forms of evidence; neither establishes compatibility or conformance.
+
+Core R4 guidance is pinned through six explicit permanent publication pages:
+profiling (including slicing), extensibility, references, terminology bindings,
+bundles and conformance. Bundle ingestion selects authored section anchors and
+omits generated resource/constraint/search tables already represented by package
+JSON. An optional `anchors` list on an explicit document source selects exact
+sections and rejects missing or duplicated anchors. Empty/omitted selects the
+whole content region. This is selected coverage, not the full R4 publication.
+
+The R4 whole-spec ZIP has no embedded package archive and uses backslash member
+paths, so it cannot meet our existing verified IG archive contract. Its selected
+permanent pages use the existing checksum-pinned direct acquisition path instead.
+`check` verifies both direct and archive page provenance and sibling-release
+isolation. `index_matches_runtime` also checks extraction/embedding format versions
+through the same dataset identity used by sync; a matching lock alone is insufficient. Ordinary locked sync reuses the downloaded pages offline.
+
 ## Compare profile releases
 
 ```bash

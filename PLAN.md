@@ -99,6 +99,8 @@ identity. A disposable vector cache reuses exact model/input hashes. Preparation
 happens outside the database publication transaction. Publish the full dataset
 and its identity atomically under the existing advisory lock; failure preserves
 the prior dataset. A pending lock must not relabel old database content as current.
+Dataset identity includes extraction and embedding transformation versions, so
+transformation changes trigger ordinary sync and invalidate stale continuations.
 Unchanged sync is a verified no-op. Explicit pruning removes only recognized
 obsolete prepared/embedded/vector generations after successful sync.
 
@@ -205,6 +207,22 @@ Duplicate keys, changed messages and insufficient identity remain uncertain. Pre
 original issue indices and input semantics. No fuzzy wording match, automatic retry,
 persisted input/result store, new service or multi-instance batch extension is introduced.
 
+## Connected guidance
+
+Reuse publication extraction to retain authored sections, heading anchors and literal
+outgoing links in the indexed Documentation JSON. Passage pointers identify section
+text; no independent guidance database or graph is introduced. Explicit page sources
+may select reviewed anchors to exclude generated resource tables. Pin six permanent
+R4 pages through existing direct acquisition because the whole-spec archive does not
+provide the embedded-package identity required by the IG archive contract.
+
+Search labels relevance candidates and carries a published dataset guard. Existing
+inspection exposes bounded, ordered passage continuation for any indexed text source,
+including exact page-anchor selection. Publisher links remain separate from search
+relevance and computed changes. Never rewrite links to other releases or infer an
+explanation. Unindexed targets, missing anchors and stale continuations stay explicit.
+Readiness checks cover both direct and archive sources with the same provenance checks.
+
 ## Completed milestones and acceptance
 
 - Foundation: locked packages, exact lookup, effective/raw inspection, atomic sync.
@@ -214,6 +232,8 @@ persisted input/result store, new service or multi-instance batch extension is i
   publication prose, dependency-aware references, shared positive/negative fixtures.
 - Reuse: prepared and embedded spools, measured SQL tuning, explicit cache cleanup,
   pytest acceptance consolidation, retrieval-independent validator identity.
+- Connected guidance (M4): pinned core prose, source sections/links, bounded passage
+  continuation, release-scoped evidence and transformation-aware readiness.
 - Multi-context validation (M3): typed selections, one execution per context, preserved
   outcomes and a conservative issue matrix; verified with three real release contexts.
 - Package/dependency comparison (M2): owned inventories, exact dependency pins/edges,
@@ -233,8 +253,8 @@ published outcomes in JUnit. A changed error category/count requires review.
 
 ## Next work, when requested
 
-Beads epic `sf-oyi` owns the approved roadmap. Remaining milestones cover connected
-guidance, broader evidenced relationships, and operational readiness.
+Beads epic `sf-oyi` owns the approved roadmap. Remaining milestones cover broader
+evidenced relationships and operational readiness.
 
 Expand through the existing package/publication configuration and pytest paths.
 For each release, verify exact dependencies, documentation provenance, representative

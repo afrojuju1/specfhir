@@ -211,7 +211,7 @@ def versions(name: str) -> dict:
 
 def inventory(config_path: Path, *, with_validator=True) -> dict:
     """Report published coverage and whether the validator matches the current lock."""
-    from specfhir import db, validator
+    from specfhir import db, index, validator
     from specfhir.config import digest, load, lock_path
 
     config = load(config_path)
@@ -229,6 +229,7 @@ def inventory(config_path: Path, *, with_validator=True) -> dict:
         "configured_roots": config.packages,
         "published_roots": metadata["roots"],
         "index_matches_lock": metadata["lock_digest"] == digest(lock.model_dump()),
+        "index_matches_runtime": state["identity"] == index.publication_identity(lock),
         "config_matches_lock": sorted(config.packages) == lock.roots
         and [d.model_dump() for d in config.documents]
         == [
@@ -318,6 +319,7 @@ def contexts(
             "published_roots",
             "configured_roots",
             "index_matches_lock",
+            "index_matches_runtime",
             "config_matches_lock",
             "counts",
         )

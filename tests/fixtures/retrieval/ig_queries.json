@@ -238,5 +238,47 @@
     "query": "submit solicited unsolicited attachments",
     "resource_type": "OperationDefinition",
     "expected_canonical": "http://hl7.org/fhir/us/davinci-cdex/OperationDefinition/submit-attachment"
+  },
+  {
+    "package": "hl7.fhir.r4.core#4.0.1",
+    "query": "changing cardinality",
+    "resource_type": "Documentation",
+    "expected_canonical": "https://hl7.org/fhir/R4/profiling.html"
+  },
+  {
+    "package": "hl7.fhir.r4.core#4.0.1",
+    "query": "discriminator",
+    "resource_type": "Documentation",
+    "expected_canonical": "https://hl7.org/fhir/R4/profiling.html"
+  },
+  {
+    "package": "hl7.fhir.r4.core#4.0.1",
+    "query": "modifier extensions",
+    "resource_type": "Documentation",
+    "expected_canonical": "https://hl7.org/fhir/R4/extensibility.html"
+  },
+  {
+    "package": "hl7.fhir.r4.core#4.0.1",
+    "query": "logical references",
+    "resource_type": "Documentation",
+    "expected_canonical": "https://hl7.org/fhir/R4/references.html"
+  },
+  {
+    "package": "hl7.fhir.r4.core#4.0.1",
+    "query": "binding strengths",
+    "resource_type": "Documentation",
+    "expected_canonical": "https://hl7.org/fhir/R4/terminologies.html"
+  },
+  {
+    "package": "hl7.fhir.r4.core#4.0.1",
+    "query": "resolving references",
+    "resource_type": "Documentation",
+    "expected_canonical": "https://hl7.org/fhir/R4/bundle.html"
+  },
+  {
+    "package": "hl7.fhir.r4.core#4.0.1",
+    "query": "mustSupport",
+    "resource_type": "Documentation",
+    "expected_canonical": "https://hl7.org/fhir/R4/conformance-rules.html"
   }
 ]

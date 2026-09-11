@@ -30,7 +30,7 @@ FILES = (
     "vocab.txt",
 )
 DIMENSIONS = 384
-# Bump for spool changes; also bump db.SCHEMA_VERSION if published content changes.
+# Bump for spool changes; this version also participates in published dataset identity.
 PREPARATION_VERSION = 1
 
 

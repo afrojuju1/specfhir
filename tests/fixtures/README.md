@@ -57,3 +57,10 @@ identifier only in PAS 2.1.0. A minimal base R4 Patient verifies unchanged findi
 across US Core 3.1.1, 6.1.0 and 7.0.0. JUnit retains the complete bounded matrix outcomes.
 Synthetic replies in `test_phase4.py` verify one execution per context and explicit
 unknown columns when a context fails; no copied package JSON fixtures are introduced.
+
+M4 extends the shared retrieval query list with reviewed core R4 topics. Live publication
+acceptance exercises comparison → release-scoped search → full passage continuation,
+including dependency-owned core guidance and missing anchors. Direct and archive page
+provenance use the same installed check. Synthetic HTML in `test_guidance.py` verifies
+section selection, source links, offline reuse, and dataset-guarded continuation; no
+publication HTML is copied into test fixtures.

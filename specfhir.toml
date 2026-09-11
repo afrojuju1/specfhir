@@ -57,3 +57,34 @@ page_prefix = ""
 package = "hl7.fhir.us.davinci-dtr#2.1.0"
 url = "https://hl7.org/fhir/us/davinci-dtr/STU2.1/full-ig.zip"
 page_prefix = ""
+
+[[documents]]
+package = "hl7.fhir.r4.core#4.0.1"
+url = "https://hl7.org/fhir/R4/profiling.html"
+title = "Profiling FHIR"
+
+[[documents]]
+package = "hl7.fhir.r4.core#4.0.1"
+url = "https://hl7.org/fhir/R4/extensibility.html"
+title = "Extensibility"
+
+[[documents]]
+package = "hl7.fhir.r4.core#4.0.1"
+url = "https://hl7.org/fhir/R4/references.html"
+title = "Resource References"
+
+[[documents]]
+package = "hl7.fhir.r4.core#4.0.1"
+url = "https://hl7.org/fhir/R4/terminologies.html"
+title = "Using Codes in Resources"
+
+[[documents]]
+package = "hl7.fhir.r4.core#4.0.1"
+url = "https://hl7.org/fhir/R4/bundle.html"
+title = "Bundle"
+anchors = ["scope", "bnr", "notes", "using", "document", "message", "searchset", "history", "transaction", "transaction-response", "collection", "bundle-unique", "references", "rest"]
+
+[[documents]]
+package = "hl7.fhir.r4.core#4.0.1"
+url = "https://hl7.org/fhir/R4/conformance-rules.html"
+title = "Conformance Rules"

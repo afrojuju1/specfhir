@@ -49,9 +49,14 @@ def validate_published(call, published, record_property):
     return validate
 
 
+@pytest.fixture(scope="session")
+def locked():
+    return Lock.model_validate_json((ROOT / "specfhir.lock").read_bytes())
+
+
 @pytest.fixture(scope="module")
-def published():
-    lock = Lock.model_validate_json((ROOT / "specfhir.lock").read_bytes())
+def published(locked):
+    lock = locked
     cache = {}
 
     def read(package, member):
