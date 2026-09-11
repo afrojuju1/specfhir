@@ -127,3 +127,40 @@ def test_comparison_guidance(call):
         dataset_id=dataset,
     )
     assert omitted["status"] == "not_found"  # Generated resource table deliberately excluded.
+
+
+def test_us_core_release_guidance(call):
+    roots = ["hl7.fhir.us.core#7.0.0", "hl7.fhir.us.core#9.0.0"]
+    comparison = call(
+        "compare",
+        selector="USCorePatient",
+        left_package=roots[0],
+        right_package=roots[1],
+        limit=1,
+    )
+    dataset = comparison["dataset_id"]
+    assert comparison["data"]["total"] == 64
+    for package, release in zip(roots, ("STU7", "STU9"), strict=True):
+        result = call(
+            "search",
+            query="profile only support interaction support",
+            package=package,
+            resource_type="Documentation",
+            mode="lexical",
+            dataset_id=dataset,
+        )
+        canonical = f"https://hl7.org/fhir/us/core/{release}/general-requirements.html"
+        hit = next(
+            row for row in result["data"]["results"] if row["source"]["canonical"] == canonical
+        )
+        passage = call(
+            "inspect",
+            selector=canonical,
+            package=package,
+            view="passages",
+            pointer=hit["source"]["pointer"],
+            limit=1,
+            dataset_id=dataset,
+        )
+        assert passage["data"]["source"]["package"] == package
+        assert passage["data"]["passages"]

@@ -115,10 +115,14 @@ def dependency_closure(pins: dict[str, PackagePin], root: str) -> set[str]:
     return visited
 
 
-def resolve_lock(config: Config, cache: Path, previous: Lock | None) -> Lock:
+def resolve_lock(
+    config: Config, cache: Path, previous: Lock | None, *, update: bool = False
+) -> Lock:
     pins = {pin.key: pin for pin in previous.packages} if previous else {}
-    if previous and (
-        previous.roots != sorted(config.packages) or len(pins) != len(previous.packages)
+    if (
+        previous
+        and not update
+        and (previous.roots != sorted(config.packages) or len(pins) != len(previous.packages))
     ):
         raise Error("Lock/config mismatch; run sync --update-lock")
     found: dict[str, PackagePin] = {}
@@ -131,7 +135,7 @@ def resolve_lock(config: Config, cache: Path, previous: Lock | None) -> Lock:
             return
         if len(found) + len(active) >= 256:
             raise Error("Package graph exceeds 256 packages")
-        if previous and key not in pins:
+        if previous and not update and key not in pins:
             raise Error(f"Dependency {key} missing from lock; run sync --update-lock")
         active.add(key)
         name, version = split_key(key)
@@ -146,13 +150,13 @@ def resolve_lock(config: Config, cache: Path, previous: Lock | None) -> Lock:
         try:
             path, checksum = obtain(cache, key, url, pin.sha256 if pin else None)
         except httpx.HTTPStatusError as exc:
-            if pin or exc.response.status_code != 404:
+            if (pin and not update) or exc.response.status_code != 404:
                 raise
             url = f"https://packages2.fhir.org/packages/{name}/{version}"
-            path, checksum = obtain(cache, key, url, None)
+            path, checksum = obtain(cache, key, url, pin.sha256 if pin else None)
         value = manifest(path, key)
         deps = dependencies(value)
-        if pin and deps != pin.dependencies:
+        if pin and not update and deps != pin.dependencies:
             raise Error(f"Locked dependency edges do not match manifest: {key}")
         if key in config.packages and (reason := compatibility(value)):
             raise Error(f"Unsupported root {key}: {reason}")
@@ -163,7 +167,7 @@ def resolve_lock(config: Config, cache: Path, previous: Lock | None) -> Lock:
             dependencies=deps,
             dependency_resolutions=core_resolutions(key, deps),
         )
-        if pin and pin.dependency_resolutions != selected.dependency_resolutions:
+        if pin and not update and pin.dependency_resolutions != selected.dependency_resolutions:
             raise Error(f"Dependency resolution policy changed for {key}; run sync --update-lock")
         for dep in effective_dependencies(selected):
             visit(dep)
@@ -172,7 +176,7 @@ def resolve_lock(config: Config, cache: Path, previous: Lock | None) -> Lock:
 
     for key in sorted(config.packages):
         visit(key)
-    if previous and set(found) != set(pins):
+    if previous and not update and set(found) != set(pins):
         raise Error("Lock contains unreachable packages; run sync --update-lock")
     return Lock(roots=sorted(config.packages), packages=[found[key] for key in sorted(found)])
 

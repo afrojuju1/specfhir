@@ -4,6 +4,8 @@
 - The six-milestone roadmap is complete. GitHub Actions issue `sf-oyi.6.1` is
   deferred outside it; do not reactivate CI work or invent another milestone
   without an explicit request.
+- The evidence-led US Core 7.0.0/9.0.0 publication expansion is complete. Require
+  a demonstrated retrieval gap and explicit request before adding more coverage.
 - Use uv for Python commands. Check with `uv run ruff check .`,
   `uv run ruff format --check .`, `uv run pyright`, and `uv run pytest`.
 - Integration tests require the local Compose database and run with

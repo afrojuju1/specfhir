@@ -280,5 +280,41 @@
     "query": "mustSupport",
     "resource_type": "Documentation",
     "expected_canonical": "https://hl7.org/fhir/R4/conformance-rules.html"
+  },
+  {
+    "package": "hl7.fhir.us.core#7.0.0",
+    "query": "profile only support interaction support",
+    "resource_type": "Documentation",
+    "expected_canonical": "https://hl7.org/fhir/us/core/STU7/general-requirements.html"
+  },
+  {
+    "package": "hl7.fhir.us.core#7.0.0",
+    "query": "changes between versions",
+    "resource_type": "Documentation",
+    "expected_canonical": "https://hl7.org/fhir/us/core/STU7/changes-between-versions.html"
+  },
+  {
+    "package": "hl7.fhir.us.core#9.0.0",
+    "query": "Must Support server populate client process",
+    "resource_type": "Documentation",
+    "expected_canonical": "https://hl7.org/fhir/us/core/STU9/must-support.html"
+  },
+  {
+    "package": "hl7.fhir.us.core#9.0.0",
+    "query": "missing data unknown minimum cardinality",
+    "resource_type": "Documentation",
+    "expected_canonical": "https://hl7.org/fhir/us/core/STU9/general-requirements.html"
+  },
+  {
+    "package": "hl7.fhir.us.core#9.0.0",
+    "query": "complete medication list MedicationRequest MedicationDispense",
+    "resource_type": "Documentation",
+    "expected_canonical": "https://hl7.org/fhir/us/core/STU9/medication-list.html"
+  },
+  {
+    "package": "hl7.fhir.us.core#9.0.0",
+    "query": "create share basic provenance",
+    "resource_type": "Documentation",
+    "expected_canonical": "https://hl7.org/fhir/us/core/STU9/basic-provenance.html"
   }
 ]

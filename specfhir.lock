@@ -2,6 +2,7 @@
   "format": 1,
   "roots": [
     "hl7.fhir.r4.core#4.0.1",
+    "hl7.fhir.us.core#7.0.0",
     "hl7.fhir.us.core#9.0.0",
     "hl7.fhir.us.davinci-cdex#2.0.0",
     "hl7.fhir.us.davinci-cdex#2.1.0",
@@ -732,6 +733,51 @@
   },
   "documents": [
     {
+      "package": "hl7.fhir.us.core#7.0.0",
+      "url": "https://hl7.org/fhir/us/core/STU7/general-requirements.html",
+      "title": "US Core 7 General Requirements",
+      "anchors": [],
+      "sha256": "57e815afc748d808714a6c9fc0fb8383c2b2155833791ee450e4e5617c4d396c",
+      "publication": null,
+      "member": null
+    },
+    {
+      "package": "hl7.fhir.us.core#7.0.0",
+      "url": "https://hl7.org/fhir/us/core/STU7/must-support.html",
+      "title": "US Core 7 Must Support",
+      "anchors": [],
+      "sha256": "4eee4d766c96f0e9a4928bfd243cfb42c5963de7f443547d4758d53aa223c288",
+      "publication": null,
+      "member": null
+    },
+    {
+      "package": "hl7.fhir.us.core#7.0.0",
+      "url": "https://hl7.org/fhir/us/core/STU7/medication-list.html",
+      "title": "US Core 7 Medication List",
+      "anchors": [],
+      "sha256": "26d327b2d472c7fa708916da06313f03fa1c9f1b1e24536ec6474b4fd0f00d32",
+      "publication": null,
+      "member": null
+    },
+    {
+      "package": "hl7.fhir.us.core#7.0.0",
+      "url": "https://hl7.org/fhir/us/core/STU7/basic-provenance.html",
+      "title": "US Core 7 Basic Provenance",
+      "anchors": [],
+      "sha256": "edc64ecf2735d0b99be81919543dcada3fce21648f937e956239522292630f7b",
+      "publication": null,
+      "member": null
+    },
+    {
+      "package": "hl7.fhir.us.core#7.0.0",
+      "url": "https://hl7.org/fhir/us/core/STU7/changes-between-versions.html",
+      "title": "US Core 7 Changes Between Versions",
+      "anchors": [],
+      "sha256": "637fda792a316df1cc658022849d3b3e2e351835831feeff32f69dbf13354836",
+      "publication": null,
+      "member": null
+    },
+    {
       "package": "hl7.fhir.r4.core#4.0.1",
       "url": "https://hl7.org/fhir/R4/profiling.html",
       "title": "Profiling FHIR",
@@ -799,6 +845,285 @@
       "sha256": "3bd856c42a512898fe54ad5bf3f6ebc5af396a957a8ebdd0fd122b248d0804a2",
       "publication": null,
       "member": null
+    },
+    {
+      "package": "hl7.fhir.us.core#9.0.0",
+      "url": "https://hl7.org/fhir/us/core/STU9/index.html",
+      "title": "Home",
+      "anchors": [],
+      "sha256": "2200a9a49e30fe99a8178fbb965b780f1ab84e5e7312aa9009ffc72aea2ffd81",
+      "publication": "https://hl7.org/fhir/us/core/STU9/full-ig.zip",
+      "member": "site/index.html"
+    },
+    {
+      "package": "hl7.fhir.us.core#9.0.0",
+      "url": "https://hl7.org/fhir/us/core/STU9/conformance.html",
+      "title": "Conformance",
+      "anchors": [],
+      "sha256": "8e40417198578b069bd7d56d49acdbba4969f3b16ca2475c5574a5286ff1cc94",
+      "publication": "https://hl7.org/fhir/us/core/STU9/full-ig.zip",
+      "member": "site/conformance.html"
+    },
+    {
+      "package": "hl7.fhir.us.core#9.0.0",
+      "url": "https://hl7.org/fhir/us/core/STU9/general-requirements.html",
+      "title": "General Requirements",
+      "anchors": [],
+      "sha256": "97e8844911d63d5f1e58e0de87804af599c1c430f7b0a1f9cf998206601251cc",
+      "publication": "https://hl7.org/fhir/us/core/STU9/full-ig.zip",
+      "member": "site/general-requirements.html"
+    },
+    {
+      "package": "hl7.fhir.us.core#9.0.0",
+      "url": "https://hl7.org/fhir/us/core/STU9/must-support.html",
+      "title": "Must Support",
+      "anchors": [],
+      "sha256": "9680e063dfdb42550b706adb09f58dc62d23ff16052f9ad711b2b730451969af",
+      "publication": "https://hl7.org/fhir/us/core/STU9/full-ig.zip",
+      "member": "site/must-support.html"
+    },
+    {
+      "package": "hl7.fhir.us.core#9.0.0",
+      "url": "https://hl7.org/fhir/us/core/STU9/observation-summary.html",
+      "title": "Observation Summary Table",
+      "anchors": [],
+      "sha256": "b5939a16bf05b5f31806cf8369e28de108b8ed5378f3069aa715275e5edd528f",
+      "publication": "https://hl7.org/fhir/us/core/STU9/full-ig.zip",
+      "member": "site/observation-summary.html"
+    },
+    {
+      "package": "hl7.fhir.us.core#9.0.0",
+      "url": "https://hl7.org/fhir/us/core/STU9/scopes.html",
+      "title": "SMART on FHIR Obligations and Capabilities",
+      "anchors": [],
+      "sha256": "273e42eca112533b479a5b894365ddbd279817a2f596b1a7ca191900330f447e",
+      "publication": "https://hl7.org/fhir/us/core/STU9/full-ig.zip",
+      "member": "site/scopes.html"
+    },
+    {
+      "package": "hl7.fhir.us.core#9.0.0",
+      "url": "https://hl7.org/fhir/us/core/STU9/security.html",
+      "title": "Security",
+      "anchors": [],
+      "sha256": "0559ce63df1a7f0dae38e106989dcb107bcdf7f702b54dc0fdd8401076cc1602",
+      "publication": "https://hl7.org/fhir/us/core/STU9/full-ig.zip",
+      "member": "site/security.html"
+    },
+    {
+      "package": "hl7.fhir.us.core#9.0.0",
+      "url": "https://hl7.org/fhir/us/core/STU9/requirements.html",
+      "title": "Requirements Tables",
+      "anchors": [],
+      "sha256": "7a0382f789b1ad86a839941fad89532853dd3f7855fac466d3bc876c48aa1202",
+      "publication": "https://hl7.org/fhir/us/core/STU9/full-ig.zip",
+      "member": "site/requirements.html"
+    },
+    {
+      "package": "hl7.fhir.us.core#9.0.0",
+      "url": "https://hl7.org/fhir/us/core/STU9/guidance.html",
+      "title": "Guidance",
+      "anchors": [],
+      "sha256": "9be4c4a2629f42c05efae20549ae28809160f5cabaade9525f2e095da479e804",
+      "publication": "https://hl7.org/fhir/us/core/STU9/full-ig.zip",
+      "member": "site/guidance.html"
+    },
+    {
+      "package": "hl7.fhir.us.core#9.0.0",
+      "url": "https://hl7.org/fhir/us/core/STU9/uscdi.html",
+      "title": "USCDI",
+      "anchors": [],
+      "sha256": "fbaf9fbc9312f298b06905d5efe3c41c0a3d301b4f6b1c3a202a458b86cd7497",
+      "publication": "https://hl7.org/fhir/us/core/STU9/full-ig.zip",
+      "member": "site/uscdi.html"
+    },
+    {
+      "package": "hl7.fhir.us.core#9.0.0",
+      "url": "https://hl7.org/fhir/us/core/STU9/general-guidance.html",
+      "title": "General Guidance",
+      "anchors": [],
+      "sha256": "ec440a962530a4959bd724fc32f6d6d60343578d5f3a818eff51399986e1b42c",
+      "publication": "https://hl7.org/fhir/us/core/STU9/full-ig.zip",
+      "member": "site/general-guidance.html"
+    },
+    {
+      "package": "hl7.fhir.us.core#9.0.0",
+      "url": "https://hl7.org/fhir/us/core/STU9/clinical-notes.html",
+      "title": "Clinical Notes",
+      "anchors": [],
+      "sha256": "21cb3c749e32e5fae94d84f08032dcfd5ce6cdfa63036482edcc1139f48591fb",
+      "publication": "https://hl7.org/fhir/us/core/STU9/full-ig.zip",
+      "member": "site/clinical-notes.html"
+    },
+    {
+      "package": "hl7.fhir.us.core#9.0.0",
+      "url": "https://hl7.org/fhir/us/core/STU9/medication-list.html",
+      "title": "Medication List",
+      "anchors": [],
+      "sha256": "e461697c2658306849fc3dbc2d8f3e894f0f4c906002120f93dec0cacd4138d2",
+      "publication": "https://hl7.org/fhir/us/core/STU9/full-ig.zip",
+      "member": "site/medication-list.html"
+    },
+    {
+      "package": "hl7.fhir.us.core#9.0.0",
+      "url": "https://hl7.org/fhir/us/core/STU9/basic-provenance.html",
+      "title": "Basic Provenance",
+      "anchors": [],
+      "sha256": "f453c36676262665ff952872d6d6690ddc9265359e9e6b9c4a619bb64872a5be",
+      "publication": "https://hl7.org/fhir/us/core/STU9/full-ig.zip",
+      "member": "site/basic-provenance.html"
+    },
+    {
+      "package": "hl7.fhir.us.core#9.0.0",
+      "url": "https://hl7.org/fhir/us/core/STU9/element-level-provenance.html",
+      "title": "Using Provenance To Target Resource Elements",
+      "anchors": [],
+      "sha256": "5b689809dc8ef63138ccd2144b50194ba1f8bbc490885946c5cedea4eda99083",
+      "publication": "https://hl7.org/fhir/us/core/STU9/full-ig.zip",
+      "member": "site/element-level-provenance.html"
+    },
+    {
+      "package": "hl7.fhir.us.core#9.0.0",
+      "url": "https://hl7.org/fhir/us/core/STU9/screening-and-assessments.html",
+      "title": "Screening and Assessments",
+      "anchors": [],
+      "sha256": "2d78ee711d09d007766aa8e7f13b65951f689abbda5cb6f89cf3e0e11c4fa3f3",
+      "publication": "https://hl7.org/fhir/us/core/STU9/full-ig.zip",
+      "member": "site/screening-and-assessments.html"
+    },
+    {
+      "package": "hl7.fhir.us.core#9.0.0",
+      "url": "https://hl7.org/fhir/us/core/STU9/relationship-with-other-igs.html",
+      "title": "Relationship With Other IGs",
+      "anchors": [],
+      "sha256": "a463d1cab0237de9e687400eda9ff6655aefc567482c8fc22fb8d5bb1c279a18",
+      "publication": "https://hl7.org/fhir/us/core/STU9/full-ig.zip",
+      "member": "site/relationship-with-other-igs.html"
+    },
+    {
+      "package": "hl7.fhir.us.core#9.0.0",
+      "url": "https://hl7.org/fhir/us/core/STU9/profiles-and-extensions.html",
+      "title": "Profiles and Extensions",
+      "anchors": [],
+      "sha256": "12cdec8f9d4b4b4afc74cb1eb79581c4227d2026ef6caa3bd77df8d7abe20577",
+      "publication": "https://hl7.org/fhir/us/core/STU9/full-ig.zip",
+      "member": "site/profiles-and-extensions.html"
+    },
+    {
+      "package": "hl7.fhir.us.core#9.0.0",
+      "url": "https://hl7.org/fhir/us/core/STU9/capability-statements.html",
+      "title": "Capability Statements and Requirements Resources",
+      "anchors": [],
+      "sha256": "158b89a94a4964692970bfe5f07a1e07ef4d335957d7e871466120f60c255db4",
+      "publication": "https://hl7.org/fhir/us/core/STU9/full-ig.zip",
+      "member": "site/capability-statements.html"
+    },
+    {
+      "package": "hl7.fhir.us.core#9.0.0",
+      "url": "https://hl7.org/fhir/us/core/STU9/search-parameters-and-operations.html",
+      "title": "Search Parameters and Operations",
+      "anchors": [],
+      "sha256": "ef1532cef2f345bd3fc6208d5ef94e42b835b6c16300e3ece000597fd567d6ca",
+      "publication": "https://hl7.org/fhir/us/core/STU9/full-ig.zip",
+      "member": "site/search-parameters-and-operations.html"
+    },
+    {
+      "package": "hl7.fhir.us.core#9.0.0",
+      "url": "https://hl7.org/fhir/us/core/STU9/terminology.html",
+      "title": "Terminology",
+      "anchors": [],
+      "sha256": "b1fbf0e07a9864dc176d1be2fcd54cad5c20e736ed393552ab47bbc2d90f7ce3",
+      "publication": "https://hl7.org/fhir/us/core/STU9/full-ig.zip",
+      "member": "site/terminology.html"
+    },
+    {
+      "package": "hl7.fhir.us.core#9.0.0",
+      "url": "https://hl7.org/fhir/us/core/STU9/vsacname-fhiruri-map.html",
+      "title": "VSAC to FHIR Code System Mapping Table",
+      "anchors": [],
+      "sha256": "737bc395b0fb9cf7e8eeccdcf75c6f8982316715663890245d51a7d2d619b6b2",
+      "publication": "https://hl7.org/fhir/us/core/STU9/full-ig.zip",
+      "member": "site/vsacname-fhiruri-map.html"
+    },
+    {
+      "package": "hl7.fhir.us.core#9.0.0",
+      "url": "https://hl7.org/fhir/us/core/STU9/examples.html",
+      "title": "Examples",
+      "anchors": [],
+      "sha256": "ecc6c29bad3127e3a7615c3f36b96584c660ebcadbc08a6fe9ba2c9e53f9ca70",
+      "publication": "https://hl7.org/fhir/us/core/STU9/full-ig.zip",
+      "member": "site/examples.html"
+    },
+    {
+      "package": "hl7.fhir.us.core#9.0.0",
+      "url": "https://hl7.org/fhir/us/core/STU9/version-history.html",
+      "title": "Version History",
+      "anchors": [],
+      "sha256": "b2f788e8a7f0cf4e3eef3dfe10678915240ebda2470e298f6184c39763a0e040",
+      "publication": "https://hl7.org/fhir/us/core/STU9/full-ig.zip",
+      "member": "site/version-history.html"
+    },
+    {
+      "package": "hl7.fhir.us.core#9.0.0",
+      "url": "https://hl7.org/fhir/us/core/STU9/changes-between-versions.html",
+      "title": "Changes Between Versions",
+      "anchors": [],
+      "sha256": "36060a5c1306c585bbcc338fe6939352665eb69aafe533993315f73c77bf8d65",
+      "publication": "https://hl7.org/fhir/us/core/STU9/full-ig.zip",
+      "member": "site/changes-between-versions.html"
+    },
+    {
+      "package": "hl7.fhir.us.core#9.0.0",
+      "url": "https://hl7.org/fhir/us/core/STU9/looking-ahead.html",
+      "title": "Looking Ahead",
+      "anchors": [],
+      "sha256": "9e4f29407a1bfa0602b3c4c081459a433b89ed2a7c1bcb97ad0535c468232718",
+      "publication": "https://hl7.org/fhir/us/core/STU9/full-ig.zip",
+      "member": "site/looking-ahead.html"
+    },
+    {
+      "package": "hl7.fhir.us.core#9.0.0",
+      "url": "https://hl7.org/fhir/us/core/STU9/us-core-roadmap.html",
+      "title": "US Core Roadmap",
+      "anchors": [],
+      "sha256": "16af75130024b07fb4377b069b324b43415f8ce04479f49581bdae2eb2159b77",
+      "publication": "https://hl7.org/fhir/us/core/STU9/full-ig.zip",
+      "member": "site/us-core-roadmap.html"
+    },
+    {
+      "package": "hl7.fhir.us.core#9.0.0",
+      "url": "https://hl7.org/fhir/us/core/STU9/writing-vital-signs.html",
+      "title": "Writing Vital Signs",
+      "anchors": [],
+      "sha256": "72e81d177133ef28368bfa68e40a674994183a9a2dbe7911cc3b1f10ba1e279d",
+      "publication": "https://hl7.org/fhir/us/core/STU9/full-ig.zip",
+      "member": "site/writing-vital-signs.html"
+    },
+    {
+      "package": "hl7.fhir.us.core#9.0.0",
+      "url": "https://hl7.org/fhir/us/core/STU9/writing-clinical-notes.html",
+      "title": "Writing Clinical Notes",
+      "anchors": [],
+      "sha256": "33ae26596d9f27b4f68bb6b2961abc804c7f5333a9a5548e126a8ec9097ef3dc",
+      "publication": "https://hl7.org/fhir/us/core/STU9/full-ig.zip",
+      "member": "site/writing-clinical-notes.html"
+    },
+    {
+      "package": "hl7.fhir.us.core#9.0.0",
+      "url": "https://hl7.org/fhir/us/core/STU9/patient-data-feed.html",
+      "title": "Patient Data Feed",
+      "anchors": [],
+      "sha256": "83bc149a0892e7850bb88c8b28f4686c498437fc082022f6f2a8424b196f51b0",
+      "publication": "https://hl7.org/fhir/us/core/STU9/full-ig.zip",
+      "member": "site/patient-data-feed.html"
+    },
+    {
+      "package": "hl7.fhir.us.core#9.0.0",
+      "url": "https://hl7.org/fhir/us/core/STU9/patient-data-feed-additional-resources.html",
+      "title": "Patient Data Feed Additional Resources",
+      "anchors": [],
+      "sha256": "36a0273998a382a9c392d016e61d570683370697e0cef40b69fde58ca8c74ed2",
+      "publication": "https://hl7.org/fhir/us/core/STU9/full-ig.zip",
+      "member": "site/patient-data-feed-additional-resources.html"
     },
     {
       "package": "hl7.fhir.us.davinci-pas#2.0.1",
@@ -1783,6 +2108,12 @@
     }
   ],
   "publications": [
+    {
+      "package": "hl7.fhir.us.core#9.0.0",
+      "url": "https://hl7.org/fhir/us/core/STU9/full-ig.zip",
+      "page_prefix": "",
+      "sha256": "7865428416d45b4826ae10dbb624774df4448e3403c959ed79efd15194395cfb"
+    },
     {
       "package": "hl7.fhir.us.davinci-pas#2.0.1",
       "url": "https://hl7.org/fhir/us/davinci-pas/STU2/full-ig.zip",

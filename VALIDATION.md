@@ -393,6 +393,73 @@ seconds for database publication and 17.340 seconds for reference computation. T
 validator snapshot was unchanged. A second coordinated run was unchanged in 5.821
 seconds, and all 11 readiness checks passed.
 
+## US Core expansion proof (2026-09-11)
+
+A bounded 28-question corpus exercised 20 profile/element retrieval questions and
+eight guide-level implementation questions against `hl7.fhir.us.core#9.0.0`. Eighteen
+profile targets appeared directly in the unfiltered hybrid top five. The interpreter
+question correctly returned the Patient profile and element before the standalone
+extension; the allergy profile became the first result with the existing
+`StructureDefinition` filter. All 20 therefore had source-backed package evidence
+without a content change.
+
+The eight guide questions covered Must Support server/client duties, missing data,
+Additional USCDI Requirements, profile-only versus interaction support, medication
+lists, basic provenance and changes from US Core 7 to 9. Only the certification scope
+question was adequately answered from package JSON; three had partial structural
+evidence and four did not answer the requested guidance. None could return the
+authoritative guide passage because US Core 3.1.1, 6.1.0, 7.0.0 and 9.0.0 each had zero
+indexed `Documentation` artifacts.
+
+This classifies the demonstrated gap as publication content, with two bounded
+profile-query presentation cases already handled by the existing type filter. No
+relationship, validation or transport defect was demonstrated. Two representative
+queries returned byte-equivalent structured results through Python, CLI and MCP.
+Existing version-aware behavior also compared `USCorePatient` 7.0.0 to 9.0.0 with 64
+source differences and correctly reported a 9.0.0-only profile absent from 7.0.0.
+
+Source review of the locked ImplementationGuide page metadata selected 22 authored
+pages for 7.0.0 and 31 for 9.0.0. The 9.0.0 full publication embeds the exact locked
+package. The 7.0.0 full publication does not: its embedded manifest declares
+`hl7.fhir.uv.extensions#5.1.0-cibuild`, while the registry package declares the locked
+`5.1.0-snapshot1`. Its FHIR resource files otherwise match. The source-safe go decision
+is therefore limited to the verified 9.0.0 archive and five demonstrated 7.0.0
+permanent pages through the existing archive/direct-document paths; no checksum guard,
+package semantics, search mechanism or additional IG is changed.
+
+## US Core publication expansion (2026-09-11)
+
+US Core 7.0.0 became an explicit root so its evidence remains durable. Five permanent
+7.0.0 pages cover the demonstrated general requirements, Must Support, medication list,
+basic provenance and version-change gaps through the existing direct-document path.
+The exact 9.0.0 full publication passed embedded-package equality and contributed all
+31 authored pages selected from its locked ImplementationGuide metadata.
+
+The coordinated update reused 58 prepared packages and rebuilt only the two changed
+root preparations. It published 105,859 artifacts, 137,860 elements, 317,925 documents,
+243,623 embeddings and 151 publication pages. Relative to the completed M6 dataset,
+this added 36 documentation artifacts and 1,322 passages/embeddings. The command took
+170.477 seconds: 6.824 acquisition, 7.226 extraction, 20.126 embedding, 17.888 reference,
+131.909 database publication and 3.928 analyze seconds. The validator snapshot was
+unchanged.
+
+The post-sync lock audit caught `--update-lock` replacing the verified secondary VSAC
+0.19.0 source with its dead primary URL. The shared resolver now retains known exact
+package sources during intentional graph updates; only an explicit update may move a
+404 source to the secondary registry, and the existing checksum must still match. A
+regression test covers both cached and downloaded secondary-source reuse. The corrected
+source identity republished in 146.429 seconds while reusing all 243,623 embeddings and
+leaving the validator unchanged. A normal locked repeat was then unchanged in 6.036
+seconds with no preparation, embedding, publication, reference or analyze work.
+
+Six shared source-backed cases cover the five demonstrated guidance categories across
+both releases in lexical and hybrid modes. The focused publication gate passed 108
+tests in a final 21.56 seconds. The final isolated PostgreSQL suite passed 30 tests with
+two explicit real-smoke skips in 63.59 seconds, and the full bounded four-worker
+acceptance gate passed 138 tests in 263.25 seconds. Python, CLI and MCP results were
+identical through the shared transport fixture. Ruff, formatting, Pyright, diff checks
+and all 13 installed readiness checks passed. No sync/build overlapped tests.
+
 ## Published examples versus synthetic fixtures
 
 Twenty original published examples across eight IG releases are loaded directly

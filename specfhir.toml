@@ -1,5 +1,6 @@
 packages = [
   "hl7.fhir.r4.core#4.0.1",
+  "hl7.fhir.us.core#7.0.0",
   "hl7.fhir.us.core#9.0.0",
   "hl7.fhir.us.davinci-pas#2.0.1",
   "hl7.fhir.us.davinci-pas#2.1.0",
@@ -17,6 +18,11 @@ enabled = true
 model = "BAAI/bge-small-en-v1.5"
 revision = "52398278842ec682c6f32300af41344b1c0b0bb2"
 max_tokens = 256
+
+[[publications]]
+package = "hl7.fhir.us.core#9.0.0"
+url = "https://hl7.org/fhir/us/core/STU9/full-ig.zip"
+page_prefix = ""
 
 [[publications]]
 package = "hl7.fhir.us.davinci-pas#2.0.1"
@@ -57,6 +63,31 @@ page_prefix = ""
 package = "hl7.fhir.us.davinci-dtr#2.1.0"
 url = "https://hl7.org/fhir/us/davinci-dtr/STU2.1/full-ig.zip"
 page_prefix = ""
+
+[[documents]]
+package = "hl7.fhir.us.core#7.0.0"
+url = "https://hl7.org/fhir/us/core/STU7/general-requirements.html"
+title = "US Core 7 General Requirements"
+
+[[documents]]
+package = "hl7.fhir.us.core#7.0.0"
+url = "https://hl7.org/fhir/us/core/STU7/must-support.html"
+title = "US Core 7 Must Support"
+
+[[documents]]
+package = "hl7.fhir.us.core#7.0.0"
+url = "https://hl7.org/fhir/us/core/STU7/medication-list.html"
+title = "US Core 7 Medication List"
+
+[[documents]]
+package = "hl7.fhir.us.core#7.0.0"
+url = "https://hl7.org/fhir/us/core/STU7/basic-provenance.html"
+title = "US Core 7 Basic Provenance"
+
+[[documents]]
+package = "hl7.fhir.us.core#7.0.0"
+url = "https://hl7.org/fhir/us/core/STU7/changes-between-versions.html"
+title = "US Core 7 Changes Between Versions"
 
 [[documents]]
 package = "hl7.fhir.r4.core#4.0.1"

@@ -66,3 +66,8 @@ including dependency-owned core guidance and missing anchors. Direct and archive
 provenance use the same installed check. Synthetic HTML in `test_guidance.py` verifies
 section selection, source links, offline reuse, and dataset-guarded continuation; no
 publication HTML is copied into test fixtures.
+
+The US Core expansion adds six source-backed guidance cases across 7.0.0 and 9.0.0 to
+the same query list. One shared acceptance workflow verifies version comparison,
+release-scoped search and bounded passage inspection; the transport fixture retains one
+API/CLI/MCP contract replay instead of duplicating every query across transports.

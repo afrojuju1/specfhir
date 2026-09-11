@@ -465,7 +465,7 @@ def sync(
         existing = Lock.model_validate_json(lock_bytes) if lock_bytes else None
         previous = existing if not update_lock else None
         stage = time.monotonic()
-        lock = resolve_lock(config, work / "packages", previous)
+        lock = resolve_lock(config, work / "packages", existing, update=update_lock)
         lock.documents = documents.pin_pages(
             config.documents,
             [d for d in previous.documents if d.publication is None] if previous else None,

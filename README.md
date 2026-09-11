@@ -35,8 +35,8 @@ generation; the unchanged follow-up took about 6 seconds. See
 [specfhir.toml](specfhir.toml) selects exact package roots and publications;
 [specfhir.lock](specfhir.lock) pins their dependency graph, checksums, sources,
 and embedding runtime. [uv.lock](uv.lock) pins Python dependencies.
-Current configured roots are R4 4.0.1, US Core 9.0.0 (default), PAS 2.0.1/2.1.0,
-CRD 2.1.0/2.2.1, CDEX 2.0.0/2.1.0, and DTR 2.1.0/2.2.0.
+Current configured roots are R4 4.0.1, US Core 7.0.0/9.0.0 (9.0.0 default),
+PAS 2.0.1/2.1.0, CRD 2.1.0/2.2.1, CDEX 2.0.0/2.1.0, and DTR 2.1.0/2.2.0.
 Additional dependency versions remain distinct in the lock.
 
 Compose binds PostgreSQL to `127.0.0.1:55432` and the validator to
@@ -150,6 +150,11 @@ omits generated resource/constraint/search tables already represented by package
 JSON. An optional `anchors` list on an explicit document source selects exact
 sections and rejects missing or duplicated anchors. Empty/omitted selects the
 whole content region. This is selected coverage, not the full R4 publication.
+
+US Core guidance includes 31 authored 9.0.0 pages from its exact full publication
+archive and five demonstrated 7.0.0 permanent pages. The 7.0.0 pages use direct
+acquisition because its full-site ZIP embeds a dependency manifest that differs from
+the locked registry package; the embedded-package equality guard remains strict.
 
 The R4 whole-spec ZIP has no embedded package archive and uses backslash member
 paths, so it cannot meet our existing verified IG archive contract. Its selected

@@ -304,6 +304,12 @@ def test_secondary_registry_origin_survives_cache_reuse(tmp_path, monkeypatch):
     assert first.packages[0].url == "https://packages2.fhir.org/packages/example.guide/1.0.0"
     assert packages.resolve_lock(config, cache, None) == first
     assert len(calls) == 2
+    (cache / "example.guide#1.0.0.source-url").unlink()
+    assert packages.resolve_lock(config, cache, first, update=True) == first
+    (cache / "example.guide#1.0.0.tgz").unlink()
+    stale = first.model_copy(deep=True)
+    stale.packages[0].url = "https://packages.fhir.org/example.guide/1.0.0"
+    assert packages.resolve_lock(config, cache, stale, update=True) == first
     (cache / "example.guide#1.0.0.tgz").unlink()
     assert packages.resolve_lock(config, cache, first) == first
-    assert len(calls) == 3 and "packages2.fhir.org" in calls[-1]
+    assert len(calls) == 5 and "packages2.fhir.org" in calls[-1]

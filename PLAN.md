@@ -261,7 +261,13 @@ The approved six-milestone Beads roadmap is complete. Deferred issue `sf-oyi.6.1
 keeps possible GitHub Actions work outside the milestone gate while the repository is
 stabilizing; do not reactivate it without an explicit request.
 
-Measure before adding infrastructure. Remaining known prose misses and full database
-publication cost are candidates for targeted work if they matter to actual usage.
+The bounded US Core expansion proof and follow-up are complete. Versions 3.1.1,
+6.1.0, 7.0.0 and 9.0.0 provide version-aware package evidence; 7.0.0 is now an explicit
+root with five demonstrated permanent guidance pages, and 9.0.0 has its 31 selected
+publication pages. No further package family or infrastructure expansion is approved.
+Use real workflows to demonstrate the next exact gap before creating more work.
+
+Measure before adding infrastructure. Full database
+publication cost remains a candidate for targeted work if it matters to actual usage.
 Do not replace the embedding model, add ANN, or build incremental SQL publication
 without a broader evaluation or measured latency/build requirement.
