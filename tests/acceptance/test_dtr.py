@@ -11,7 +11,7 @@ def package(request):
     return "hl7.fhir.us.davinci-dtr#" + request.param
 
 
-def test_definitions(call, package):
+def test_definitions(call, published, package):
     result = call("resolve", selector=PROFILE + ".subjectType", package=package)
     assert result["data"]["element"]["min"] == 1
     source = result["data"]["source"]
@@ -26,8 +26,20 @@ def test_definitions(call, package):
     else:
         # 2.2.0 legitimately depends on 2.1.0 through PAS/CDEX.
         assert sibling["data"]["source"]["package"] == "hl7.fhir.us.davinci-dtr#2.1.0"
-    result = call("resolve", selector="QuestionnairePackage", package=package)
+    result = call("inspect", selector="QuestionnairePackage", package=package)
     assert result["data"]["source"]["package"] == package
+    references = result["data"]["references"]
+    expected = {"operation.inputProfile", "operation.outputProfile"}
+    expected.add(
+        "operation.base" if package.endswith("#2.1.0") else "operation.parameter.targetProfile"
+    )
+    assert {item["relationship"] for item in references["items"]} == expected
+    operation = published(package, "package/OperationDefinition-questionnaire-package.json")
+    for item in references["items"]:
+        value = operation
+        for part in item["pointer"].split("/")[1:]:
+            value = value[int(part)] if isinstance(value, list) else value[part]
+        assert value == item["target"]
     result = call("inspect", selector=PROFILE, package=package)
     assert result["data"]["references"]["status"] == "completed"
 

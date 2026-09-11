@@ -8,7 +8,7 @@ PROFILE = "CDexTaskDataRequest"
 
 
 @pytest.mark.parametrize("version", VERSIONS)
-def test_task(call, fhir, validate_published, version):
+def test_task(call, fhir, validate_published, published, version):
     package = "hl7.fhir.us.davinci-cdex#" + version
     other = next(v for v in VERSIONS if v != version)
     result = call("resolve", selector=PROFILE + ".authoredOn", package=package)["data"]
@@ -24,11 +24,25 @@ def test_task(call, fhir, validate_published, version):
     result = call("resolve", selector=PROFILE + ".meta.tag.system", package=package)
     assert result["data"]["element"]["min"] == (0 if version == "2.0.0" else 1)
     result = call(
-        "resolve",
+        "inspect",
         selector="http://hl7.org/fhir/us/davinci-cdex/OperationDefinition/submit-attachment",
         package=package,
     )
     assert result["data"]["source"]["package"] == package
+    references = result["data"]["references"]
+    relationships = {item["relationship"] for item in references["items"]}
+    assert "operation.parameter.binding.valueSet" in relationships
+    assert ("operation.inputProfile" in relationships) == (version == "2.1.0")
+    external = next(
+        item for item in references["items"] if item["target"].startswith("http://loinc.org")
+    )
+    assert external["status"] == "not_found_in_scope"
+    operation = published(package, "package/OperationDefinition-submit-attachment.json")
+    for item in references["items"]:
+        value = operation
+        for part in item["pointer"].split("/")[1:]:
+            value = value[int(part)] if isinstance(value, list) else value[part]
+        assert value == item["target"]
     result = call("inspect", selector=PROFILE, package=package)
     assert result["data"]["references"]["status"] == "completed"
     good = fhir("cdex-task")

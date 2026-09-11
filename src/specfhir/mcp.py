@@ -67,10 +67,11 @@ def create_server(config_path: Path = Path("specfhir.toml")) -> MCPServer:
         pointer: str | None = None,
         offset: int = 0,
         limit: int = 5,
-        view: Literal["snapshot", "differential", "raw", "passages"] = "snapshot",
+        view: Literal["snapshot", "differential", "raw", "passages", "incoming"] = "snapshot",
     ) -> dict[str, Any]:
-        """Inspect definitions or full cited passages. Select a pointer or page#anchor;
-        use view=passages with offset, limit and dataset_id for continuation.
+        """Inspect definitions, incoming references, or full cited passages.
+        Select a pointer or page#anchor; use view=passages with offset, limit and dataset_id.
+        Use view=incoming for bounded direct references in the selected package closure.
         Raw view retains the complete artifact."""
         return invoke(
             lambda: api.inspect(

@@ -69,11 +69,12 @@ Keep element ID, path, slice, choice notation, ordering, and representation.
 Must-support is not interchangeable with minimum cardinality; missing is not false.
 
 Reference coverage resolves published SD bases, type/target profiles, bindings,
-local content references, and ValueSet compose imports within the source package
-closure. It reports resolved, ambiguous, excluded, outside-scope, missing-in-scope,
-and unsupported targets. These non-blocking retrieval findings are not a complete
-HTML/instance graph or conformance validation. Inspection bounds findings and
-candidates while retaining summary counts.
+local content references, ValueSet compose imports, reviewed CapabilityStatement
+profile/operation links, and reviewed OperationDefinition base/profile/binding links
+within the source package closure. It reports resolved, ambiguous, excluded,
+outside-scope, missing-in-scope, and unsupported targets. These non-blocking retrieval
+findings are not a complete HTML/instance graph or conformance validation. Inspection
+bounds findings and candidates while retaining summary counts.
 
 One reviewed dependency exception remains explicit: subscriptions-backport.r4
 1.1.0 declares unavailable R4 core 4.0.0; acquisition resolves that edge to 4.0.1
@@ -234,6 +235,8 @@ Readiness checks cover both direct and archive sources with the same provenance 
   pytest acceptance consolidation, retrieval-independent validator identity.
 - Connected guidance (M4): pinned core prose, source sections/links, bounded passage
   continuation, release-scoped evidence and transformation-aware readiness.
+- Broader relationships (M5): bounded incoming canonical references plus reviewed
+  CapabilityStatement and OperationDefinition links through existing sync/inspection.
 - Multi-context validation (M3): typed selections, one execution per context, preserved
   outcomes and a conservative issue matrix; verified with three real release contexts.
 - Package/dependency comparison (M2): owned inventories, exact dependency pins/edges,
@@ -253,8 +256,8 @@ published outcomes in JUnit. A changed error category/count requires review.
 
 ## Next work, when requested
 
-Beads epic `sf-oyi` owns the approved roadmap. Remaining milestones cover broader
-evidenced relationships and operational readiness.
+Beads epic `sf-oyi` owns the approved roadmap. The remaining milestone covers
+operational readiness and measured performance.
 
 Expand through the existing package/publication configuration and pytest paths.
 For each release, verify exact dependencies, documentation provenance, representative

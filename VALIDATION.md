@@ -244,6 +244,43 @@ Evidence: `.specfhir/m4-final-sync.json`, `.specfhir/m4-final-offline-sync.json`
 `.specfhir/m4-final-acceptance.xml`, `.specfhir/m4-sync.json`, `.specfhir/m4-offline-sync.json`,
 `.specfhir/m4-focused.xml`, `.specfhir/m4-check.json`, and their logs.
 
+## M5 — Broader relationships (2026-09-11)
+
+Incoming canonical references use `inspect --view incoming` through the shared Python,
+CLI and MCP operation. The target is resolved once in the selected package closure;
+stored resolved-target provenance then selects direct source occurrences from that same
+closure. Results retain target business version and source package/file/pointer, use
+stable own-package-first ordering, and continue with the published dataset identity at
+the existing 1–100 page bound. Empty targets, ambiguous selectors, artifacts without a
+canonical, stale continuations and unavailable reference generations remain explicit.
+Local element content references are not presented as resource-level incoming edges.
+
+Archive review selected only relationships needed by existing workflows. PAS 2.0.1 and
+2.1.0 identify two and three profiles based on their exact Claim Base definitions, and
+13 and 17 bindings to `X12278RequestedServiceType`. PAS CapabilityStatements identify
+the two Claim operations; their OperationDefinitions identify request/response profiles.
+DTR questionnaire-package operations identify input/output profiles and, in 2.2.0, a
+parameter target profile. CDEX submit-attachment identifies its input profile and nested
+parameter binding; the external LOINC ValueSet remains `not_found_in_scope` rather than
+being fetched or treated as resolved.
+
+The supported extraction subset is now StructureDefinition bases/profiles/bindings/local
+content references, ValueSet compose imports, CapabilityStatement REST resource
+profiles/supported profiles/operations, and OperationDefinition bases, input/output
+profiles, recursive parameter target profiles and bindings. Capability imports,
+instantiates, guides, messages and search parameters, other OperationDefinition fields,
+and Questionnaire/Library metadata remain explicitly unchecked. The latter instances
+are still validation inputs, not indexed knowledge or executable content.
+
+The extraction-version refresh published 105,823 artifacts and 82,628 reference
+occurrences, reusing all 242,301 embeddings; package and validator pins were unchanged.
+An ordinary locked repeat was unchanged in 4.501 seconds with no extraction, embedding,
+publication or reference work. Focused source/API/CLI/MCP acceptance passed six tests in
+59.50 seconds. The complete live regression passed **157 tests** with two expected skips
+and no failures/errors in **650.02 seconds**. Ruff, Pyright, diff checks and all **11**
+installed readiness checks passed. Evidence: `.specfhir/m5-focused.xml` and
+`.specfhir/m5-final.xml`.
+
 ## Published examples versus synthetic fixtures
 
 Twenty original published examples across eight IG releases are loaded directly

@@ -139,7 +139,7 @@ def lookup(
     package: str | None = None,
     artifact_version: str | None = None,
     element: str | None = None,
-    view: Literal["snapshot", "differential", "raw", "passages"] = "snapshot",
+    view: Literal["snapshot", "differential", "raw", "passages", "incoming"] = "snapshot",
     pointer: str | None = None,
     offset: int = 0,
     limit: int = 5,
@@ -163,10 +163,10 @@ def lookup(
         and element is None
     ):
         selector, element = selector.split(".", 1)
-    if view not in {"snapshot", "differential", "raw", "passages"}:
-        raise Error("view must be snapshot, differential, raw, or passages")
-    if view != "passages" and (pointer is not None or offset or limit != 5):
-        raise Error("pointer, offset and limit require view=passages")
+    if view not in {"snapshot", "differential", "raw", "passages", "incoming"}:
+        raise Error("view must be snapshot, differential, raw, passages, or incoming")
+    if view not in {"passages", "incoming"} and (pointer is not None or offset or limit != 5):
+        raise Error("pointer, offset and limit require view=passages or incoming")
     if pointer is not None and (
         not isinstance(pointer, str) or not pointer.startswith("/") or len(pointer) > 2048
     ):
@@ -175,6 +175,8 @@ def lookup(
     if view == "passages":
         if element is not None:
             raise Error("Use pointer, not element, with view=passages")
+    elif view == "incoming" and (element is not None or pointer is not None):
+        raise Error("element and pointer are not supported with view=incoming")
     with db.connect() as conn, conn.transaction():
         # Artifact and element reads must belong to the same published generation.
         conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
@@ -223,6 +225,20 @@ def lookup(
         row = rows[0]
         resource = row["resource"]
         source = provenance(row)
+        if view == "incoming":
+            from specfhir.references import incoming
+
+            return Result(
+                status="ok",
+                context=context,
+                dataset_id=state["identity"],
+                data={
+                    "source": source,
+                    "incoming_references": incoming(
+                        conn, row, state["metadata"], context, offset, limit
+                    ),
+                },
+            )
         if view == "passages":
             if fragment:
                 matched = [

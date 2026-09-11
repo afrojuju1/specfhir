@@ -15,7 +15,40 @@ RELATIONSHIPS = (
     "binding.valueSet",
     "compose.valueSet",
     "contentReference",
+    "capability.profile",
+    "capability.supportedProfile",
+    "capability.operation",
+    "operation.base",
+    "operation.inputProfile",
+    "operation.outputProfile",
+    "operation.parameter.targetProfile",
+    "operation.parameter.binding.valueSet",
 )
+
+
+def operation_parameter_references(parameters, pointer="/parameter"):
+    for i, parameter in enumerate(parameters if isinstance(parameters, list) else []):
+        if not isinstance(parameter, dict):
+            continue
+        source = f"{pointer}/{i}"
+        targets = parameter.get("targetProfile", [])
+        for j, target in enumerate(targets if isinstance(targets, list) else []):
+            if isinstance(target, str):
+                yield [
+                    f"{source}/targetProfile/{j}",
+                    "operation.parameter.targetProfile",
+                    target,
+                    None,
+                ]
+        binding = parameter.get("binding", {})
+        if isinstance(binding, dict) and isinstance(binding.get("valueSet"), str):
+            yield [
+                f"{source}/binding/valueSet",
+                "operation.parameter.binding.valueSet",
+                binding["valueSet"],
+                None,
+            ]
+        yield from operation_parameter_references(parameter.get("part", []), source + "/part")
 
 
 def extract(resource, issues):
@@ -104,6 +137,55 @@ def extract(resource, issues):
                             value,
                             None,
                         ]
+    if resource["resourceType"] == "OperationDefinition":
+        for field in ("base", "inputProfile", "outputProfile"):
+            if isinstance(resource.get(field), str):
+                yield [f"/{field}", "operation." + field, resource[field], None]
+        yield from operation_parameter_references(resource.get("parameter", []))
+    if resource["resourceType"] == "CapabilityStatement":
+        rest_entries = resource.get("rest", [])
+        for i, rest in enumerate(rest_entries if isinstance(rest_entries, list) else []):
+            if not isinstance(rest, dict):
+                continue
+            resources = rest.get("resource", [])
+            for j, supported in enumerate(resources if isinstance(resources, list) else []):
+                if not isinstance(supported, dict):
+                    continue
+                source = f"/rest/{i}/resource/{j}"
+                if isinstance(supported.get("profile"), str):
+                    yield [
+                        source + "/profile",
+                        "capability.profile",
+                        supported["profile"],
+                        None,
+                    ]
+                profiles = supported.get("supportedProfile", [])
+                for k, profile in enumerate(profiles if isinstance(profiles, list) else []):
+                    if isinstance(profile, str):
+                        yield [
+                            f"{source}/supportedProfile/{k}",
+                            "capability.supportedProfile",
+                            profile,
+                            None,
+                        ]
+                operations = supported.get("operation", [])
+                for k, operation in enumerate(operations if isinstance(operations, list) else []):
+                    if isinstance(operation, dict) and isinstance(operation.get("definition"), str):
+                        yield [
+                            f"{source}/operation/{k}/definition",
+                            "capability.operation",
+                            operation["definition"],
+                            None,
+                        ]
+            operations = rest.get("operation", [])
+            for j, operation in enumerate(operations if isinstance(operations, list) else []):
+                if isinstance(operation, dict) and isinstance(operation.get("definition"), str):
+                    yield [
+                        f"/rest/{i}/operation/{j}/definition",
+                        "capability.operation",
+                        operation["definition"],
+                        None,
+                    ]
 
 
 def resolve(conn, package, target):
@@ -200,7 +282,13 @@ def publish(conn, spool, inventory):
         "status": "completed",
         "counts": dict(totals),
         "relationships": list(RELATIONSHIPS),
-        "scope": "StructureDefinition and ValueSet references; each source occurrence is counted",
+        "resource_types": [
+            "StructureDefinition",
+            "ValueSet",
+            "CapabilityStatement",
+            "OperationDefinition",
+        ],
+        "scope": "Supported canonical relationships; each source occurrence is counted",
         "limitations": "Not conformance validation; only the listed relationships are checked.",
         "not_checked": [
             "malformed projections and fields",
@@ -208,7 +296,9 @@ def publish(conn, spool, inventory):
             "external element references",
             "instance references",
             "HTML hyperlinks",
-            "other resource relationships",
+            "CapabilityStatement imports, instantiates, guides, messages and search parameters",
+            "other resource relationships and OperationDefinition extensions",
+            "Questionnaire and Library metadata",
         ],
     }
 
@@ -216,7 +306,12 @@ def publish(conn, spool, inventory):
 def inspection(conn, artifact_id, metadata, resource_type):
     if "reference_checks" not in metadata:
         return {"status": "unavailable", "message": "Run sync to publish reference findings"}
-    if resource_type not in {"StructureDefinition", "ValueSet"}:
+    if resource_type not in {
+        "StructureDefinition",
+        "ValueSet",
+        "CapabilityStatement",
+        "OperationDefinition",
+    }:
         return {
             "status": "not_checked",
             "reason": "This resource type is outside reference coverage",
@@ -244,4 +339,85 @@ def inspection(conn, artifact_id, metadata, resource_type):
         "index_lock_digest": metadata["lock_digest"],
         "relationships": metadata["reference_checks"]["relationships"],
         "not_checked": metadata["reference_checks"]["not_checked"],
+    }
+
+
+def incoming(conn, target, metadata, package, offset, limit):
+    """Return direct canonical references to one exact artifact within a selected closure."""
+    coverage = {
+        "source_resource_types": metadata.get("reference_checks", {}).get(
+            "resource_types", ["StructureDefinition", "ValueSet"]
+        ),
+        "relationships": [
+            relationship
+            for relationship in metadata.get("reference_checks", {}).get("relationships", [])
+            if relationship != "contentReference"
+        ],
+        "limitations": "Direct resolved canonical references only; no recursive traversal.",
+        "not_checked": metadata.get("reference_checks", {}).get("not_checked", [])
+        + ["local contentReference targets"],
+    }
+    if "reference_checks" not in metadata:
+        return {
+            "status": "unavailable",
+            "message": "Run sync to publish reference findings",
+            "coverage": coverage,
+        }
+    if not target["canonical"]:
+        return {
+            "status": "not_checked",
+            "reason": "Artifact has no canonical identity",
+            "offset": offset,
+            "limit": limit,
+            "total": 0,
+            "next_offset": None,
+            "items": [],
+            "coverage": coverage,
+        }
+    match = Jsonb({"candidates": [{"package": target["package_key"], "file": target["file_path"]}]})
+    base = f"""
+        {db.SCOPE}, incoming AS (
+            SELECT a.*,r.pointer,r.relationship,r.target
+            FROM artifact_references r JOIN artifacts a ON a.id=r.artifact_id
+            JOIN scope s ON s.key=a.package_key
+            WHERE r.status='resolved' AND r.detail @> %(match)s
+        )
+    """
+    params = {"package": package, "match": match}
+    summary = conn.execute(
+        base
+        + """
+        SELECT coalesce(sum(count),0)::bigint AS total,
+               coalesce(jsonb_object_agg(relationship,count), '{}'::jsonb) AS counts
+        FROM (SELECT relationship,count(*) FROM incoming GROUP BY relationship) grouped
+        """,
+        params,
+    ).fetchone()
+    assert summary is not None
+    rows = conn.execute(
+        base
+        + """
+        SELECT * FROM incoming
+        ORDER BY (package_key=%(package)s) DESC,relationship,package_key,file_path,pointer,target
+        LIMIT %(limit)s OFFSET %(offset)s
+        """,
+        {**params, "limit": limit, "offset": offset},
+    ).fetchall()
+    total = summary["total"]
+    return {
+        "status": "completed",
+        "offset": offset,
+        "limit": limit,
+        "total": total,
+        "next_offset": offset + len(rows) if offset + len(rows) < total else None,
+        "counts": summary["counts"],
+        "items": [
+            {
+                "source": search.provenance(row, row["pointer"]),
+                "relationship": row["relationship"],
+                "target": row["target"],
+            }
+            for row in rows
+        ],
+        "coverage": coverage,
     }

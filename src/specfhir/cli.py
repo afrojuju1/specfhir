@@ -106,7 +106,7 @@ def inspect(
     config: ConfigOption = Path("specfhir.toml"),
     as_json: Annotated[bool, typer.Option("--json")] = False,
 ):
-    """Inspect metadata, snapshot/differential elements, raw JSON, or bounded passages."""
+    """Inspect metadata, elements, raw JSON, passages, or bounded incoming references."""
     emit(
         lambda: search.inspect(
             selector,

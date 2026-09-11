@@ -125,3 +125,46 @@ def test_validation_context_matrix(call, fhir, record_property):
     assert failed["correspondence"]["status"] == "partial"
     assert failed["correspondence"]["available_contexts"] == [0, 2]
     assert all(g["issue_indices"][1] is None for g in failed["correspondence"]["items"])
+
+
+def test_capability_and_operation_relationships(call, published):
+    package = "hl7.fhir.us.davinci-pas#2.1.0"
+    capability_file = "package/CapabilityStatement-EHRCapabilities.json"
+    capability = call("inspect", selector="EHRCapabilities", package=package)["data"]
+    capability_refs = capability["references"]
+    assert capability_refs["counts"] == {"resolved": 2}
+    assert {item["relationship"] for item in capability_refs["items"]} == {"capability.operation"}
+
+    operation_file = "package/OperationDefinition-Claim-inquiry.json"
+    operation = call("inspect", selector="Claim-inquiry", package=package)["data"]
+    operation_refs = operation["references"]
+    assert operation_refs["counts"] == {"resolved": 3}
+    assert {item["relationship"] for item in operation_refs["items"]} == {
+        "operation.base",
+        "operation.inputProfile",
+        "operation.outputProfile",
+    }
+
+    incoming = call(
+        "inspect",
+        selector="http://hl7.org/fhir/us/davinci-pas/OperationDefinition/Claim-submit",
+        package=package,
+        view="incoming",
+        limit=100,
+    )["data"]["incoming_references"]
+    assert incoming["counts"] == {"capability.operation": 2}
+    assert {item["source"]["resource_id"] for item in incoming["items"]} == {
+        "EHRCapabilities",
+        "IntermediaryCapabilities",
+    }
+
+    for file, items in (
+        (capability_file, capability_refs["items"]),
+        (operation_file, operation_refs["items"]),
+    ):
+        source = published(package, file)
+        for item in items:
+            value = source
+            for part in item["pointer"].split("/")[1:]:
+                value = value[int(part)] if isinstance(value, list) else value[part]
+            assert value == item["target"]

@@ -123,6 +123,11 @@ def test_search_and_stdio_parity(tmp_path, database, monkeypatch):
                 ("resolve", {"selector": "Patient.id"}, ["Patient.id"]),
                 ("inspect", {"selector": "Patient"}, ["Patient"]),
                 (
+                    "inspect",
+                    {"selector": "Patient", "view": "incoming"},
+                    ["Patient", "--view", "incoming"],
+                ),
+                (
                     "search",
                     {"query": "patient identifier requirements"},
                     ["patient identifier requirements"],

@@ -188,7 +188,7 @@ def prepare_package(lock: Lock, cache: Path, spool: Path) -> dict[str, Any]:
 
 
 # Bump when extraction or spool semantics change (including documents.extract).
-PREPARATION_VERSION = 2
+PREPARATION_VERSION = 3
 PAGE_PREPARATION_VERSION = 2
 
 

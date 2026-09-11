@@ -191,3 +191,60 @@ def test_pas_package_and_target_workflow(call, published, record_property):
         "compare", mode="package", left_package=LEFT, right_package=LEFT, dataset_id=identity
     )["data"]
     assert all(set(counts) == {"unchanged"} for counts in same["counts"].values())
+
+
+def test_pas_incoming_reference_workflow(call, published):
+    base = "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/profile-claim-base"
+    first = call("inspect", selector=base, package=LEFT, view="incoming", limit=1)
+    identity = first["dataset_id"]
+    left = first["data"]["incoming_references"]
+    left_items = (
+        left["items"]
+        + call(
+            "inspect",
+            selector=base,
+            package=LEFT,
+            view="incoming",
+            offset=left["next_offset"],
+            limit=1,
+            dataset_id=identity,
+        )["data"]["incoming_references"]["items"]
+    )
+    right = call("inspect", selector=base, package=RIGHT, view="incoming", limit=100)["data"]
+    assert first["data"]["source"]["artifact_version"] == "2.0.1"
+    assert right["source"]["artifact_version"] == "2.1.0"
+    assert len(left_items) == left["total"] == 2
+    assert len(right["incoming_references"]["items"]) == right["incoming_references"]["total"] == 3
+    assert {item["source"]["resource_id"] for item in left_items} == {
+        "profile-claim-inquiry",
+        "profile-claim",
+    }
+    assert {item["source"]["resource_id"] for item in right["incoming_references"]["items"]} == {
+        "profile-claim-inquiry",
+        "profile-claim",
+        "profile-claim-update",
+    }
+
+    value_set = "http://hl7.org/fhir/us/davinci-pas/ValueSet/X12278RequestedServiceType"
+    bindings = call("inspect", selector=value_set, package=RIGHT, view="incoming", limit=100)[
+        "data"
+    ]
+    assert bindings["source"]["artifact_version"] == "2.1.0"
+    incoming = bindings["incoming_references"]
+    assert incoming["total"] == 17 and incoming["counts"] == {"binding.valueSet": 17}
+    assert "contentReference" not in incoming["coverage"]["relationships"]
+
+    # Every incoming edge is checked against the exact checksum-verified package JSON.
+    for package, items in ((LEFT, left_items), (RIGHT, right["incoming_references"]["items"])):
+        for item in items:
+            assert item["source"]["package"] == package
+            value = published(package, item["source"]["file"])
+            for part in item["source"]["pointer"].split("/")[1:]:
+                value = value[int(part)] if isinstance(value, list) else value[part]
+            assert value == item["target"] == base
+    for item in incoming["items"]:
+        assert item["source"]["package"] == RIGHT
+        value = published(RIGHT, item["source"]["file"])
+        for part in item["source"]["pointer"].split("/")[1:]:
+            value = value[int(part)] if isinstance(value, list) else value[part]
+        assert value == item["target"] == value_set

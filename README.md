@@ -111,6 +111,35 @@ Follow a link through the same scoped inspect operation. An unindexed page or
 anchor stays unavailable. Search ranking and explicit hyperlinks are separate
 forms of evidence; neither establishes compatibility or conformance.
 
+## Find incoming references
+
+Use the same exact inspection path to find definitions in a selected package closure
+that directly reference one resolved artifact:
+
+```bash
+uv run specfhir inspect \
+  'http://hl7.org/fhir/us/davinci-pas/ValueSet/X12278RequestedServiceType' \
+  --package 'hl7.fhir.us.davinci-pas#2.1.0' --view incoming --limit 100 --json
+```
+
+Incoming results retain the target's package and business version plus each source
+package, file and JSON pointer. Results are ordered and bounded; continue with
+`next_offset` and `--dataset-id`. Coverage is limited to resolved canonical
+relationships already recorded by sync. Local element `contentReference`, unresolved
+targets, recursive traversal, instance references and HTML links are not reverse edges.
+An artifact without a canonical reports `not_checked`; an exact target with no incoming
+edges returns a completed empty page.
+
+Sync records StructureDefinition bases, type/target profiles, bindings and local content
+references; ValueSet compose imports; CapabilityStatement REST resource profiles,
+supported profiles and operation definitions; and OperationDefinition bases,
+input/output profiles, parameter target profiles and parameter bindings. Nested
+OperationDefinition parameter parts are included. Inspection reports unresolved,
+excluded, outside-scope, ambiguous and unsupported canonicals without fetching or
+repairing them. CapabilityStatement imports/instantiates/guides/messages/search
+parameters, other OperationDefinition fields, and Questionnaire/Library metadata are
+outside this reviewed subset.
+
 Core R4 guidance is pinned through six explicit permanent publication pages:
 profiling (including slicing), extensibility, references, terminology bindings,
 bundles and conformance. Bundle ingestion selects authored section anchors and
