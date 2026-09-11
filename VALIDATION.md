@@ -333,6 +333,66 @@ and no failures/errors in **650.02 seconds**. Ruff, Pyright, diff checks and all
 installed readiness checks passed. Evidence: `.specfhir/m5-focused.xml` and
 `.specfhir/m5-final.xml`.
 
+## M6 — Clean setup and representative performance (2026-09-11)
+
+A new clone of commit `d8f9c82` began with no `.specfhir` runtime state and published
+only to disposable PostgreSQL schema `m6_clean_codex_20260911`. The first acquisition
+exposed a stale locked URL for `us.nlm.vsac#0.19.0`: the primary registry returned 404.
+The official secondary registry served the same 51,801,571-byte archive with the exact
+locked SHA-256, so only the pinned source URL changed. No fallback behavior, package
+content, dependency edge or FHIR interpretation changed.
+
+Locked Python setup took 0.32 seconds. The successful clean sync published 105,823
+artifacts, 137,860 elements, 316,603 documents and 242,301 embeddings with no prepared
+package or embedding-cache hits:
+
+| Clean-sync phase | Seconds |
+| --- | ---: |
+| Acquisition | 42.613 |
+| Extraction | 46.488 |
+| Embeddings | 1,172.343 |
+| Database publication | 107.138 |
+| Reference computation within publication | 16.211 |
+| Analyze | 10.611 |
+| Validator refresh | 0.017 |
+| Command total | 1,379.540 |
+
+Cold embedding preparation was 85.0% of total command time; this run does not support
+attributing clean setup latency primarily to PostgreSQL. The disposable runtime used
+6.7 GiB: 4.9 GiB prepared data, 1.1 GiB model files, 351 MiB package archives, 330 MiB
+publications and small remaining state. The published PostgreSQL schema used 1.688 GiB.
+An immediate repeat with HTTP disabled returned unchanged in 4.580 seconds with zero
+extraction, embedding, publication, reference or analyze work.
+
+All 11 installed readiness checks passed. A real MCP session connected in 0.425 seconds,
+listed the exact six tools in 0.002 seconds and returned 60 contexts in 0.217 seconds.
+Representative Python API observations were:
+
+| Workflow | Seconds | JSON bytes |
+| --- | ---: | ---: |
+| Context discovery | 0.0223 | 28,642 |
+| PAS profile comparison, first 10 of 61 changes | 0.0334 | 17,183 |
+| Incoming-reference inspection, two sources | 0.0762 | 2,632 |
+| Release-scoped guidance search, five results | 0.0919 | 12,972 |
+| Bounded guidance passage inspection | 0.0152 | 3,191 |
+| PAS 2.0.1/2.1.0 paired validation, both contexts cold | 29.0197 | 61,096 |
+| Identical paired validation, both contexts warm | 0.1928 | 61,096 |
+
+Five existing acceptance tests then verified the representative comparison, package,
+reference, guidance and paired-validation workflows through real API, CLI and MCP in
+102.51 seconds. Ruff, formatting and Pyright passed from the clean checkout; the
+isolated PostgreSQL suite passed 30 tests with two explicit real-smoke skips in 117.53
+seconds. No sync/build overlapped tests. The isolated clean verification did not replace
+the application dataset, and the measurements justified no new model, ANN, graph, CI or
+incremental-publication system.
+
+After isolated verification, the working dataset was republished once to keep current
+readiness aligned with the corrected source provenance. All 60 prepared packages and
+242,301 embeddings were reused; the command took 141.039 seconds, including 125.414
+seconds for database publication and 17.340 seconds for reference computation. The
+validator snapshot was unchanged. A second coordinated run was unchanged in 5.821
+seconds, and all 11 readiness checks passed.
+
 ## Published examples versus synthetic fixtures
 
 Twenty original published examples across eight IG releases are loaded directly

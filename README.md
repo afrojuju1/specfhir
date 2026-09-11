@@ -27,6 +27,9 @@ uv run specfhir validate patient.json --profile USCorePatient --json
 
 The first sync downloads pinned packages and model files, indexes the dataset,
 then prepares and starts the validator. Subsequent unchanged runs reuse both.
+A measured clean setup took about 23 minutes and 6.7 GiB, mostly for local embedding
+generation; the unchanged follow-up took about 6 seconds. See
+[VALIDATION.md](VALIDATION.md) for the dated breakdown.
 `patient.json` is your input file; submitted instances are never indexed.
 
 [specfhir.toml](specfhir.toml) selects exact package roots and publications;

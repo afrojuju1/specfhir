@@ -1,9 +1,9 @@
 # SpecFHIR — Design and work plan
 
-Phases 1–4 and the PAS, CRD, CDEX, and DTR release expansions are implemented.
-This file is the current contract; [README.md](README.md) owns operating commands,
-[VALIDATION.md](VALIDATION.md) owns dated evidence, and Git retains superseded plans.
-Implement only requested milestones. Do not introduce custom FHIR semantics.
+The approved six-milestone roadmap and the PAS, CRD, CDEX, and DTR release expansions
+are implemented. This file is the current contract; [README.md](README.md) owns
+operating commands, [VALIDATION.md](VALIDATION.md) owns dated evidence, and Git retains
+superseded plans. Implement only requested work. Do not introduce custom FHIR semantics.
 
 ## Purpose and boundaries
 
@@ -243,12 +243,9 @@ Readiness checks cover both direct and archive sources with the same provenance 
   direct target evidence, bounded pages and reviewed PAS transport workflows.
 - Version comparison (M1): installed-context discovery, canonical/element-ID
   comparison, dataset guards, bounded evidence, and reviewed PAS API/CLI/MCP workflows.
-- Current hardening: retain every API assertion and replay one CLI/MCP contract per
-  worker session for each exercised tool, status and CLI exit class; inspect one
-  representative page from every sibling release with dependency-aware provenance;
-  assert reviewed published-example error categories and counts; consolidate
-  operating/design/evidence documentation; allow bounded pytest-xdist runs while
-  preserving the database and validator serialization bounds.
+- Operational readiness (M6): clean-checkout sync and representative API/CLI/MCP
+  workflows, measured cold/warm costs, retained local/static regression gates, and
+  bounded pytest-xdist runs that preserve database and validator serialization.
 
 Acceptance must preserve isolation, atomic-failure behavior, exact provenance,
 positive/negative validator findings, exhaustive API behavior, and identical
@@ -260,13 +257,9 @@ category/count requires review.
 
 ## Next work, when requested
 
-Beads epic `sf-oyi` owns the approved roadmap. The remaining milestone covers
-operational readiness and measured performance.
-
-Expand through the existing package/publication configuration and pytest paths.
-For each release, verify exact dependencies, documentation provenance, representative
-positive/negative validation, release isolation, and source-backed retrieval cases.
-Use installed readiness plus live acceptance as the completion gate.
+The approved six-milestone Beads roadmap is complete. Deferred issue `sf-oyi.6.1`
+keeps possible GitHub Actions work outside the milestone gate while the repository is
+stabilizing; do not reactivate it without an explicit request.
 
 Measure before adding infrastructure. Remaining known prose misses and full database
 publication cost are candidates for targeted work if they matter to actual usage.

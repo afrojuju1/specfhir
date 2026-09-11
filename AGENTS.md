@@ -1,6 +1,9 @@
 # SpecFHIR
 
 - Follow PLAN.md. Implement only the requested phase or milestone; no custom FHIR semantics.
+- The six-milestone roadmap is complete. GitHub Actions issue `sf-oyi.6.1` is
+  deferred outside it; do not reactivate CI work or invent another milestone
+  without an explicit request.
 - Use uv for Python commands. Check with `uv run ruff check .`,
   `uv run ruff format --check .`, `uv run pyright`, and `uv run pytest`.
 - Integration tests require the local Compose database and run with
