@@ -21,6 +21,22 @@
 - Package archives, database files, caches, and credentials stay out of Git.
 - No commits or pushes unless explicitly requested.
 
+## Runtime generation cleanup
+
+- After verified lock-changing work, with no tests running, use
+  `uv run specfhir sync --prune-cache --with-validator --json` to remove obsolete
+  prepared, embedded, and vector generations through the guarded cleanup path.
+- Validator snapshots are immutable and intentionally excluded from that command.
+  Remove obsolete snapshot directories only after
+  `uv run specfhir check --with-validator --json` confirms the service is ready
+  and matches the exact ID in
+  `.specfhir/validator-service/current`; never remove that current directory.
+- Keep cleanup manual while lock changes are rare. Consider bounded automatic
+  retention only if repeated lock updates or measured disk pressure make manual
+  cleanup routine; retain the current and one previous validator snapshot for rollback.
+- Never prune package archives, publication archives, models, PostgreSQL data,
+  unknown files, or symlinks as part of generation cleanup.
+
 ## Issue tracking
 
 - Use Beads (`bd`) for project issues; IDs use the `sf` prefix.
